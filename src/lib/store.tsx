@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import { initialState, rollover, type Alert, type GameState } from "./system";
+import { initialState, isLowHp, rollover, type Alert, type GameState } from "./system";
 
 const KEY = "sl-system-v1";
 type Ctx = {
@@ -16,12 +16,20 @@ export function SystemProvider({ children }: { children: ReactNode }) {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [ready, setReady] = useState(false);
   const stateRef = useRef(state);
+  const lowHpNotified = useRef(false);
   stateRef.current = state;
 
   const act = useCallback((fn: (s: GameState, a: Alert[]) => void) => {
     const s: GameState = structuredClone(stateRef.current);
     const a: Alert[] = [];
     fn(s, a);
+    if (isLowHp(s) && !lowHpNotified.current) {
+      a.push({ kind: "lowHp", title: "[SYSTEM] Low HP", body: `HP critical: ${s.hp}/${s.maxHp}. Use a healing potion or complete your daily quests.` });
+      if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+        try { new Notification("[SYSTEM] Low HP", { body: `HP critical: ${s.hp}/${s.maxHp}.`, tag: "system-low-hp" }); } catch { /* Browser notifications unavailable. */ }
+      }
+    }
+    lowHpNotified.current = isLowHp(s);
     stateRef.current = s;
     setState(s);
     if (a.length) setAlerts((p) => [...p, ...a]);

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { ATTRS, DIFFS, type Attr, type Diff } from "@/lib/system";
 import { cn } from "@/lib/utils";
+import { playSound } from "@/lib/sound";
 
 export function Panel({ children, className, title }: { children: ReactNode; className?: string; title?: string }) {
   return (
@@ -19,12 +20,13 @@ export function Bar({ value, max, hp }: { value: number; max: number; hp?: boole
   );
 }
 
-export function SysButton({ children, className, variant = "primary", ...p }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "ghost" | "danger" }) {
+export function SysButton({ children, className, variant = "primary", onClick, ...p }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "ghost" | "danger" }) {
   return (
     <button
       {...p}
+      onClick={(e) => { playSound(); onClick?.(e); }}
       className={cn(
-        "min-h-11 px-4 font-mono text-xs font-bold uppercase tracking-widest transition active:scale-95 disabled:opacity-40",
+        "sys-interactive min-h-11 px-4 font-mono text-xs font-bold uppercase tracking-widest transition active:scale-95 disabled:opacity-40",
         variant === "primary" && "border border-primary bg-primary/15 text-primary shadow-[0_0_12px_-3px_var(--primary)] hover:bg-primary/25",
         variant === "ghost" && "border border-border text-muted-foreground hover:text-foreground",
         variant === "danger" && "border border-destructive bg-destructive/15 text-destructive hover:bg-destructive/25",
@@ -40,8 +42,8 @@ export function DiffPicker({ value, onChange }: { value: Diff; onChange: (d: Dif
   return (
     <div className="flex gap-1">
       {DIFFS.map((d) => (
-        <button type="button" key={d} onClick={() => onChange(d)}
-          className={cn("h-9 flex-1 border font-mono text-sm font-bold", value === d ? "border-primary bg-primary/20 text-primary" : "border-border text-muted-foreground")}>{d}</button>
+        <SysButton variant="ghost" type="button" key={d} onClick={() => onChange(d)}
+          className={cn("h-9 flex-1 px-0 border font-mono text-sm font-bold", value === d ? "border-primary bg-primary/20 text-primary" : "border-border text-muted-foreground")}>{d}</SysButton>
       ))}
     </div>
   );
@@ -53,8 +55,8 @@ export function AttrPicker({ value, onChange }: { value: Attr[]; onChange: (a: A
       {ATTRS.map((a) => {
         const on = value.includes(a.key);
         return (
-          <button type="button" key={a.key} onClick={() => onChange(on ? value.filter((x) => x !== a.key) : [...value, a.key])}
-            className={cn("h-8 border px-2 font-mono text-[10px] uppercase tracking-wider", on ? "border-primary bg-primary/20 text-primary" : "border-border text-muted-foreground")}>{a.label.slice(0, 3)}</button>
+          <SysButton variant="ghost" type="button" key={a.key} onClick={() => onChange(on ? value.filter((x) => x !== a.key) : [...value, a.key])}
+            className={cn("h-8 border px-2 font-mono text-[10px] uppercase tracking-wider", on ? "border-primary bg-primary/20 text-primary" : "border-border text-muted-foreground")}>{a.label.slice(0, 3)}</SysButton>
         );
       })}
     </div>
