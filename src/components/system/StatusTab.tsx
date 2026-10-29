@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 export function StatusTab() {
   const { state } = useSystem();
   const ri = rankIndex(state.level);
-  const rank = RANKS[ri];
+  const rank = RANKS[ri]!;
   const next = RANKS[ri + 1];
   return (
     <div className="space-y-4">

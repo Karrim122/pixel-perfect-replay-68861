@@ -11,7 +11,7 @@ export const DIFFS: Diff[] = ["E", "D", "C", "B", "A", "S"];
 export const DIFF_XP: Record<Diff, number> = { E: 10, D: 20, C: 35, B: 55, A: 80, S: 120 };
 export const DIFF_HP: Record<Diff, number> = { E: 5, D: 8, C: 12, B: 16, A: 22, S: 30 };
 
-export const RANKS = [
+export const RANKS: readonly { name: string; min: number; tier: "hunter" | "s" | "monarch" }[] = [
   { name: "E-Rank", min: 1, tier: "hunter" },
   { name: "D-Rank", min: 11, tier: "hunter" },
   { name: "C-Rank", min: 23, tier: "hunter" },
@@ -20,14 +20,14 @@ export const RANKS = [
   { name: "S-Rank", min: 60, tier: "s" },
   { name: "National Level Hunter", min: 86, tier: "s" },
   { name: "Shadow Monarch", min: 116, tier: "monarch" },
-] as const;
+];
 
 export function rankIndex(level: number) {
   let i = 0;
   RANKS.forEach((r, idx) => { if (level >= r.min) i = idx; });
   return i;
 }
-export const rankOf = (level: number) => RANKS[rankIndex(level)];
+export const rankOf = (level: number) => RANKS[rankIndex(level)]!;
 export const xpToNext = (level: number) => Math.round(100 * Math.pow(level, 1.35));
 
 export interface Habit { id: string; name: string; kind: "+" | "-"; diff: Diff; attrs: Attr[]; count: number; }
@@ -83,7 +83,7 @@ export function gainXp(s: GameState, amount: number, alerts: Alert[]) {
     const r = rankIndex(s.level);
     log(s, `Level up → ${s.level}`, "level");
     if (r !== prevRank) {
-      const rank = RANKS[r];
+      const rank = RANKS[r]!;
       if (rank.name === "S-Rank") alerts.push({ kind: "awaken", title: "[SYSTEM] Level 60 Reached", body: "S-Rank Threshold Breached. The measurement device cannot register your power. Authority granted." });
       else if (rank.name === "Shadow Monarch") alerts.push({ kind: "monarch", title: "[SYSTEM] ARISE", body: "You have become the Shadow Monarch. All shadows kneel." });
       else alerts.push({ kind: "level", title: `[SYSTEM] Rank Up: ${rank.name}`, body: `You have reached Level ${s.level}. +3 Attribute Points.` });
@@ -95,7 +95,7 @@ export function takeDamage(s: GameState, amount: number, alerts: Alert[]) {
   s.hp = Math.max(0, s.hp - amount);
   if (s.hp === 0) {
     const r = rankIndex(s.level);
-    const target = RANKS[Math.max(0, r - 1)];
+    const target = RANKS[Math.max(0, r - 1)]!;
     s.level = target.min; s.xp = 0;
     s.maxHp = 100 + (s.level - 1) * 2; s.hp = s.maxHp;
     log(s, `DEATH. Demoted to ${target.name} (Lv ${target.min})`, "warn");
