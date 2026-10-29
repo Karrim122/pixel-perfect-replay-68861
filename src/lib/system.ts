@@ -31,8 +31,8 @@ export const rankOf = (level: number) => RANKS[rankIndex(level)]!;
 export const xpToNext = (level: number) => Math.round(100 * Math.pow(level, 1.35));
 
 export interface Habit { id: string; name: string; kind: "+" | "-"; diff: Diff; attrs: Attr[]; count: number; }
-export interface Daily { id: string; name: string; diff: Diff; attrs: Attr[]; doneDate: string | null; reminder?: string; }
-export interface Todo { id: string; name: string; due: string; time?: string; diff: Diff; attrs: Attr[]; done: boolean; notified?: boolean; }
+export interface Daily { id: string; name: string; diff: Diff; attrs: Attr[]; doneDate: string | null; reminder?: string | undefined; }
+export interface Todo { id: string; name: string; due: string; time?: string | undefined; diff: Diff; attrs: Attr[]; done: boolean; notified?: boolean; }
 export interface Session { id: string; date: string; minutes: number; success: boolean; label: string; }
 export interface LogEntry { id: string; ts: number; text: string; kind: "info" | "warn" | "level"; }
 

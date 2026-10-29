@@ -44,7 +44,7 @@ function Shell() {
   const [locked, setLocked] = useState(false);
   const rank = rankOf(state.level);
 
-  useEffect(() => { document.documentElement.dataset.tier = rank.tier; }, [rank.tier]);
+  useEffect(() => { document.documentElement.dataset["tier"] = rank.tier; }, [rank.tier]);
 
   return (
     <div className="mx-auto flex min-h-screen max-w-md flex-col">
