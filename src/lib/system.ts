@@ -10,6 +10,8 @@ export type Diff = "E" | "D" | "C" | "B" | "A" | "S";
 export const DIFFS: Diff[] = ["E", "D", "C", "B", "A", "S"];
 export const DIFF_XP: Record<Diff, number> = { E: 10, D: 20, C: 35, B: 55, A: 80, S: 120 };
 export const DIFF_HP: Record<Diff, number> = { E: 5, D: 8, C: 12, B: 16, A: 22, S: 30 };
+export const POTION_HP = 30;
+export const isLowHp = (s: Pick<GameState, "hp" | "maxHp">) => s.hp > 0 && s.hp / s.maxHp <= 0.25;
 
 export const RANKS: readonly { name: string; min: number; tier: "hunter" | "s" | "monarch" }[] = [
   { name: "E-Rank", min: 1, tier: "hunter" },
@@ -37,7 +39,7 @@ export interface Session { id: string; date: string; minutes: number; success: b
 export interface LogEntry { id: string; ts: number; text: string; kind: "info" | "warn" | "level"; }
 
 export interface GameState {
-  level: number; xp: number; hp: number; maxHp: number; points: number;
+  level: number; xp: number; hp: number; maxHp: number; points: number; potions: number;
   stats: Record<Attr, number>;
   habits: Habit[]; dailies: Daily[]; todos: Todo[]; sessions: Session[]; log: LogEntry[];
   lastDay: string; dailyRewardDay: string | null;
@@ -50,7 +52,7 @@ export const today = () => {
 export const uid = () => Math.random().toString(36).slice(2, 10);
 
 export const initialState = (): GameState => ({
-  level: 1, xp: 0, hp: 100, maxHp: 100, points: 0,
+  level: 1, xp: 0, hp: 100, maxHp: 100, points: 0, potions: 0,
   stats: { strength: 10, discipline: 10, intelligence: 10, perception: 10, vitality: 10 },
   habits: [
     { id: uid(), name: "Workout session", kind: "+", diff: "C", attrs: ["strength", "vitality"], count: 0 },
@@ -64,7 +66,32 @@ export const initialState = (): GameState => ({
   todos: [], sessions: [], log: [], lastDay: today(), dailyRewardDay: null,
 });
 
-export type Alert = { kind: "info" | "penalty" | "level" | "awaken" | "death" | "monarch"; title: string; body: string };
+export type Alert = { kind: "info" | "penalty" | "level" | "awaken" | "death" | "monarch" | "lowHp"; title: string; body: string };
+
+export function completeDaily(s: GameState, id: string, alerts: Alert[]) {
+  const d = s.dailies.find((x) => x.id === id);
+  if (!d || d.doneDate === s.lastDay) return;
+  d.doneDate = s.lastDay;
+  gainXp(s, DIFF_XP[d.diff], alerts);
+  if (s.dailies.length && s.dailies.every((x) => x.doneDate === s.lastDay) && s.dailyRewardDay !== s.lastDay) {
+    s.dailyRewardDay = s.lastDay;
+    s.potions += 1;
+    s.hp = Math.min(s.maxHp, s.hp + 20);
+    s.dailies.forEach((x) => changeStats(s, x.attrs, 1));
+    log(s, "Daily Quest complete. +100 XP, +20 HP, +1 Healing Potion", "level");
+    alerts.push({ kind: "info", title: "[SYSTEM] Daily Quest Complete", body: "Rewards: +100 XP, +20 HP, +1 Healing Potion, +1 to linked attributes." });
+    gainXp(s, 100, alerts);
+  }
+}
+
+export function usePotion(s: GameState, alerts: Alert[]) {
+  if (s.potions < 1 || s.hp >= s.maxHp) return;
+  const restored = Math.min(POTION_HP, s.maxHp - s.hp);
+  s.potions -= 1;
+  s.hp += restored;
+  log(s, `Healing Potion used. +${restored} HP`);
+  alerts.push({ kind: "info", title: "[SYSTEM] Recovery", body: `Healing Potion restored ${restored} HP.` });
+}
 
 const log = (s: GameState, text: string, kind: LogEntry["kind"] = "info") => {
   s.log = [{ id: uid(), ts: Date.now(), text, kind }, ...s.log].slice(0, 60);

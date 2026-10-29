@@ -114,3 +114,19 @@
 @utility animate-sys-pulse { animation: sys-pulse 2s ease-in-out infinite; }
 @utility animate-sys-shatter { animation: sys-shatter .6s cubic-bezier(.2,.9,.3,1.2) both; }
 @utility animate-sys-shake { animation: sys-shake .4s ease-in-out 2; }
+
+@keyframes sys-enter { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes sys-critical { 50% { box-shadow: 0 0 22px -4px var(--destructive); } }
+.sys-view-enter { animation: sys-enter .3s ease-out both; }
+.sys-view-enter > div > section { animation: sys-enter .4s ease-out both; }
+.sys-view-enter > div > section:nth-child(2) { animation-delay: .06s; }
+.sys-view-enter > div > section:nth-child(3) { animation-delay: .12s; }
+.sys-low-hp { animation: sys-critical 1.4s ease-in-out infinite; }
+.sys-interactive { transition: transform .18s ease, background-color .18s ease, box-shadow .18s ease; }
+.sys-interactive:not(:disabled):hover { transform: translateY(-2px); }
+.sys-interactive:not(:disabled):active { transform: scale(.94); }
+.sys-interactive:focus-visible { outline: 2px solid var(--ring); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+  .sys-interactive:not(:disabled):hover, .sys-interactive:not(:disabled):active { transform: none; }
+}

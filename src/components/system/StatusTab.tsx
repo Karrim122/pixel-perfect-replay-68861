@@ -1,16 +1,18 @@
 import { useSystem } from "@/lib/store";
-import { ATTRS, RANKS, rankIndex, xpToNext } from "@/lib/system";
-import { Bar, Panel } from "./ui";
+import { ATTRS, RANKS, rankIndex, xpToNext, usePotion, POTION_HP, isLowHp } from "@/lib/system";
+import { FlaskConical } from "lucide-react";
+import { Bar, Panel, SysButton } from "./ui";
 import { cn } from "@/lib/utils";
 
 export function StatusTab() {
-  const { state } = useSystem();
+  const { state, act } = useSystem();
   const ri = rankIndex(state.level);
-  const rank = RANKS[ri]!;
+  const rank = RANKS[ri] ?? RANKS[0];
+  if (!rank) return null;
   const next = RANKS[ri + 1];
   return (
     <div className="space-y-4">
-      <Panel title="Status">
+      <Panel title="Status" className={isLowHp(state) ? "sys-danger sys-low-hp" : undefined}>
         <div className="flex items-end justify-between">
           <div>
             <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Level</p>
@@ -35,6 +37,13 @@ export function StatusTab() {
         <div className="mt-4 flex justify-between border-t border-border pt-3 font-mono text-xs">
           <span className="text-muted-foreground">Available Points</span>
           <span className="font-bold text-primary">{state.points}</span>
+        </div>
+      </Panel>
+
+      <Panel title="Healing Potions">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3"><FlaskConical className="h-7 w-7 text-success" /><div><p className="font-mono text-lg text-success">×{state.potions}</p><p className="text-sm text-muted-foreground">Restores up to {POTION_HP} HP</p></div></div>
+          <SysButton disabled={state.potions < 1 || state.hp >= state.maxHp} onClick={() => act((s, a) => usePotion(s, a))}>Use Potion</SysButton>
         </div>
       </Panel>
 
