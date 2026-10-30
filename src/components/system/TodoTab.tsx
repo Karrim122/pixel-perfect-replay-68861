@@ -90,7 +90,13 @@ export function TodoTab() {
         <SysButton variant={filter === "today" ? "primary" : "ghost"} onClick={() => setFilter("today")}>Today's Tasks</SysButton>
         <SysButton variant={filter === "all" ? "primary" : "ghost"} onClick={() => setFilter("all")}>All Tasks</SysButton>
       </div>
-      <Panel title={`Quests · ${list.filter((t) => !t.done).length} active`}>
+      <Panel>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="font-mono text-xs uppercase tracking-[0.3em] text-primary sys-glow-text">Quests · {list.filter((t) => !t.done).length} active</h2>
+          <SysButton variant="danger" disabled={activeEmergencyExists} className="!min-h-0 !h-8 !w-8 rounded-sm p-0" title="Start emergency focus timer" aria-label="Start emergency focus timer" onClick={startEmergency}>
+            <AlertTriangle className="h-3.5 w-3.5" />
+          </SysButton>
+        </div>
         {list.length === 0 && <p className="font-mono text-xs text-muted-foreground">No quests registered.</p>}
         <ul className="space-y-2">
           {list.map((t) => {
@@ -117,8 +123,7 @@ export function TodoTab() {
             );
           })}
         </ul>
-        <SysButton variant="danger" disabled={activeEmergencyExists} className="mt-3 h-8 w-full py-1 text-xs" onClick={startEmergency}><AlertTriangle className="mr-1 h-3.5 w-3.5" />Emergency</SysButton>
-        <SysButton className="mt-2 w-full" onClick={() => { setEditingId(null); setName(""); setDescription(""); setDue(today()); setTime(""); setBaseDifficulty("Easy"); setAttrs(["intelligence"]); setRewardType("none"); setRewardName(""); setRewardDescription(""); setOpen(true); }}>+ New Task</SysButton>
+        <SysButton className="mt-3 w-full" onClick={() => { setEditingId(null); setName(""); setDescription(""); setDue(today()); setTime(""); setBaseDifficulty("Easy"); setAttrs(["intelligence"]); setRewardType("none"); setRewardName(""); setRewardDescription(""); setOpen(true); }}>+ New Task</SysButton>
       </Panel>
 
       {open && createPortal(
