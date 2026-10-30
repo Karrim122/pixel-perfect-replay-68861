@@ -8,6 +8,7 @@ type Ctx = {
   alerts: Alert[];
   dismiss: () => void;
   ready: boolean;
+  reset: () => void;
 };
 const C = createContext<Ctx | null>(null);
 
@@ -70,7 +71,7 @@ export function SystemProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(t);
   }, [ready, act]);
 
-  return <C.Provider value={{ state, act, alerts, dismiss: () => setAlerts((p) => p.slice(1)), ready }}>{children}</C.Provider>;
+  return <C.Provider value={{ state, act, alerts, dismiss: () => setAlerts((p) => p.slice(1)), ready, reset: () => { const s = initialState(); stateRef.current = s; lowHpNotified.current = false; setAlerts([]); setState(s); } }}>{children}</C.Provider>;
 }
 
 export const useSystem = () => {

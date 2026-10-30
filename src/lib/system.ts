@@ -43,6 +43,7 @@ export interface GameState {
   stats: Record<Attr, number>;
   habits: Habit[]; dailies: Daily[]; todos: Todo[]; sessions: Session[]; log: LogEntry[];
   lastDay: string; dailyRewardDay: string | null;
+  playerName: string;
 }
 
 export const today = () => {
@@ -63,7 +64,7 @@ export const initialState = (): GameState => ({
     { id: uid(), name: "Read 20 pages", diff: "D", attrs: ["intelligence"], doneDate: null },
     { id: uid(), name: "10 min meditation", diff: "E", attrs: ["perception"], doneDate: null },
   ],
-  todos: [], sessions: [], log: [], lastDay: today(), dailyRewardDay: null,
+  todos: [], sessions: [], log: [], lastDay: today(), dailyRewardDay: null, playerName: "",
 });
 
 export type Alert = { kind: "info" | "penalty" | "level" | "awaken" | "death" | "monarch" | "lowHp"; title: string; body: string };
