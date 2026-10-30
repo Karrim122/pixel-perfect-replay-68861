@@ -51,6 +51,7 @@ export const rankOf = (level: number) => RANKS[rankIndex(level)]!;
 export const xpToNext = (level: number) => Math.round(100 * Math.pow(level, 1.35));
 
 export interface WeeklyQuest { id: string; name: string; description?: string | undefined; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; daysOfWeek: number[]; doneDates: string[]; reminder?: string | undefined; }
+export interface DailyQuest { id: string; name: string; description?: string | undefined; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; doneDate: string | null; reminder?: string | undefined; }
 export interface Todo { id: string; name: string; description?: string | undefined; due: string; time?: string | undefined; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; done: boolean; notified?: boolean; }
 export interface Session { id: string; date: string; minutes: number; success: boolean; label: string; }
 export interface LogEntry { id: string; ts: number; text: string; kind: "info" | "warn" | "level"; }
@@ -58,7 +59,7 @@ export interface LogEntry { id: string; ts: number; text: string; kind: "info" |
 export interface GameState {
   level: number; xp: number; hp: number; maxHp: number; points: number; potions: number;
   stats: Record<Attr, number>;
-  weeklyQuests: WeeklyQuest[]; todos: Todo[]; sessions: Session[]; log: LogEntry[];
+  dailyQuests: DailyQuest[]; weeklyQuests: WeeklyQuest[]; todos: Todo[]; sessions: Session[]; log: LogEntry[];
   lastDay: string; dailyGateQuestDoneDate: string | null;
   playerName: string;
 }
@@ -72,7 +73,7 @@ export const uid = () => Math.random().toString(36).slice(2, 10);
 export const initialState = (): GameState => ({
   level: 1, xp: 0, hp: 100, maxHp: 100, points: 0, potions: 0,
   stats: { strength: 10, discipline: 10, intelligence: 10, perception: 10, vitality: 10 },
-  weeklyQuests: [], todos: [], sessions: [], log: [], lastDay: today(), dailyGateQuestDoneDate: null, playerName: "",
+  dailyQuests: [], weeklyQuests: [], todos: [], sessions: [], log: [], lastDay: today(), dailyGateQuestDoneDate: null, playerName: "",
 });
 
 export type Alert = { kind: "info" | "penalty" | "level" | "awaken" | "death" | "monarch" | "lowHp"; title: string; body: string };
@@ -86,6 +87,15 @@ export function completeWeeklyQuest(s: GameState, id: string, alerts: Alert[]) {
   gainXp(s, DIFF_XP[quest.diff], alerts);
   changeStats(s, quest.attrs, 1);
   log(s, `Weekly quest complete: ${quest.name} (+${DIFF_XP[quest.diff]} XP)`, "info");
+}
+
+export function completeDailyQuest(s: GameState, id: string, alerts: Alert[]) {
+  const quest = s.dailyQuests.find((x) => x.id === id);
+  if (!quest || quest.doneDate === s.lastDay) return;
+  quest.doneDate = s.lastDay;
+  gainXp(s, DIFF_XP[quest.diff], alerts);
+  changeStats(s, quest.attrs, 1);
+  log(s, `Daily quest complete: ${quest.name} (+${DIFF_XP[quest.diff]} XP)`, "info");
 }
 
 export function completeTodo(s: GameState, id: string, alerts: Alert[]) {
@@ -166,6 +176,13 @@ export function rollover(s: GameState, alerts: Alert[]) {
     alerts.push({ kind: "penalty", title: "[System Alert] Daily Quest Failed", body: `Close todays gate was not completed. -${damage} HP.` });
     takeDamage(s, damage, alerts);
   }
+  const missedDailyQuests = s.dailyQuests.filter((quest) => quest.doneDate !== s.lastDay);
+  if (missedDailyQuests.length) {
+    const damage = missedDailyQuests.reduce((total, quest) => total + DIFF_HP[quest.diff], 0);
+    log(s, `Daily quests failed (${missedDailyQuests.length} missed). -${damage} HP`, "warn");
+    alerts.push({ kind: "penalty", title: "[System Alert] Daily Quests Failed", body: `${missedDailyQuests.map((quest) => quest.name).join(", ")} were not completed. -${damage} HP.` });
+    takeDamage(s, damage, alerts);
+  }
   s.lastDay = t;
 }
 
@@ -187,5 +204,5 @@ export function hydrateState(raw: string): GameState {
     ...(daily.reminder ? { reminder: daily.reminder } : {}),
   }));
   const { dailies: _dailies, habits: _habits, ...current } = saved;
-  return { ...base, ...current, weeklyQuests, dailyGateQuestDoneDate: saved.dailyGateQuestDoneDate ?? null } as GameState;
+  return { ...base, ...current, dailyQuests: saved.dailyQuests ?? [], weeklyQuests, dailyGateQuestDoneDate: saved.dailyGateQuestDoneDate ?? null } as GameState;
 }

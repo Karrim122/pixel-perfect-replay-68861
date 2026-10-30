@@ -66,6 +66,8 @@ export function SystemProvider({ children }: { children: ReactNode }) {
       }
       const weeklyQuest = s.weeklyQuests.find((q) => q.reminder === hm && isWeeklyQuestScheduled(q, s.lastDay) && !q.doneDates.includes(s.lastDay));
       if (weeklyQuest && typeof Notification !== "undefined" && Notification.permission === "granted") new Notification("[SYSTEM] Weekly Quest", { body: weeklyQuest.name });
+      const dailyQuest = s.dailyQuests.find((q) => q.reminder === hm && q.doneDate !== s.lastDay);
+      if (dailyQuest && typeof Notification !== "undefined" && Notification.permission === "granted") new Notification("[SYSTEM] Daily Quest", { body: dailyQuest.name });
     };
     const t = setInterval(tick, 20000);
     return () => clearInterval(t);
