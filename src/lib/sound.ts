@@ -6,7 +6,7 @@ type Voice = { notes: number[]; type: OscillatorType; gap: number; peak: number;
 
 const CUES: Record<Cue, Voice> = {
   tap: { notes: [520], type: "sine", gap: 0.12, peak: 0.08, decay: 0.13 },
-  done: { notes: [880, 1318.5], type: "triangle", gap: 0.075, peak: 0.09, decay: 0.12 },
+  done: { notes: [523.25, 659.25, 783.99, 1046.5], type: "triangle", gap: 0.09, peak: 0.12, decay: 0.22 },
   reward: { notes: [440, 660, 880], type: "sine", gap: 0.12, peak: 0.08, decay: 0.13 },
   warning: { notes: [220, 160, 220], type: "triangle", gap: 0.12, peak: 0.08, decay: 0.13 },
 };
