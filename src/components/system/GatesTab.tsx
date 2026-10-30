@@ -108,9 +108,10 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
         <SysButton className="mt-5 h-14 w-full text-sm" onClick={start}>Enter Gate</SysButton>
       </Panel>
       <Panel title="Focus Analysis">
-        <div className="grid grid-cols-3 gap-2 text-center font-mono">
+        <div className="grid grid-cols-2 gap-3 text-center font-mono">
           <div><p className="text-2xl font-bold text-primary">{today.reduce((n, s) => n + s.minutes, 0)}</p><p className="text-[10px] uppercase text-muted-foreground">Min today</p></div>
           <div><p className="text-2xl font-bold text-primary">{total}</p><p className="text-[10px] uppercase text-muted-foreground">Min total</p></div>
+          <div><p className="text-2xl font-bold text-primary">{ok}</p><p className="text-[10px] uppercase text-muted-foreground">Gates closed</p></div>
           <div><p className="text-2xl font-bold text-primary">{eff}%</p><p className="text-[10px] uppercase text-muted-foreground">Efficiency</p></div>
         </div>
         <ul className="mt-4 space-y-1 font-mono text-xs">

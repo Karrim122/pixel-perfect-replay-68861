@@ -4,7 +4,7 @@ import { Check, Pencil, Plus, Trash2 } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
 import { baseDifficultyForDiff, completeDailyQuest, completeWeeklyQuest, difficultyForRankIndex, isWeeklyQuestScheduled, rankIndex, resolveDifficulty, uid, type Attr, type BaseDifficulty } from "@/lib/system";
 import { playSound } from "@/lib/sound";
-import { PenaltySection } from "./PenaltySection";
+import { BonusPenaltySection } from "./BonusPenaltySection";
 import { AttrPicker, BaseDifficultyPicker, DiffBadge, Panel, SysButton, inputCls } from "./ui";
 import { cn } from "@/lib/utils";
 
@@ -130,7 +130,7 @@ export function QuestsTab() {
         <p className="mt-3 font-mono text-[10px] text-muted-foreground">Weekly quests repeat on the weekdays you selected.</p>
       </Panel>
 
-      <PenaltySection />
+      <BonusPenaltySection />
 
       {open && createPortal(
         <div className="fixed inset-0 z-[100] flex items-end bg-background/80 backdrop-blur-md" onClick={closeEditor}>
