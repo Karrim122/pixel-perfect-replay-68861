@@ -55,7 +55,7 @@ export interface DailyQuest { id: string; name: string; description?: string | u
 export interface BonusPenaltyHabit { id: string; name: string; description?: string | undefined; kind: "bonus" | "penalty"; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; count: number; }
 export type TodoReward = { type: "potion" } | { type: "gift"; name: string; description?: string | undefined };
 export interface InventoryGift { id: string; name: string; description?: string | undefined; rank: Diff; sourceTask: string; earnedAt: string; }
-export interface Todo { id: string; name: string; description?: string | undefined; due: string; time?: string | undefined; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; done: boolean; notified?: boolean; reward?: TodoReward | undefined; }
+export interface Todo { id: string; name: string; description?: string | undefined; due: string; time?: string | undefined; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; done: boolean; notified?: boolean; reward?: TodoReward | undefined; emergency?: boolean; emergencyDeadline?: number; emergencyFailed?: boolean; }
 export interface Session { id: string; date: string; minutes: number; success: boolean; label: string; }
 export interface LogEntry { id: string; ts: number; text: string; kind: "info" | "warn" | "level"; }
 
@@ -136,7 +136,16 @@ export function triggerBonusPenaltyHabit(s: GameState, id: string, alerts: Alert
 export function completeTodo(s: GameState, id: string, alerts: Alert[]) {
   const task = s.todos.find((x) => x.id === id);
   if (!task || task.done) return;
+  if (task.emergency && (task.emergencyFailed || (task.emergencyDeadline !== undefined && task.emergencyDeadline > Date.now()))) return;
   task.done = true;
+  if (task.emergency) {
+    const bonusXp = 200;
+    gainXp(s, bonusXp, alerts);
+    changeStats(s, ["discipline"], 3);
+    log(s, `Emergency task complete: ${task.name} (+${bonusXp} XP, +3 Discipline)`, "level");
+    alerts.push({ kind: "info", title: "[SYSTEM] EMERGENCY CLEARED", body: `Focus regained. +${bonusXp} XP and +3 Discipline.` });
+    return;
+  }
   gainXp(s, DIFF_XP[task.diff], alerts);
   changeStats(s, task.attrs, 1);
   log(s, `Quest cleared: ${task.name} (+${DIFF_XP[task.diff]} XP)`, "info");
@@ -154,6 +163,16 @@ export function completeTodo(s: GameState, id: string, alerts: Alert[]) {
     log(s, `Task reward received: ${task.reward.name} (${task.diff}-Rank Gift)`, "level");
     alerts.push({ kind: "info", title: "[SYSTEM] Gift Received", body: `${task.name} complete. ${task.reward.name} (${task.diff}-Rank) was added to your inventory.` });
   }
+}
+
+export function failEmergencyTodo(s: GameState, id: string, alerts: Alert[]) {
+  const task = s.todos.find((item) => item.id === id);
+  if (!task || !task.emergency || task.done || task.emergencyFailed || (task.emergencyDeadline !== undefined && task.emergencyDeadline > Date.now())) return;
+  task.emergencyFailed = true;
+  const damage = 50;
+  log(s, `Emergency failed: ${task.name}. -${damage} HP`, "warn");
+  alerts.push({ kind: "penalty", title: "[SYSTEM] EMERGENCY FAILED", body: `Focus was not regained in time. -${damage} HP.` });
+  takeDamage(s, damage, alerts);
 }
 
 export function completeDailyGateQuest(s: GameState) {

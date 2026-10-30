@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { Bell, Check, FlaskConical, Gift, Pencil, Trash2 } from "lucide-react";
+import { AlertTriangle, Bell, Check, FlaskConical, Gift, Pencil, Trash2 } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
 import { playSound } from "@/lib/sound";
 import { baseDifficultyForDiff, completeTodo, DIFFS, resolveDifficulty, RANKS, today, uid, type Attr, type BaseDifficulty, type TodoReward } from "@/lib/system";
@@ -22,10 +22,28 @@ export function TodoTab() {
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const potionRewardAllowed = baseDifficulty === "Hard" || baseDifficulty === "Very Hard";
+  const activeEmergencyExists = state.todos.some((task) => task.emergency && !task.done && !task.emergencyFailed);
 
   const list = state.todos
     .filter((t) => filter === "all" || t.due === state.lastDay)
     .sort((a, b) => Number(a.done) - Number(b.done) || a.due.localeCompare(b.due));
+
+  const startEmergency = () => {
+    if (activeEmergencyExists) return;
+    act((s) => {
+      s.todos.push({
+        id: uid(),
+        name: "regain focus",
+        due: today(),
+        diff: resolveDifficulty("Very Hard", s.level),
+        baseDifficulty: "Very Hard",
+        attrs: ["discipline"],
+        done: false,
+        emergency: true,
+        emergencyDeadline: Date.now() + 10 * 60 * 1000,
+      });
+    });
+  };
 
   const save = (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,13 +111,16 @@ export function TodoTab() {
                   </p>
                 </div>
                 <DiffBadge d={t.diff} />
-                <button aria-label={`Edit ${t.name}`} onClick={() => edit(t.id)} className="p-2 text-muted-foreground"><Pencil className="h-4 w-4" /></button>
-                <button aria-label="Delete" onClick={() => act((s) => { s.todos = s.todos.filter((x) => x.id !== t.id); })} className="p-2 text-muted-foreground"><Trash2 className="h-4 w-4" /></button>
+                {!t.emergency && <button aria-label={`Edit ${t.name}`} onClick={() => edit(t.id)} className="p-2 text-muted-foreground"><Pencil className="h-4 w-4" /></button>}
+                {!(t.emergency && !t.done && !t.emergencyFailed) && <button aria-label="Delete" onClick={() => act((s) => { s.todos = s.todos.filter((x) => x.id !== t.id); })} className="p-2 text-muted-foreground"><Trash2 className="h-4 w-4" /></button>}
               </li>
             );
           })}
         </ul>
-        <SysButton className="mt-3 w-full" onClick={() => { setEditingId(null); setName(""); setDescription(""); setDue(today()); setTime(""); setBaseDifficulty("Easy"); setAttrs(["intelligence"]); setRewardType("none"); setRewardName(""); setRewardDescription(""); setOpen(true); }}>+ New Task</SysButton>
+        <div className="mt-3 grid grid-cols-[auto_1fr] gap-2">
+          <SysButton variant="danger" className="h-10 gap-1 px-3 text-xs" disabled={activeEmergencyExists} onClick={startEmergency}><AlertTriangle className="h-4 w-4" /> Emergency</SysButton>
+          <SysButton onClick={() => { setEditingId(null); setName(""); setDescription(""); setDue(today()); setTime(""); setBaseDifficulty("Easy"); setAttrs(["intelligence"]); setRewardType("none"); setRewardName(""); setRewardDescription(""); setOpen(true); }}>+ New Task</SysButton>
+        </div>
       </Panel>
 
       {open && createPortal(
