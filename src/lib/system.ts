@@ -57,7 +57,7 @@ export interface BonusPenaltyHabit { id: string; name: string; description?: str
 export type TodoReward = { type: "potion" } | { type: "gift"; name: string; description?: string | undefined };
 export interface InventoryGift { id: string; name: string; description?: string | undefined; rank: Diff; sourceTask: string; earnedAt: string; }
 export interface Todo { id: string; name: string; description?: string | undefined; due: string; time?: string | undefined; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; done: boolean; notified?: boolean; reward?: TodoReward | undefined; emergency?: boolean; emergencyDeadline?: number; emergencyFailed?: boolean; }
-export interface GateBlueprint { id: string; target: string; label: string; diff: Diff; details?: string | undefined; }
+export interface GateBlueprint { id: string; target: string; label: string; diff: Diff; details?: string | undefined; createdAt?: string; }
 export interface Session { id: string; date: string; minutes: number; success: boolean; label: string; }
 export interface LogEntry { id: string; ts: number; text: string; kind: "info" | "warn" | "level"; }
 
@@ -250,6 +250,9 @@ export function changeStats(s: GameState, attrs: Attr[], delta: number) {
 export function rollover(s: GameState, alerts: Alert[]) {
   const t = today();
   if (s.lastDay === t) return;
+  const recovered = Math.min(DAILY_REST_HP, s.maxHp - s.hp);
+  s.hp += recovered;
+  if (recovered > 0) log(s, `Rest recovery. +${recovered} HP`, "info");
   if (s.dailyGateQuestDoneDate !== s.lastDay) {
     const diff = difficultyForRankIndex(rankIndex(s.level));
     const damage = DIFF_HP[diff];
@@ -264,9 +267,17 @@ export function rollover(s: GameState, alerts: Alert[]) {
     alerts.push({ kind: "penalty", title: "[System Alert] Daily Quests Failed", body: `${missedDailyQuests.map((quest) => quest.name).join(", ")} were not completed. -${damage} HP.` });
     takeDamage(s, damage, alerts);
   }
-  const recovered = Math.min(DAILY_REST_HP, s.maxHp - s.hp);
-  s.hp += recovered;
-  if (recovered > 0) log(s, `Rest recovery. +${recovered} HP`, "info");
+  const linkedWeeklyQuestIds = new Set(s.gates
+    .filter((gate) => gate.target.startsWith("w:") && (!gate.createdAt || gate.createdAt <= s.lastDay))
+    .map((gate) => gate.target.slice(2)));
+  for (const id of linkedWeeklyQuestIds) {
+    const quest = s.weeklyQuests.find((item) => item.id === id);
+    if (!quest || !isWeeklyQuestScheduled(quest, s.lastDay) || quest.doneDates.includes(s.lastDay)) continue;
+    const damage = DIFF_HP[quest.diff];
+    log(s, `Weekly quest Gate failed: ${quest.name}. -${damage} HP`, "warn");
+    alerts.push({ kind: "penalty", title: "[System Alert] Weekly Gate Failed", body: `The Gate assigned to ${quest.name} was not closed on its scheduled day. -${damage} HP.` });
+    takeDamage(s, damage, alerts);
+  }
   s.todos = s.todos.filter((task) => !task.done);
   s.lastDay = t;
 }

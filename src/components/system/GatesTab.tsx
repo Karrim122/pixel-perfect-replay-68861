@@ -30,7 +30,7 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
   const createGate = () => {
     const selected = options.find((option) => option.id === createTarget);
     if (!selected) return;
-    act((s) => s.gates.push({ id: uid(), target: selected.id, label: selected.label, diff: selected.diff, details: gateDetails.trim() || undefined }));
+    act((s) => s.gates.push({ id: uid(), target: selected.id, label: selected.label, diff: selected.diff, details: gateDetails.trim() || undefined, createdAt: s.lastDay }));
     setCreateTarget("");
     setGateDetails("");
   };
@@ -211,16 +211,26 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
           <ul className="space-y-3">
             {state.gates.map((gate) => {
               const assigned = options.find((option) => option.id === gate.target);
-              const label = assigned?.label ?? gate.label;
-              const diff = assigned?.diff ?? gate.diff;
+              const linkedQuest = gate.target.startsWith("w:") ? state.weeklyQuests.find((quest) => quest.id === gate.target.slice(2)) : undefined;
+              const linkedTask = gate.target.startsWith("t:") ? state.todos.find((task) => task.id === gate.target.slice(2)) : undefined;
+              const source = linkedQuest ?? linkedTask;
+              const label = source?.name ?? gate.label;
+              const diff = source?.diff ?? gate.diff;
               const rank = RANKS[DIFFS.indexOf(diff)]?.name ?? "E-Rank";
+              const unavailableReason = linkedQuest
+                ? linkedQuest.doneDates.includes(state.lastDay)
+                  ? "Quest already completed today; this gate remains saved for its next scheduled day."
+                  : !isWeeklyQuestScheduled(linkedQuest, state.lastDay)
+                    ? "Gate remains saved. Missed scheduled days cost HP; it is available again on the next scheduled day."
+                    : "Quest unavailable today."
+                : "Objective completed or unavailable.";
               return (
                 <li key={gate.id} className="flex items-start gap-2 border-b border-border/40 pb-3">
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-base">{label}</p>
                     <p className="font-mono text-[10px] uppercase text-primary">{rank} Gate · {minutes} min</p>
                     {gate.details && <p className="mt-1 text-xs text-muted-foreground">{gate.details}</p>}
-                    {!assigned && <p className="mt-1 font-mono text-[10px] text-muted-foreground">Objective completed or no longer scheduled.</p>}
+                    {!assigned && <p className="mt-1 font-mono text-[10px] text-muted-foreground">{unavailableReason}</p>}
                   </div>
                   <DiffBadge d={diff} />
                   <SysButton disabled={!assigned} onClick={() => start(gate)}>Start</SysButton>
