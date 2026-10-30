@@ -229,6 +229,7 @@ export function rollover(s: GameState, alerts: Alert[]) {
     alerts.push({ kind: "penalty", title: "[System Alert] Daily Quests Failed", body: `${missedDailyQuests.map((quest) => quest.name).join(", ")} were not completed. -${damage} HP.` });
     takeDamage(s, damage, alerts);
   }
+  s.todos = s.todos.filter((task) => !task.done);
   s.lastDay = t;
 }
 
