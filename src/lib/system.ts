@@ -6,10 +6,28 @@ export const ATTRS: { key: Attr; label: string; desc: string }[] = [
   { key: "perception", label: "Perception", desc: "Focus, concentration, mindfulness." },
   { key: "vitality", label: "Vitality", desc: "Energy, stamina, recovery, sustained effort." },
 ];
-export type Diff = "E" | "D" | "C" | "B" | "A" | "S";
-export const DIFFS: Diff[] = ["E", "D", "C", "B", "A", "S"];
-export const DIFF_XP: Record<Diff, number> = { E: 10, D: 20, C: 35, B: 55, A: 80, S: 120 };
-export const DIFF_HP: Record<Diff, number> = { E: 5, D: 8, C: 12, B: 16, A: 22, S: 30 };
+export type Diff = "E" | "D" | "C" | "B" | "A" | "S" | "N" | "M";
+export const DIFFS: Diff[] = ["E", "D", "C", "B", "A", "S", "N", "M"];
+export const DIFF_XP: Record<Diff, number> = { E: 10, D: 20, C: 35, B: 55, A: 80, S: 120, N: 160, M: 220 };
+export const DIFF_HP: Record<Diff, number> = { E: 5, D: 8, C: 12, B: 16, A: 22, S: 30, N: 38, M: 48 };
+export type BaseDifficulty = "Very Easy" | "Easy" | "Medium" | "Hard" | "Very Hard";
+export const BASE_DIFFICULTIES: BaseDifficulty[] = ["Very Easy", "Easy", "Medium", "Hard", "Very Hard"];
+const RANK_DIFFS: Diff[] = ["E", "D", "C", "B", "A", "S", "N", "M"];
+const BASE_OFFSETS: Record<BaseDifficulty, number> = {
+  "Very Easy": -2, Easy: -1, Medium: 0, Hard: 1, "Very Hard": 2,
+};
+export function difficultyForRankIndex(index: number): Diff {
+  return RANK_DIFFS[Math.max(0, Math.min(RANK_DIFFS.length - 1, index))]!;
+}
+export function resolveDifficulty(base: BaseDifficulty, playerLevel: number): Diff {
+  return difficultyForRankIndex(rankIndex(playerLevel) + BASE_OFFSETS[base]);
+}
+export function baseDifficultyForDiff(diff: Diff, playerLevel: number): BaseDifficulty {
+  const offset = RANK_DIFFS.indexOf(diff) - rankIndex(playerLevel);
+  return BASE_DIFFICULTIES.reduce((closest, base) =>
+    Math.abs(BASE_OFFSETS[base] - offset) < Math.abs(BASE_OFFSETS[closest] - offset) ? base : closest,
+  "Medium");
+}
 export const POTION_HP = 30;
 export const isLowHp = (s: Pick<GameState, "hp" | "maxHp">) => s.hp > 0 && s.hp / s.maxHp <= 0.25;
 
@@ -32,9 +50,9 @@ export function rankIndex(level: number) {
 export const rankOf = (level: number) => RANKS[rankIndex(level)]!;
 export const xpToNext = (level: number) => Math.round(100 * Math.pow(level, 1.35));
 
-export interface Habit { id: string; name: string; kind: "+" | "-"; diff: Diff; attrs: Attr[]; count: number; }
-export interface Daily { id: string; name: string; diff: Diff; attrs: Attr[]; doneDate: string | null; reminder?: string | undefined; }
-export interface Todo { id: string; name: string; due: string; time?: string | undefined; diff: Diff; attrs: Attr[]; done: boolean; notified?: boolean; }
+export interface Habit { id: string; name: string; description?: string; kind: "+" | "-"; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; count: number; }
+export interface Daily { id: string; name: string; description?: string; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; doneDate: string | null; reminder?: string | undefined; }
+export interface Todo { id: string; name: string; description?: string; due: string; time?: string | undefined; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; done: boolean; notified?: boolean; }
 export interface Session { id: string; date: string; minutes: number; success: boolean; label: string; }
 export interface LogEntry { id: string; ts: number; text: string; kind: "info" | "warn" | "level"; }
 

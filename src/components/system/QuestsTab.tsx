@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { Bell, Check, Minus, Plus, Trash2 } from "lucide-react";
+import { Bell, Check, Minus, Pencil, Plus, Trash2 } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
 import { playSound } from "@/lib/sound";
-import { DIFF_HP, DIFF_XP, changeStats, gainXp, takeDamage, uid, type Attr, type Diff } from "@/lib/system";
-import { AttrPicker, DiffBadge, DiffPicker, Panel, SysButton, inputCls } from "./ui";
+import { DIFF_HP, DIFF_XP, baseDifficultyForDiff, changeStats, gainXp, resolveDifficulty, takeDamage, uid, type Attr, type BaseDifficulty } from "@/lib/system";
+import { AttrPicker, BaseDifficultyPicker, DiffBadge, Panel, SysButton, inputCls } from "./ui";
 import { cn } from "@/lib/utils";
 
 export function QuestsTab() {
@@ -12,10 +12,12 @@ export function QuestsTab() {
   const doneCount = state.dailies.filter((d) => d.doneDate === day).length;
   const [mode, setMode] = useState<null | "habit" | "daily">(null);
   const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
   const [kind, setKind] = useState<"+" | "-">("+");
-  const [diff, setDiff] = useState<Diff>("D");
+  const [baseDifficulty, setBaseDifficulty] = useState<BaseDifficulty>("Easy");
   const [attrs, setAttrs] = useState<Attr[]>(["discipline"]);
   const [reminder, setReminder] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const toggleDaily = (id: string) => {
     buzz();
@@ -51,12 +53,36 @@ export function QuestsTab() {
     e.preventDefault();
     if (!name.trim() || !attrs.length) return;
     act((s) => {
-      if (mode === "habit") s.habits.push({ id: uid(), name: name.trim(), kind, diff, attrs, count: 0 });
-      else s.dailies.push({ id: uid(), name: name.trim(), diff, attrs, doneDate: null, reminder: reminder || undefined });
+      const diff = resolveDifficulty(baseDifficulty, s.level);
+      if (mode === "habit") {
+        const habit = editingId ? s.habits.find((x) => x.id === editingId) : undefined;
+        if (habit) Object.assign(habit, { name: name.trim(), description: description.trim() || undefined, kind, diff, baseDifficulty, attrs });
+        else s.habits.push({ id: uid(), name: name.trim(), description: description.trim() || undefined, kind, diff, baseDifficulty, attrs, count: 0 });
+      } else {
+        const daily = editingId ? s.dailies.find((x) => x.id === editingId) : undefined;
+        if (daily) Object.assign(daily, { name: name.trim(), description: description.trim() || undefined, diff, baseDifficulty, attrs, reminder: reminder || undefined });
+        else s.dailies.push({ id: uid(), name: name.trim(), description: description.trim() || undefined, diff, baseDifficulty, attrs, doneDate: null, reminder: reminder || undefined });
+      }
     });
     if (reminder && typeof Notification !== "undefined" && Notification.permission === "default") Notification.requestPermission();
-    setName(""); setReminder(""); setMode(null);
+    setName(""); setDescription(""); setReminder(""); setAttrs(["discipline"]); setKind("+"); setBaseDifficulty("Easy"); setEditingId(null); setMode(null);
   };
+
+  const editHabit = (id: string) => {
+    const habit = state.habits.find((x) => x.id === id);
+    if (!habit) return;
+    setEditingId(id); setMode("habit"); setName(habit.name); setDescription(habit.description ?? ""); setKind(habit.kind);
+    setBaseDifficulty(habit.baseDifficulty ?? baseDifficultyForDiff(habit.diff, state.level)); setAttrs(habit.attrs); setReminder("");
+  };
+
+  const editDaily = (id: string) => {
+    const daily = state.dailies.find((x) => x.id === id);
+    if (!daily) return;
+    setEditingId(id); setMode("daily"); setName(daily.name); setDescription(daily.description ?? "");
+    setBaseDifficulty(daily.baseDifficulty ?? baseDifficultyForDiff(daily.diff, state.level)); setAttrs(daily.attrs); setReminder(daily.reminder ?? "");
+  };
+
+  const closeEditor = () => { setMode(null); setEditingId(null); };
 
   return (
     <div className="space-y-4">
@@ -71,9 +97,10 @@ export function QuestsTab() {
                   className={cn("flex h-10 w-10 shrink-0 items-center justify-center border", done ? "border-success bg-success/20 text-success" : "border-primary/60")}>
                   {done && <Check className="h-5 w-5" />}
                 </button>
-                <span className={cn("flex-1 text-lg", done && "text-muted-foreground line-through")}>{d.name}</span>
+                <div className="flex-1"><p className={cn("text-lg", done && "text-muted-foreground line-through")}>{d.name}</p>{d.description && <p className="text-xs text-muted-foreground">{d.description}</p>}</div>
                 {d.reminder && <span className="flex items-center gap-1 font-mono text-[10px] text-muted-foreground"><Bell className="h-3 w-3" />{d.reminder}</span>}
                 <DiffBadge d={d.diff} />
+                <button aria-label={`Edit ${d.name}`} onClick={() => editDaily(d.id)} className="p-2 text-muted-foreground"><Pencil className="h-4 w-4" /></button>
                 <button aria-label="Delete" onClick={() => act((s) => { s.dailies = s.dailies.filter((x) => x.id !== d.id); })} className="p-2 text-muted-foreground"><Trash2 className="h-4 w-4" /></button>
               </li>
             );
@@ -81,7 +108,7 @@ export function QuestsTab() {
         </ul>
         <div className="mt-3 flex items-center justify-between font-mono text-xs">
           <span className={doneCount === state.dailies.length ? "text-success" : "text-primary"}>[{doneCount}/{state.dailies.length}] COMPLETE</span>
-          <SysButton variant="ghost" onClick={() => setMode("daily")}>+ Daily</SysButton>
+          <SysButton variant="ghost" onClick={() => { setEditingId(null); setName(""); setDescription(""); setReminder(""); setAttrs(["discipline"]); setBaseDifficulty("Easy"); setMode("daily"); }}>+ Daily</SysButton>
         </div>
       </Panel>
 
@@ -95,31 +122,34 @@ export function QuestsTab() {
               </button>
               <div className="flex-1">
                 <p className="text-lg leading-tight">{h.name}</p>
+                {h.description && <p className="text-xs text-muted-foreground">{h.description}</p>}
                 <p className="font-mono text-[10px] uppercase text-muted-foreground">{h.attrs.join(" · ")} · ×{h.count}</p>
               </div>
               <DiffBadge d={h.diff} />
+              <button aria-label={`Edit ${h.name}`} onClick={() => editHabit(h.id)} className="p-2 text-muted-foreground"><Pencil className="h-4 w-4" /></button>
               <button aria-label="Delete" onClick={() => act((s) => { s.habits = s.habits.filter((x) => x.id !== h.id); })} className="p-2 text-muted-foreground"><Trash2 className="h-4 w-4" /></button>
             </li>
           ))}
         </ul>
-        <SysButton className="mt-3 w-full" onClick={() => setMode("habit")}>+ New Habit</SysButton>
+        <SysButton className="mt-3 w-full" onClick={() => { setEditingId(null); setName(""); setDescription(""); setKind("+"); setAttrs(["discipline"]); setBaseDifficulty("Easy"); setMode("habit"); }}>+ New Habit</SysButton>
       </Panel>
 
       {mode && (
-        <div className="fixed inset-0 z-40 flex items-end bg-background/80 backdrop-blur-sm" onClick={() => setMode(null)}>
-          <form onClick={(e) => e.stopPropagation()} onSubmit={submit} className="sys-panel mx-auto w-full max-w-md space-y-3 p-5 animate-in slide-in-from-bottom">
-            <h3 className="font-mono text-xs uppercase tracking-[0.3em] text-primary">{mode === "habit" ? "Register Habit" : "Register Daily Quest"}</h3>
-            <input autoFocus className={inputCls} placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} />
+        <div className="fixed inset-0 z-40 flex items-end bg-background/80 backdrop-blur-sm" onClick={closeEditor}>
+          <form onClick={(e) => e.stopPropagation()} onSubmit={submit} className="sys-panel mx-auto max-h-[90dvh] w-full max-w-md space-y-3 overflow-y-auto p-5 animate-in slide-in-from-bottom">
+            <h3 className="font-mono text-xs uppercase tracking-[0.3em] text-primary">{editingId ? "Edit" : "Register"} {mode === "habit" ? "Habit" : "Daily Quest"}</h3>
+            <input autoFocus required className={inputCls} placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} />
+            <textarea className={`${inputCls} min-h-20 py-2`} placeholder="Description (optional)" value={description} onChange={(e) => setDescription(e.target.value)} />
             {mode === "habit" && (
               <div className="flex gap-2">
                 <SysButton type="button" className="flex-1" variant={kind === "+" ? "primary" : "ghost"} onClick={() => setKind("+")}>+ Positive</SysButton>
                 <SysButton type="button" className="flex-1" variant={kind === "-" ? "danger" : "ghost"} onClick={() => setKind("-")}>− Negative</SysButton>
               </div>
             )}
-            <DiffPicker value={diff} onChange={setDiff} />
+            <BaseDifficultyPicker value={baseDifficulty} onChange={setBaseDifficulty} playerLevel={state.level} />
             <AttrPicker value={attrs} onChange={setAttrs} />
             {mode === "daily" && <label className="block font-mono text-xs text-muted-foreground">Reminder (optional)<input type="time" className={inputCls} value={reminder} onChange={(e) => setReminder(e.target.value)} /></label>}
-            <SysButton type="submit" className="w-full">Confirm</SysButton>
+            <div className="flex gap-2"><SysButton type="submit" className="flex-1">{editingId ? "Save Changes" : "Confirm"}</SysButton><SysButton type="button" variant="ghost" onClick={closeEditor}>Cancel</SysButton></div>
           </form>
         </div>
       )}

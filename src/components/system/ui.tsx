@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { ATTRS, DIFFS, type Attr, type Diff } from "@/lib/system";
+import { ATTRS, BASE_DIFFICULTIES, DIFFS, RANKS, rankIndex, resolveDifficulty, type Attr, type BaseDifficulty, type Diff } from "@/lib/system";
 import { cn } from "@/lib/utils";
 import { playSound } from "@/lib/sound";
 
@@ -49,6 +49,26 @@ export function DiffPicker({ value, onChange }: { value: Diff; onChange: (d: Dif
   );
 }
 
+export function BaseDifficultyPicker({ value, onChange, playerLevel }: { value: BaseDifficulty; onChange: (d: BaseDifficulty) => void; playerLevel: number }) {
+  const rank = RANKS[rankIndex(playerLevel)]!;
+  const resolved = resolveDifficulty(value, playerLevel);
+  const resolvedRank = RANKS[DIFFS.indexOf(resolved)]!;
+  return (
+    <div className="space-y-2">
+      <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Base difficulty · your rank: {rank.name}</p>
+      <div className="grid grid-cols-5 gap-1">
+        {BASE_DIFFICULTIES.map((difficulty) => (
+          <SysButton variant="ghost" type="button" key={difficulty} onClick={() => onChange(difficulty)}
+            className={cn("h-10 px-1 text-[9px] tracking-normal", value === difficulty ? "border-primary bg-primary/20 text-primary" : "border-border text-muted-foreground")}>
+            {difficulty}
+          </SysButton>
+        ))}
+      </div>
+      <p className="font-mono text-[10px] text-primary">Final quest rank: {resolvedRank.name}</p>
+    </div>
+  );
+}
+
 export function AttrPicker({ value, onChange }: { value: Attr[]; onChange: (a: Attr[]) => void }) {
   return (
     <div className="flex flex-wrap gap-1">
@@ -64,5 +84,7 @@ export function AttrPicker({ value, onChange }: { value: Attr[]; onChange: (a: A
 }
 
 export function DiffBadge({ d }: { d: Diff }) {
-  return <span className="inline-flex h-6 w-6 items-center justify-center border border-primary/60 font-mono text-xs font-bold text-primary">{d}</span>;
+  const label = d === "N" ? "NL" : d === "M" ? "SM" : d;
+  const rank = RANKS[DIFFS.indexOf(d)]!;
+  return <span title={rank.name} aria-label={rank.name} className="inline-flex h-6 min-w-6 items-center justify-center border border-primary/60 px-1 font-mono text-[10px] font-bold text-primary">{label}</span>;
 }
