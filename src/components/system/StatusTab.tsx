@@ -39,7 +39,7 @@ export function StatusTab() {
     if (state.potions < 1 || state.hp >= state.maxHp) return;
     const restored = Math.min(POTION_HP, state.maxHp - state.hp);
     closeInventory();
-    act((s, a) => usePotion(s, a), { suppressLowHpNotification: true });
+    act((s) => usePotion(s), { suppressLowHpNotification: true });
     if (hpHealTimeout.current !== null) window.clearTimeout(hpHealTimeout.current);
     setHpHealing(false);
     window.requestAnimationFrame(() => setHpHealing(true));

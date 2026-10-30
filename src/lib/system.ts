@@ -162,13 +162,12 @@ export function completeDailyGateQuest(s: GameState) {
   log(s, "Daily Quest complete: Close todays gate", "level");
 }
 
-export function usePotion(s: GameState, alerts: Alert[]) {
+export function usePotion(s: GameState) {
   if (s.potions < 1 || s.hp >= s.maxHp) return;
   const restored = Math.min(POTION_HP, s.maxHp - s.hp);
   s.potions -= 1;
   s.hp += restored;
   log(s, `Healing Potion used. +${restored} HP`);
-  alerts.push({ kind: "info", title: "[SYSTEM] Recovery", body: `Healing Potion restored ${restored} HP.` });
 }
 
 const log = (s: GameState, text: string, kind: LogEntry["kind"] = "info") => {
