@@ -71,7 +71,7 @@ export function QuestsTab() {
           <DiffBadge d={rankDiff} />
         </div>
         <div className="mt-3 flex items-center justify-between gap-2">
-          <p className="font-mono text-[10px] text-primary">Reward: 1 Healing Potion</p>
+          <p className="font-mono text-[10px] text-primary">Reward: +1 Healing Potion when all added Daily quests are complete (Gate quest excluded).</p>
           <SysButton variant="ghost" onClick={() => setOpen(true)}><Plus className="mr-2 h-4 w-4" />Add Daily Quest</SysButton>
         </div>
 
@@ -103,7 +103,7 @@ export function QuestsTab() {
         </div>
       </Panel>
 
-      <Panel title="Today's Quests">
+      <Panel title="Today's Weekly Quests">
         {todayQuests.length === 0 ? (
           <p className="font-mono text-xs text-muted-foreground">No weekly quests are scheduled for today.</p>
         ) : (

@@ -38,7 +38,7 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
       gainXp(s, xp, a);
       if (assignedTarget.startsWith("t:")) completeTodo(s, assignedTarget.slice(2), a);
       if (assignedTarget.startsWith("w:")) completeWeeklyQuest(s, assignedTarget.slice(2), a);
-      completeDailyGateQuest(s, a);
+      completeDailyGateQuest(s);
       s.log.unshift({ id: uid(), ts: Date.now(), text: `Gate cleared (${m}m). +${xp} XP`, kind: "level" });
       a.push({ kind: "info", title: "[SYSTEM] Gate Cleared", body: `Focus complete. +${xp} XP.` });
     });

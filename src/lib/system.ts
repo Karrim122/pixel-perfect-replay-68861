@@ -61,7 +61,7 @@ export interface GameState {
   level: number; xp: number; hp: number; maxHp: number; points: number; potions: number;
   stats: Record<Attr, number>;
   dailyQuests: DailyQuest[]; weeklyQuests: WeeklyQuest[]; bonusPenaltyHabits: BonusPenaltyHabit[]; todos: Todo[]; sessions: Session[]; log: LogEntry[];
-  lastDay: string; dailyGateQuestDoneDate: string | null;
+  lastDay: string; dailyGateQuestDoneDate: string | null; dailyQuestRewardDay: string | null;
   playerName: string;
 }
 
@@ -74,7 +74,7 @@ export const uid = () => Math.random().toString(36).slice(2, 10);
 export const initialState = (): GameState => ({
   level: 1, xp: 0, hp: 100, maxHp: 100, points: 0, potions: 0,
   stats: { strength: 10, discipline: 10, intelligence: 10, perception: 10, vitality: 10 },
-  dailyQuests: [], weeklyQuests: [], bonusPenaltyHabits: [], todos: [], sessions: [], log: [], lastDay: today(), dailyGateQuestDoneDate: null, playerName: "",
+  dailyQuests: [], weeklyQuests: [], bonusPenaltyHabits: [], todos: [], sessions: [], log: [], lastDay: today(), dailyGateQuestDoneDate: null, dailyQuestRewardDay: null, playerName: "",
 });
 
 export type Alert = { kind: "info" | "penalty" | "level" | "awaken" | "death" | "monarch" | "lowHp"; title: string; body: string };
@@ -97,6 +97,12 @@ export function completeDailyQuest(s: GameState, id: string, alerts: Alert[]) {
   gainXp(s, DIFF_XP[quest.diff], alerts);
   changeStats(s, quest.attrs, 1);
   log(s, `Daily quest complete: ${quest.name} (+${DIFF_XP[quest.diff]} XP)`, "info");
+  if (s.dailyQuests.length && s.dailyQuests.every((item) => item.doneDate === s.lastDay) && s.dailyQuestRewardDay !== s.lastDay) {
+    s.dailyQuestRewardDay = s.lastDay;
+    s.potions += 1;
+    log(s, "All daily quests complete. +1 Healing Potion", "level");
+    alerts.push({ kind: "info", title: "[SYSTEM] Daily Quests Complete", body: "All daily quests cleared. Reward: +1 Healing Potion." });
+  }
 }
 
 export function triggerBonusPenaltyHabit(s: GameState, id: string, alerts: Alert[]) {
@@ -126,12 +132,10 @@ export function completeTodo(s: GameState, id: string, alerts: Alert[]) {
   log(s, `Quest cleared: ${task.name} (+${DIFF_XP[task.diff]} XP)`, "info");
 }
 
-export function completeDailyGateQuest(s: GameState, alerts: Alert[]) {
+export function completeDailyGateQuest(s: GameState) {
   if (s.dailyGateQuestDoneDate === s.lastDay) return;
   s.dailyGateQuestDoneDate = s.lastDay;
-  s.potions += 1;
-  log(s, "Daily Quest complete: Close todays gate. +1 Healing Potion", "level");
-  alerts.push({ kind: "info", title: "[SYSTEM] Daily Quest Complete", body: "Close todays gate cleared. Reward: +1 Healing Potion." });
+  log(s, "Daily Quest complete: Close todays gate", "level");
 }
 
 export function usePotion(s: GameState, alerts: Alert[]) {

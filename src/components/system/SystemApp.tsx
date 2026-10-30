@@ -56,8 +56,8 @@ function Shell() {
   const remainingToday =
     Number(state.dailyGateQuestDoneDate !== state.lastDay) +
     state.dailyQuests.filter((quest) => quest.doneDate !== state.lastDay).length +
-    state.weeklyQuests.filter((quest) => isWeeklyQuestScheduled(quest, state.lastDay) && !quest.doneDates.includes(state.lastDay)).length +
-    state.todos.filter((task) => !task.done && task.due <= state.lastDay).length;
+    state.weeklyQuests.filter((quest) => isWeeklyQuestScheduled(quest, state.lastDay) && !quest.doneDates.includes(state.lastDay)).length;
+  const remainingTodoTasks = state.todos.filter((task) => !task.done && task.due === state.lastDay).length;
 
   useEffect(() => { document.documentElement.dataset["tier"] = rank.tier; }, [rank.tier]);
 
@@ -95,12 +95,14 @@ function Shell() {
         <nav className="fixed inset-x-0 bottom-0 z-30 mx-auto grid max-w-md grid-cols-5 border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
           {TABS.map((t) => {
             const on = tab === t.key;
+            const badgeCount = t.key === "quests" ? remainingToday : t.key === "todo" ? remainingTodoTasks : null;
+            const accessibleLabel = t.key === "quests" ? `Daily, ${remainingToday} quests left today` : t.key === "todo" ? `To-Do, ${remainingTodoTasks} tasks left today` : t.label;
             return (
-              <SysButton variant="ghost" aria-current={on ? "page" : undefined} aria-label={t.key === "quests" ? `Daily, ${remainingToday} left today` : t.label} key={t.key} onClick={() => { buzz(8); setTab(t.key); }}
+              <SysButton variant="ghost" aria-current={on ? "page" : undefined} aria-label={accessibleLabel} key={t.key} onClick={() => { buzz(8); setTab(t.key); }}
                 className={cn("relative flex h-16 flex-col items-center justify-center gap-1 font-mono text-[10px] uppercase tracking-wider transition", on ? "text-primary" : "text-muted-foreground")}>
                 <span className="relative inline-flex">
                   <t.icon className={cn("h-5 w-5", on && "drop-shadow-[0_0_6px_var(--primary)]")} />
-                  {t.key === "quests" && <span className={cn("absolute -right-2 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 font-mono text-[9px] leading-none", remainingToday ? "bg-destructive text-destructive-foreground" : "bg-success text-background")}>{remainingToday > 99 ? "99+" : remainingToday}</span>}
+                  {badgeCount !== null && <span className={cn("absolute -right-2 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 font-mono text-[9px] leading-none", badgeCount ? "bg-destructive text-destructive-foreground" : "bg-success text-background")}>{badgeCount > 99 ? "99+" : badgeCount}</span>}
                 </span>
                 {t.label}
                 {on && <span className="absolute bottom-1 h-0.5 w-8 bg-primary shadow-[0_0_8px_var(--primary)]" />}
