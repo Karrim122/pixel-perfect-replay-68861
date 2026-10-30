@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Hexagon, ListChecks, Swords, User, Volume2, VolumeX } from "lucide-react";
+import { Hexagon, ListChecks, Settings, Swords, User, Volume2, VolumeX } from "lucide-react";
 import { SystemProvider, buzz, useSystem } from "@/lib/store";
 import { rankOf } from "@/lib/system";
 import { StatusTab } from "./StatusTab";
@@ -8,6 +8,7 @@ import { QuestsTab } from "./QuestsTab";
 import { TodoTab } from "./TodoTab";
 import { GatesTab } from "./GatesTab";
 import { SysButton } from "./ui";
+import { AwakeningModal, SettingsModal } from "./Account";
 import { cn } from "@/lib/utils";
 
 const TABS = [
@@ -48,6 +49,7 @@ function Shell() {
   const [tab, setTab] = useState<Tab>("status");
   const [locked, setLocked] = useState(false);
   const [sounds, setSounds] = useState(true);
+  const [settings, setSettings] = useState(false);
   const rank = rankOf(state.level);
 
   useEffect(() => { document.documentElement.dataset["tier"] = rank.tier; }, [rank.tier]);
@@ -63,7 +65,11 @@ function Shell() {
           <SysButton variant="ghost" className="flex w-11 items-center justify-center px-0" aria-label={sounds ? "Mute sounds" : "Enable sounds"} title={sounds ? "Mute sounds" : "Enable sounds"} aria-pressed={sounds} onClick={() => { setSoundEnabled(!sounds); setSounds(!sounds); if (!sounds) playSound(); }}>
             {sounds ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
           </SysButton>
+          <SysButton variant="ghost" className="flex w-11 items-center justify-center px-0" aria-label="Account settings" title="Account settings" onClick={() => setSettings(true)}>
+            <Settings className="h-4 w-4" />
+          </SysButton>
           <div className="text-right font-mono text-xs">
+          <p className="max-w-28 truncate text-foreground">{state.playerName || "Player"}</p>
           <p className="text-primary">LV {state.level} · {rank.name}</p>
           <p className="text-hp">HP {state.hp}/{state.maxHp}</p>
           </div>
@@ -93,6 +99,8 @@ function Shell() {
         </nav>
       )}
       <AlertModal />
+      {settings && <SettingsModal onClose={() => setSettings(false)} />}
+      {ready && !state.playerName && <AwakeningModal />}
     </div>
   );
 }
