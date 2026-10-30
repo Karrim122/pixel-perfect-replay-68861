@@ -26,13 +26,13 @@ function AlertModal() {
   const a = alerts[0];
   useEffect(() => {
     if (a) {
-      const warning = ["death", "penalty", "lowHp"].includes(a.kind);
+      const warning = ["exhausted", "penalty", "lowHp"].includes(a.kind);
       buzz(warning ? [200, 80, 200] : 40);
       playSound(warning ? "warning" : "reward");
     }
   }, [a]);
   if (!a) return null;
-  const danger = a.kind === "death" || a.kind === "penalty" || a.kind === "lowHp";
+  const danger = a.kind === "exhausted" || a.kind === "penalty" || a.kind === "lowHp";
   const epic = a.kind === "awaken" || a.kind === "monarch";
   return (
     <div className={cn("fixed inset-0 z-50 flex items-center justify-center p-6 backdrop-blur-md", danger ? "bg-destructive/25" : "bg-background/80")}>
@@ -76,7 +76,7 @@ function EmergencyOverlay() {
         {secondsLeft > 0
           ? <p className="font-mono text-xs uppercase text-red-300">Outcome unlocks when the timer ends</p>
           : <>
-            <p className="mb-4 font-mono text-xs uppercase text-red-300">Choose the outcome · Failure: −50 HP · Success: +200 XP · +3 Discipline</p>
+            <p className="mb-4 font-mono text-xs uppercase text-red-300">Choose the outcome · Failure: −10 HP · Success: +75 XP · Discipline practice</p>
             <div className="grid grid-cols-2 gap-2">
               <SysButton variant="danger" className="border-red-300 bg-red-600 py-4 text-white hover:bg-red-500" onClick={() => act((s, alerts) => completeTodo(s, id, alerts))}>Succeeded</SysButton>
               <SysButton variant="ghost" className="border border-red-400 py-4 text-red-100 hover:bg-red-900" onClick={() => act((s, alerts) => failEmergencyTodo(s, id, alerts))}>Failed</SysButton>

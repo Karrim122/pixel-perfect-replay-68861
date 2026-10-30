@@ -3,7 +3,7 @@ import { buzz, useSystem } from "@/lib/store";
 import { completeDailyGateQuest, completeTodo, completeWeeklyQuest, gainXp, isWeeklyQuestScheduled, takeDamage, uid, type Alert, type GameState } from "@/lib/system";
 import { Panel, SysButton, inputCls } from "./ui";
 
-const BREAK_DMG = 25;
+const BREAK_DMG = 5;
 
 export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
   const { state, act } = useSystem();
@@ -46,7 +46,7 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
     act((s: GameState, a: Alert[]) => {
       const { label, target: assignedTarget } = meta.current;
       s.sessions.unshift({ id: uid(), date: s.lastDay, minutes: totalFocusMinutes, success: true, label });
-      const xp = Math.round(totalFocusMinutes * 2);
+      const xp = Math.round(totalFocusMinutes);
       gainXp(s, xp, a);
       if (assignedTarget.startsWith("t:")) completeTodo(s, assignedTarget.slice(2), a);
       if (assignedTarget.startsWith("w:")) completeWeeklyQuest(s, assignedTarget.slice(2), a);
@@ -135,7 +135,7 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
           <span className="relative z-10 font-mono text-6xl font-bold text-primary sys-glow-text">{mm}:{ss}</span>
         </div>
         <p className="text-lg">{timerKind === "rest" ? "Rest and recover" : meta.current.label}</p>
-        {focusMinutes > 0 && <p className="font-mono text-xs text-muted-foreground">Completed focus: {focusMinutes} min · {focusMinutes * 2} XP on gate close</p>}
+        {focusMinutes > 0 && <p className="font-mono text-xs text-muted-foreground">Completed focus: {focusMinutes} min · {focusMinutes} XP on gate close</p>}
         <div className="flex gap-2">
           <SysButton variant="danger" onClick={() => fail("You abandoned the Gate.")}>Exit Gate (−{BREAK_DMG} HP)</SysButton>
         </div>
@@ -149,7 +149,7 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
       <div className="space-y-4">
         <Panel title="Gate In Progress">
           <p className="font-bold">{meta.current.label}</p>
-          <p className="mt-1 font-mono text-xs text-muted-foreground">Completed focus: {focusMinutes} min · {focusMinutes * 2} XP on gate close</p>
+          <p className="mt-1 font-mono text-xs text-muted-foreground">Completed focus: {focusMinutes} min · {focusMinutes} XP on gate close</p>
           <p className="mt-4 font-mono text-xs uppercase tracking-wider text-primary">Choose your next step</p>
           <p className="mb-2 mt-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Another focus timer</p>
           <div className="mt-2 grid grid-cols-4 gap-2">

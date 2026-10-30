@@ -68,6 +68,7 @@ export function StatusTab() {
           <div>
             <div className="mb-1 flex justify-between font-mono text-xs"><span className="text-hp">HP</span><span>{state.hp} / {state.maxHp}</span></div>
             <Bar value={state.hp} max={state.maxHp} hp heal={hpHealing} />
+            <p className="mt-1 font-mono text-[10px] text-muted-foreground">Rest restores up to 20 HP each day.</p>
           </div>
           <div>
             <div className="mb-1 flex justify-between font-mono text-xs"><span className="text-primary">XP</span><span>{state.xp} / {xpToNext(state.level)}</span></div>
@@ -92,7 +93,7 @@ export function StatusTab() {
           {ATTRS.map((a) => (
             <div key={a.key} className="flex justify-between border-b border-border/50 py-1">
               <span className="flex items-center gap-1.5 uppercase text-muted-foreground"><AttributeIcon attr={a.key} className="h-3.5 w-3.5 text-primary" />{a.label.slice(0, 3)}</span>
-              <span className="font-bold text-foreground">{state.stats[a.key]}</span>
+              <span className="font-bold text-foreground">{state.stats[a.key].toFixed(2)}</span>
             </div>
           ))}
         </div>
