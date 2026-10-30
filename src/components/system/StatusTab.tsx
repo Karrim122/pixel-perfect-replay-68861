@@ -62,7 +62,7 @@ export function StatusTab() {
         </div>
       </Panel>
 
-      <Panel title="Quests Analysis">
+      <Panel title="Skills">
         <p className="mb-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
           Weekly quest mastery · XP from completed weekly quests only
         </p>
