@@ -3,8 +3,8 @@ import { createPortal } from "react-dom";
 import { AlertTriangle, Bell, Check, FlaskConical, Gift, Pencil, Trash2 } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
 import { playSound } from "@/lib/sound";
-import { baseDifficultyForDiff, completeTodo, DIFFS, resolveDifficulty, RANKS, today, uid, type Attr, type BaseDifficulty, type TodoReward } from "@/lib/system";
-import { AttrPicker, BaseDifficultyPicker, DiffBadge, Panel, SysButton, inputCls } from "./ui";
+import { baseDifficultyForDiff, completeTodo, DIFFS, moveItem, resolveDifficulty, RANKS, today, uid, type Attr, type BaseDifficulty, type TodoReward } from "@/lib/system";
+import { AttrPicker, BaseDifficultyPicker, DiffBadge, Panel, ReorderButtons, SysButton, inputCls } from "./ui";
 import { cn } from "@/lib/utils";
 
 export function TodoTab() {
@@ -26,7 +26,7 @@ export function TodoTab() {
 
   const list = state.todos
     .filter((t) => filter === "all" || t.due === state.lastDay)
-    .sort((a, b) => Number(a.done) - Number(b.done) || a.due.localeCompare(b.due));
+    .sort((a, b) => Number(a.done) - Number(b.done));
 
   const startEmergency = () => {
     if (activeEmergencyExists) return;
@@ -99,7 +99,7 @@ export function TodoTab() {
         </div>
         {list.length === 0 && <p className="font-mono text-xs text-muted-foreground">No quests registered.</p>}
         <ul className="space-y-2">
-          {list.map((t) => {
+          {list.map((t, index) => {
             const overdue = !t.done && t.due < state.lastDay;
             return (
               <li key={t.id} className="flex items-center gap-3 border-b border-border/40 pb-2">
@@ -116,6 +116,9 @@ export function TodoTab() {
                     {t.due}{t.time && <><Bell className="ml-1 h-3 w-3" />{t.time}</>} · {t.attrs.join(" · ")}
                   </p>
                 </div>
+                <ReorderButtons itemName={t.name} canMoveUp={index > 0 && list[index - 1]!.done === t.done} canMoveDown={index < list.length - 1 && list[index + 1]!.done === t.done}
+                  onMoveUp={() => act((s) => moveItem(s.todos, t.id, list[index - 1]!.id))}
+                  onMoveDown={() => act((s) => moveItem(s.todos, t.id, list[index + 1]!.id))} />
                 <DiffBadge d={t.diff} />
                 {!t.emergency && <button aria-label={`Edit ${t.name}`} onClick={() => edit(t.id)} className="p-2 text-muted-foreground"><Pencil className="h-4 w-4" /></button>}
                 {!(t.emergency && !t.done && !t.emergencyFailed) && <button aria-label="Delete" onClick={() => act((s) => { s.todos = s.todos.filter((x) => x.id !== t.id); })} className="p-2 text-muted-foreground"><Trash2 className="h-4 w-4" /></button>}

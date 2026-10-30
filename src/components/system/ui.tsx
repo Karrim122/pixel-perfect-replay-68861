@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Brain, Dumbbell, Eye, HeartPulse, ShieldCheck } from "lucide-react";
+import { ArrowDown, ArrowUp, Brain, Dumbbell, Eye, HeartPulse, ShieldCheck } from "lucide-react";
 import { ATTRS, BASE_DIFFICULTIES, DIFFS, RANKS, rankIndex, resolveDifficulty, type Attr, type BaseDifficulty, type Diff } from "@/lib/system";
 import { cn } from "@/lib/utils";
 import { playSound } from "@/lib/sound";
@@ -47,6 +47,22 @@ export function SysButton({ children, className, variant = "primary", onClick, .
         className,
       )}
     >{children}</button>
+  );
+}
+
+export function ReorderButtons({ itemName, canMoveUp, canMoveDown, onMoveUp, onMoveDown }: {
+  itemName: string;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+}) {
+  const buttonClass = "flex h-7 w-7 shrink-0 items-center justify-center text-muted-foreground hover:text-primary disabled:cursor-default disabled:opacity-25";
+  return (
+    <div className="flex shrink-0 items-center">
+      <button type="button" disabled={!canMoveUp} aria-label={`Move ${itemName} up`} title="Move up" onClick={onMoveUp} className={buttonClass}><ArrowUp className="h-3.5 w-3.5" /></button>
+      <button type="button" disabled={!canMoveDown} aria-label={`Move ${itemName} down`} title="Move down" onClick={onMoveDown} className={buttonClass}><ArrowDown className="h-3.5 w-3.5" /></button>
+    </div>
   );
 }
 

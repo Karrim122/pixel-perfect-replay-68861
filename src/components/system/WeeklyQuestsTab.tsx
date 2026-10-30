@@ -2,9 +2,9 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { Check, Pencil, Trash2 } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
-import { baseDifficultyForDiff, completeWeeklyQuest, isWeeklyQuestScheduled, resolveDifficulty, uid, type Attr, type BaseDifficulty } from "@/lib/system";
+import { baseDifficultyForDiff, completeWeeklyQuest, isWeeklyQuestScheduled, moveItem, resolveDifficulty, uid, type Attr, type BaseDifficulty } from "@/lib/system";
 import { playSound } from "@/lib/sound";
-import { AttrPicker, BaseDifficultyPicker, DiffBadge, Panel, SysButton, inputCls } from "./ui";
+import { AttrPicker, BaseDifficultyPicker, DiffBadge, Panel, ReorderButtons, SysButton, inputCls } from "./ui";
 import { cn } from "@/lib/utils";
 
 const WEEKDAYS = [
@@ -76,7 +76,7 @@ export function WeeklyQuestsTab() {
           <Panel key={value} title={`${label} · ${date}`}>
             {quests.length === 0 ? <p className="font-mono text-xs text-muted-foreground">No quests scheduled.</p> : (
               <ul className="space-y-3">
-                {quests.map((quest) => {
+                {quests.map((quest, index) => {
                   const done = quest.doneDates.includes(date);
                   const canComplete = date === state.lastDay;
                   return (
@@ -90,6 +90,9 @@ export function WeeklyQuestsTab() {
                         {quest.description && <p className="text-xs text-muted-foreground">{quest.description}</p>}
                         <p className="font-mono text-[10px] uppercase text-muted-foreground">{quest.attrs.join(" · ")}{quest.reminder ? ` · ${quest.reminder}` : ""}</p>
                       </div>
+                      <ReorderButtons itemName={quest.name} canMoveUp={index > 0} canMoveDown={index < quests.length - 1}
+                        onMoveUp={() => act((s) => moveItem(s.weeklyQuests, quest.id, quests[index - 1]!.id))}
+                        onMoveDown={() => act((s) => moveItem(s.weeklyQuests, quest.id, quests[index + 1]!.id))} />
                       <DiffBadge d={quest.diff} />
                       <button aria-label={`Edit ${quest.name}`} onClick={() => edit(quest.id)} className="p-2 text-muted-foreground"><Pencil className="h-4 w-4" /></button>
                       <button aria-label={`Delete ${quest.name}`} onClick={() => act((s) => { s.weeklyQuests = s.weeklyQuests.filter((item) => item.id !== quest.id); })} className="p-2 text-muted-foreground"><Trash2 className="h-4 w-4" /></button>

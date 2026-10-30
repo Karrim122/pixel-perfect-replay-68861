@@ -73,6 +73,15 @@ export const today = () => {
 };
 export const uid = () => Math.random().toString(36).slice(2, 10);
 
+export function moveItem<T extends { id: string }>(items: T[], id: string, targetId: string) {
+  const from = items.findIndex((item) => item.id === id);
+  const to = items.findIndex((item) => item.id === targetId);
+  if (from < 0 || to < 0 || from === to) return;
+  const source = items[from]!;
+  items[from] = items[to]!;
+  items[to] = source;
+}
+
 export const initialState = (): GameState => ({
   level: 1, xp: 0, hp: 100, maxHp: 100, points: 0, potions: 0,
   stats: { strength: 10, discipline: 10, intelligence: 10, perception: 10, vitality: 10 },

@@ -2,10 +2,10 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { Check, Pencil, Plus, Trash2 } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
-import { baseDifficultyForDiff, completeDailyQuest, completeWeeklyQuest, difficultyForRankIndex, isWeeklyQuestScheduled, rankIndex, resolveDifficulty, uid, type Attr, type BaseDifficulty } from "@/lib/system";
+import { baseDifficultyForDiff, completeDailyQuest, completeWeeklyQuest, difficultyForRankIndex, isWeeklyQuestScheduled, moveItem, rankIndex, resolveDifficulty, uid, type Attr, type BaseDifficulty } from "@/lib/system";
 import { playSound } from "@/lib/sound";
 import { BonusPenaltySection } from "./BonusPenaltySection";
-import { AttrPicker, BaseDifficultyPicker, DiffBadge, Panel, SysButton, inputCls } from "./ui";
+import { AttrPicker, BaseDifficultyPicker, DiffBadge, Panel, ReorderButtons, SysButton, inputCls } from "./ui";
 import { cn } from "@/lib/utils";
 
 export function QuestsTab() {
@@ -79,7 +79,7 @@ export function QuestsTab() {
           <p className="mb-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Your daily quests · repeat every day</p>
           {state.dailyQuests.length === 0 ? <p className="mb-3 font-mono text-xs text-muted-foreground">Add daily quests to build your routine.</p> : (
             <ul className="space-y-3">
-              {state.dailyQuests.map((quest) => {
+              {state.dailyQuests.map((quest, index) => {
                 const done = quest.doneDate === state.lastDay;
                 return (
                   <li key={quest.id} className="flex items-center gap-2 border-b border-border/40 pb-3">
@@ -92,6 +92,9 @@ export function QuestsTab() {
                       {quest.description && <p className="text-xs text-muted-foreground">{quest.description}</p>}
                       <p className="font-mono text-[10px] uppercase text-muted-foreground">{quest.attrs.join(" · ")}{quest.reminder ? ` · ${quest.reminder}` : ""}</p>
                     </div>
+                    <ReorderButtons itemName={quest.name} canMoveUp={index > 0} canMoveDown={index < state.dailyQuests.length - 1}
+                      onMoveUp={() => act((s) => moveItem(s.dailyQuests, quest.id, state.dailyQuests[index - 1]!.id))}
+                      onMoveDown={() => act((s) => moveItem(s.dailyQuests, quest.id, state.dailyQuests[index + 1]!.id))} />
                     <DiffBadge d={quest.diff} />
                     <button aria-label={`Edit ${quest.name}`} onClick={() => edit(quest.id)} className="p-2 text-muted-foreground"><Pencil className="h-4 w-4" /></button>
                     <button aria-label={`Delete ${quest.name}`} onClick={() => act((s) => { s.dailyQuests = s.dailyQuests.filter((item) => item.id !== quest.id); })} className="p-2 text-muted-foreground"><Trash2 className="h-4 w-4" /></button>
@@ -108,7 +111,7 @@ export function QuestsTab() {
           <p className="font-mono text-xs text-muted-foreground">No weekly quests are scheduled for today.</p>
         ) : (
           <ul className="space-y-3">
-            {todayQuests.map((quest) => {
+            {todayQuests.map((quest, index) => {
               const done = quest.doneDates.includes(state.lastDay);
               return (
                 <li key={quest.id} className="flex items-center gap-3 border-b border-border/40 pb-3">
@@ -121,6 +124,9 @@ export function QuestsTab() {
                     {quest.description && <p className="text-xs text-muted-foreground">{quest.description}</p>}
                     <p className="font-mono text-[10px] uppercase text-muted-foreground">{quest.attrs.join(" · ")}</p>
                   </div>
+                  <ReorderButtons itemName={quest.name} canMoveUp={index > 0} canMoveDown={index < todayQuests.length - 1}
+                    onMoveUp={() => act((s) => moveItem(s.weeklyQuests, quest.id, todayQuests[index - 1]!.id))}
+                    onMoveDown={() => act((s) => moveItem(s.weeklyQuests, quest.id, todayQuests[index + 1]!.id))} />
                   <DiffBadge d={quest.diff} />
                 </li>
               );

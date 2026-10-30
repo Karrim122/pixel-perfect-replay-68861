@@ -2,9 +2,9 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { Minus, Pencil, Plus, Trash2 } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
-import { baseDifficultyForDiff, DIFF_HP, DIFF_XP, resolveDifficulty, triggerBonusPenaltyHabit, uid, type Attr, type BaseDifficulty } from "@/lib/system";
+import { baseDifficultyForDiff, DIFF_HP, DIFF_XP, moveItem, resolveDifficulty, triggerBonusPenaltyHabit, uid, type Attr, type BaseDifficulty } from "@/lib/system";
 import { playSound } from "@/lib/sound";
-import { AttrPicker, BaseDifficultyPicker, DiffBadge, Panel, SysButton, inputCls } from "./ui";
+import { AttrPicker, BaseDifficultyPicker, DiffBadge, Panel, ReorderButtons, SysButton, inputCls } from "./ui";
 
 export function BonusPenaltySection() {
   const { state, act } = useSystem();
@@ -59,7 +59,7 @@ export function BonusPenaltySection() {
           <p className="mb-3 font-mono text-xs text-muted-foreground">No bonus or penalty habits registered.</p>
         ) : (
           <ul className="space-y-3">
-            {state.bonusPenaltyHabits.map((habit) => {
+            {state.bonusPenaltyHabits.map((habit, index) => {
               const nextOccurrence = habit.count + 1;
               const positive = habit.kind === "bonus";
               return (
@@ -75,6 +75,9 @@ export function BonusPenaltySection() {
                       {positive ? `Next: +${DIFF_XP[habit.diff]} XP | +1 ${habit.attrs.join(" | ")}` : `Next: -${DIFF_HP[habit.diff] * nextOccurrence} HP | -${nextOccurrence} ${habit.attrs.join(" | ")}`} | logged x{habit.count}
                     </p>
                   </div>
+                  <ReorderButtons itemName={habit.name} canMoveUp={index > 0} canMoveDown={index < state.bonusPenaltyHabits.length - 1}
+                    onMoveUp={() => act((s) => moveItem(s.bonusPenaltyHabits, habit.id, state.bonusPenaltyHabits[index - 1]!.id))}
+                    onMoveDown={() => act((s) => moveItem(s.bonusPenaltyHabits, habit.id, state.bonusPenaltyHabits[index + 1]!.id))} />
                   <DiffBadge d={habit.diff} />
                   <button aria-label={`Edit ${habit.name}`} onClick={() => edit(habit.id)} className="p-2 text-muted-foreground"><Pencil className="h-4 w-4" /></button>
                   <button aria-label={`Delete ${habit.name}`} onClick={() => act((s) => { s.bonusPenaltyHabits = s.bonusPenaltyHabits.filter((item) => item.id !== habit.id); })} className="p-2 text-muted-foreground"><Trash2 className="h-4 w-4" /></button>
