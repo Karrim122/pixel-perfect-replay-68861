@@ -93,7 +93,7 @@ export function TodoTab() {
       <Panel>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="font-mono text-xs uppercase tracking-[0.3em] text-primary sys-glow-text">Quests · {list.filter((t) => !t.done).length} active</h2>
-          <SysButton variant="danger" disabled={activeEmergencyExists} className="!min-h-0 !h-8 !w-8 rounded-sm p-0" title="Start emergency focus timer" aria-label="Start emergency focus timer" onClick={startEmergency}>
+          <SysButton variant="danger" disabled={activeEmergencyExists} className="!min-h-0 !h-8 !w-8 rounded-sm p-0 flex items-center justify-center" title="Start emergency focus timer" aria-label="Start emergency focus timer" onClick={startEmergency}>
             <AlertTriangle className="h-3.5 w-3.5" />
           </SysButton>
         </div>
