@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { useSystem } from "@/lib/store";
 import { ATTRS, RANKS, rankIndex, xpToNext, usePotion, POTION_HP, isLowHp, DIFFS, type WeeklyQuest } from "@/lib/system";
 import { FlaskConical, Gift, Package, X } from "lucide-react";
-import { Bar, DiffBadge, Panel, SysButton } from "./ui";
+import { AttributeIcon, Bar, DiffBadge, Panel, SysButton } from "./ui";
 import { cn } from "@/lib/utils";
 
 export function StatusTab() {
@@ -58,7 +58,7 @@ export function StatusTab() {
         <div className="grid grid-cols-2 gap-x-6 gap-y-2 font-mono text-sm">
           {ATTRS.map((a) => (
             <div key={a.key} className="flex justify-between border-b border-border/50 py-1">
-              <span className="uppercase text-muted-foreground">{a.label.slice(0, 3)}</span>
+              <span className="flex items-center gap-1.5 uppercase text-muted-foreground"><AttributeIcon attr={a.key} className="h-3.5 w-3.5 text-primary" />{a.label.slice(0, 3)}</span>
               <span className="font-bold text-foreground">{state.stats[a.key]}</span>
             </div>
           ))}

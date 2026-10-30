@@ -1,7 +1,7 @@
 import { Plus } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
 import { ATTRS } from "@/lib/system";
-import { Panel } from "./ui";
+import { AttributeIcon, Panel } from "./ui";
 
 export function AttributesTab() {
   const { state, act } = useSystem();
@@ -19,7 +19,7 @@ export function AttributesTab() {
           <div className="flex items-center gap-3">
             <div className="flex-1">
               <div className="flex items-baseline justify-between">
-                <h3 className="text-xl font-bold uppercase tracking-wide">{a.label}</h3>
+                <div className="flex items-center gap-2"><AttributeIcon attr={a.key} className="h-5 w-5 text-primary" /><h3 className="text-xl font-bold uppercase tracking-wide">{a.label}</h3></div>
                 <span className="font-mono text-2xl font-bold text-primary">{state.stats[a.key]}</span>
               </div>
               <p className="text-sm text-muted-foreground">{a.desc}</p>

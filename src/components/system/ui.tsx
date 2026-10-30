@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Brain, Dumbbell, Eye, HeartPulse, ShieldCheck } from "lucide-react";
 import { ATTRS, BASE_DIFFICULTIES, DIFFS, RANKS, rankIndex, resolveDifficulty, type Attr, type BaseDifficulty, type Diff } from "@/lib/system";
 import { cn } from "@/lib/utils";
 import { playSound } from "@/lib/sound";
@@ -18,6 +19,19 @@ export function Bar({ value, max, hp }: { value: number; max: number; hp?: boole
       <div className={cn("h-full transition-all duration-700", hp ? "sys-bar-hp" : "sys-bar")} style={{ width: `${Math.min(100, (value / max) * 100)}%` }} />
     </div>
   );
+}
+
+const ATTRIBUTE_ICONS = {
+  strength: Dumbbell,
+  discipline: ShieldCheck,
+  intelligence: Brain,
+  perception: Eye,
+  vitality: HeartPulse,
+} satisfies Record<Attr, typeof Dumbbell>;
+
+export function AttributeIcon({ attr, className }: { attr: Attr; className?: string }) {
+  const Icon = ATTRIBUTE_ICONS[attr];
+  return <Icon aria-hidden="true" className={className} />;
 }
 
 export function SysButton({ children, className, variant = "primary", onClick, ...p }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "ghost" | "danger" }) {
@@ -75,8 +89,10 @@ export function AttrPicker({ value, onChange }: { value: Attr[]; onChange: (a: A
       {ATTRS.map((a) => {
         const on = value.includes(a.key);
         return (
-          <SysButton variant="ghost" type="button" key={a.key} onClick={() => onChange(on ? value.filter((x) => x !== a.key) : [...value, a.key])}
-            className={cn("h-8 border px-2 font-mono text-[10px] uppercase tracking-wider", on ? "border-primary bg-primary/20 text-primary" : "border-border text-muted-foreground")}>{a.label.slice(0, 3)}</SysButton>
+          <SysButton variant="ghost" type="button" key={a.key} aria-label={a.label} aria-pressed={on} onClick={() => onChange(on ? value.filter((x) => x !== a.key) : [...value, a.key])}
+            className={cn("h-8 border px-2 font-mono text-[10px] uppercase tracking-wider", on ? "border-primary bg-primary/20 text-primary" : "border-border text-muted-foreground")}>
+            <span className="flex items-center gap-1"><AttributeIcon attr={a.key} className="h-3.5 w-3.5" />{a.label.slice(0, 3)}</span>
+          </SysButton>
         );
       })}
     </div>
