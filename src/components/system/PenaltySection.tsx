@@ -48,27 +48,30 @@ export function PenaltySection() {
   return (
     <>
       <Panel title="Penalty">
-        <p className="mb-3 font-mono text-[11px] text-muted-foreground">Log a bad habit to lose HP based on its rank and 1 point from each assigned attribute.</p>
+        <p className="mb-3 font-mono text-[11px] text-muted-foreground">Each time you log a bad habit, its HP and attribute penalties increase.</p>
         {state.penaltyHabits.length === 0 ? (
           <p className="mb-3 font-mono text-xs text-muted-foreground">No bad habits registered.</p>
         ) : (
           <ul className="space-y-3">
-            {state.penaltyHabits.map((habit) => (
-              <li key={habit.id} className="flex items-center gap-2 border-b border-border/40 pb-3">
-                <button aria-label={`Log ${habit.name}`} onClick={() => trigger(habit.id)}
-                  className="flex h-9 w-9 shrink-0 items-center justify-center border border-destructive text-destructive active:scale-90">
-                  <Minus className="h-5 w-5" />
-                </button>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-base">{habit.name}</p>
-                  {habit.description && <p className="text-xs text-muted-foreground">{habit.description}</p>}
-                  <p className="font-mono text-[10px] uppercase text-muted-foreground">-{DIFF_HP[habit.diff]} HP · -1 {habit.attrs.join(" · ")} · logged ×{habit.count}</p>
-                </div>
-                <DiffBadge d={habit.diff} />
-                <button aria-label={`Edit ${habit.name}`} onClick={() => edit(habit.id)} className="p-2 text-muted-foreground"><Pencil className="h-4 w-4" /></button>
-                <button aria-label={`Delete ${habit.name}`} onClick={() => act((s) => { s.penaltyHabits = s.penaltyHabits.filter((item) => item.id !== habit.id); })} className="p-2 text-muted-foreground"><Trash2 className="h-4 w-4" /></button>
-              </li>
-            ))}
+            {state.penaltyHabits.map((habit) => {
+              const nextOccurrence = habit.count + 1;
+              return (
+                <li key={habit.id} className="flex items-center gap-2 border-b border-border/40 pb-3">
+                  <button aria-label={`Log ${habit.name}`} onClick={() => trigger(habit.id)}
+                    className="flex h-9 w-9 shrink-0 items-center justify-center border border-destructive text-destructive active:scale-90">
+                    <Minus className="h-5 w-5" />
+                  </button>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-base">{habit.name}</p>
+                    {habit.description && <p className="text-xs text-muted-foreground">{habit.description}</p>}
+                    <p className="font-mono text-[10px] uppercase text-muted-foreground">Next: -{DIFF_HP[habit.diff] * nextOccurrence} HP | -{nextOccurrence} {habit.attrs.join(" | ")} | logged x{habit.count}</p>
+                  </div>
+                  <DiffBadge d={habit.diff} />
+                  <button aria-label={`Edit ${habit.name}`} onClick={() => edit(habit.id)} className="p-2 text-muted-foreground"><Pencil className="h-4 w-4" /></button>
+                  <button aria-label={`Delete ${habit.name}`} onClick={() => act((s) => { s.penaltyHabits = s.penaltyHabits.filter((item) => item.id !== habit.id); })} className="p-2 text-muted-foreground"><Trash2 className="h-4 w-4" /></button>
+                </li>
+              );
+            })}
           </ul>
         )}
         <SysButton variant="danger" className="w-full" onClick={() => setOpen(true)}>+ Add Bad Habit</SysButton>

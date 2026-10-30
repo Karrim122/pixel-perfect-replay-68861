@@ -102,10 +102,11 @@ export function completeDailyQuest(s: GameState, id: string, alerts: Alert[]) {
 export function triggerPenaltyHabit(s: GameState, id: string, alerts: Alert[]) {
   const habit = s.penaltyHabits.find((item) => item.id === id);
   if (!habit) return;
-  habit.count += 1;
-  const damage = DIFF_HP[habit.diff];
-  changeStats(s, habit.attrs, -1);
-  log(s, `Penalty habit: ${habit.name}. -${damage} HP, -1 ${habit.attrs.join(", ")}`, "warn");
+  const occurrence = habit.count + 1;
+  habit.count = occurrence;
+  const damage = DIFF_HP[habit.diff] * occurrence;
+  changeStats(s, habit.attrs, -occurrence);
+  log(s, `Penalty habit: ${habit.name} (×${occurrence}). -${damage} HP, -${occurrence} ${habit.attrs.join(", ")}`, "warn");
   takeDamage(s, damage, alerts);
 }
 
