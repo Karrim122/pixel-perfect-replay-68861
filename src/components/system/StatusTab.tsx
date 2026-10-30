@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { useSystem } from "@/lib/store";
-import { ATTRS, RANKS, rankIndex, xpToNext, usePotion, POTION_HP, isLowHp, DIFFS, type WeeklyQuest } from "@/lib/system";
+import { ATTRS, RANKS, rankIndex, xpToNext, usePotion, POTION_HP, isLowHp, DIFFS, uid, type WeeklyQuest } from "@/lib/system";
 import { FlaskConical, Gift, Package, X } from "lucide-react";
 import { AttributeIcon, Bar, DiffBadge, Panel, SysButton } from "./ui";
 import { cn } from "@/lib/utils";
@@ -9,10 +9,24 @@ import { cn } from "@/lib/utils";
 export function StatusTab() {
   const { state, act } = useSystem();
   const [inventoryOpen, setInventoryOpen] = useState(false);
+  const [selectedGiftId, setSelectedGiftId] = useState<string | null>(null);
   const ri = rankIndex(state.level);
   const rank = RANKS[ri] ?? RANKS[0];
   if (!rank) return null;
   const next = RANKS[ri + 1];
+  const selectedGift = state.inventoryGifts.find((gift) => gift.id === selectedGiftId);
+  const useGift = () => {
+    if (!selectedGift) return;
+    act((s, alerts) => {
+      const gift = s.inventoryGifts.find((item) => item.id === selectedGift.id);
+      if (!gift) return;
+      s.inventoryGifts = s.inventoryGifts.filter((item) => item.id !== gift.id);
+      s.log.unshift({ id: uid(), ts: Date.now(), text: `Gift used: ${gift.name}`, kind: "info" });
+      alerts.push({ kind: "info", title: "[SYSTEM] Gift Used", body: `${gift.name} has been used.` });
+    });
+    setInventoryOpen(false); setSelectedGiftId(null);
+  };
+  const closeInventory = () => { setInventoryOpen(false); setSelectedGiftId(null); };
   return (
     <div className="space-y-4">
       <Panel title="Status" className={isLowHp(state) ? "sys-danger sys-low-hp" : ""}>
@@ -114,11 +128,11 @@ export function StatusTab() {
       </Panel>
 
       {inventoryOpen && createPortal(
-        <div className="fixed inset-0 z-[100] flex items-end bg-background/80 p-3 backdrop-blur-md sm:items-center" onClick={() => setInventoryOpen(false)}>
+        <div className="fixed inset-0 z-[100] flex items-end bg-background/80 p-3 backdrop-blur-md sm:items-center" onClick={closeInventory}>
           <section role="dialog" aria-modal="true" aria-label="Inventory" onClick={(e) => e.stopPropagation()} className="sys-panel mx-auto max-h-[90dvh] w-full max-w-md space-y-4 overflow-y-auto p-5 animate-in slide-in-from-bottom">
             <div className="flex items-center justify-between gap-3">
               <h2 className="font-mono text-xs uppercase tracking-[0.3em] text-primary sys-glow-text">Inventory</h2>
-              <button type="button" aria-label="Close inventory" onClick={() => setInventoryOpen(false)} className="flex h-10 w-10 items-center justify-center text-muted-foreground hover:text-foreground"><X className="h-5 w-5" /></button>
+              <button type="button" aria-label="Close inventory" onClick={closeInventory} className="flex h-10 w-10 items-center justify-center text-muted-foreground hover:text-foreground"><X className="h-5 w-5" /></button>
             </div>
             <div className="border border-border/70 p-3">
               <div className="flex items-center gap-3">
@@ -135,21 +149,37 @@ export function StatusTab() {
               {state.inventoryGifts.length === 0 ? <p className="font-mono text-xs text-muted-foreground">Complete a task with a gift reward to collect it here.</p> : (
                 <ul className="space-y-2">
                   {state.inventoryGifts.map((gift) => (
-                    <li key={gift.id} className="flex items-start gap-3 border border-border/70 p-3">
-                      <Gift className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-                      <div className="min-w-0 flex-1">
-                        <p className="font-bold">{gift.name}</p>
-                        {gift.description && <p className="text-sm text-muted-foreground">{gift.description}</p>}
-                        <p className="mt-1 font-mono text-[10px] uppercase text-muted-foreground">From: {gift.sourceTask} · Earned {gift.earnedAt}</p>
-                      </div>
-                      <DiffBadge d={gift.rank} />
+                    <li key={gift.id}>
+                      <button type="button" aria-label={`View ${gift.name}`} onClick={() => setSelectedGiftId(gift.id)} className="flex w-full items-start gap-3 border border-border/70 p-3 text-left hover:border-primary/70">
+                        <Gift className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                        <span className="min-w-0 flex-1">
+                          <span className="block font-bold">{gift.name}</span>
+                          {gift.description && <span className="block text-sm text-muted-foreground">{gift.description}</span>}
+                          <span className="mt-1 block font-mono text-[10px] uppercase text-muted-foreground">From: {gift.sourceTask} · Earned {gift.earnedAt}</span>
+                        </span>
+                        <DiffBadge d={gift.rank} />
+                      </button>
                     </li>
                   ))}
                 </ul>
               )}
             </div>
-            <SysButton variant="ghost" className="w-full" onClick={() => setInventoryOpen(false)}>Close</SysButton>
+            <SysButton variant="ghost" className="w-full" onClick={closeInventory}>Close</SysButton>
           </section>
+          {selectedGift && (
+            <div className="fixed inset-0 z-[110] flex items-center justify-center bg-background/70 p-4 backdrop-blur-sm" onClick={(e) => { e.stopPropagation(); setSelectedGiftId(null); }}>
+              <section role="dialog" aria-modal="true" aria-label={`${selectedGift.name} details`} onClick={(e) => e.stopPropagation()} className="sys-panel w-full max-w-sm space-y-3 p-5 animate-sys-shatter">
+                <div className="flex items-center gap-3"><Gift className="h-6 w-6 text-primary" /><h3 className="text-lg font-bold">{selectedGift.name}</h3><DiffBadge d={selectedGift.rank} /></div>
+                {selectedGift.description && <p className="text-sm text-muted-foreground">{selectedGift.description}</p>}
+                <p className="font-mono text-[10px] uppercase text-muted-foreground">Gift from: {selectedGift.sourceTask}</p>
+                <p className="font-mono text-[10px] text-muted-foreground">Using this gift removes it from your inventory.</p>
+                <div className="flex gap-2">
+                  <SysButton className="flex-1" onClick={useGift}>Use Gift</SysButton>
+                  <SysButton variant="ghost" onClick={() => setSelectedGiftId(null)}>Cancel</SysButton>
+                </div>
+              </section>
+            </div>
+          )}
         </div>,
         document.body,
       )}
