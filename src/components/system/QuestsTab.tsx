@@ -68,7 +68,10 @@ export function QuestsTab() {
           </div>
           <DiffBadge d={rankDiff} />
         </div>
-        <p className="mt-3 font-mono text-[10px] text-primary">Reward: 1 Healing Potion</p>
+        <div className="mt-3 flex items-center justify-between gap-2">
+          <p className="font-mono text-[10px] text-primary">Reward: 1 Healing Potion</p>
+          <SysButton variant="ghost" onClick={() => setOpen(true)}><Plus className="mr-2 h-4 w-4" />Add Daily Quest</SysButton>
+        </div>
 
         <div className="mt-4 border-t border-border/40 pt-3">
           <p className="mb-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Your daily quests · repeat every day</p>
@@ -95,7 +98,6 @@ export function QuestsTab() {
               })}
             </ul>
           )}
-          <SysButton variant="ghost" className="w-full" onClick={() => setOpen(true)}><Plus className="mr-2 h-4 w-4" />Add Daily Quest</SysButton>
         </div>
       </Panel>
 
