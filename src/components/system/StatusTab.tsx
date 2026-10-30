@@ -153,34 +153,20 @@ export function StatusTab() {
               <h2 className="font-mono text-xs uppercase tracking-[0.3em] text-primary sys-glow-text">Inventory</h2>
               <button type="button" aria-label="Close inventory" onClick={closeInventory} className="flex h-10 w-10 items-center justify-center text-muted-foreground hover:text-foreground"><X className="h-5 w-5" /></button>
             </div>
-            <div>
-              <h3 className="mb-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Potions</h3>
-              <button type="button" disabled={state.potions < 1 || state.hp >= state.maxHp} onClick={useInventoryPotion} className="flex w-full items-center gap-3 border border-border/70 p-3 text-left disabled:opacity-40">
-                <FlaskConical className="h-7 w-7 shrink-0 text-success" />
-                <span className="min-w-0 flex-1"><span className="block font-bold">Healing Potion <span className="font-mono text-success">×{state.potions}</span></span><span className="block text-sm text-muted-foreground">Restores up to {POTION_HP} HP · click to use</span></span>
+            <div className="grid grid-cols-3 gap-2">
+              <button type="button" aria-label={`Use Healing Potion, ${state.potions} available`} disabled={state.potions < 1 || state.hp >= state.maxHp} onClick={useInventoryPotion} className="flex aspect-square min-w-0 flex-col items-center justify-center gap-2 border border-border/70 p-2 text-center hover:border-success/70 disabled:opacity-40">
+                <FlaskConical className="h-7 w-7 text-success" />
+                <span className="line-clamp-2 text-xs font-bold">Healing Potion</span>
+                <span className="font-mono text-[10px] text-success">×{state.potions}</span>
               </button>
+              {state.inventoryGifts.map((gift) => (
+                <button key={gift.id} type="button" title={gift.description || gift.name} aria-label={`Use gift ${gift.name}, ${gift.rank}-Rank`} onClick={() => useGift(gift.id)} className="flex aspect-square min-w-0 flex-col items-center justify-center gap-2 border border-border/70 p-2 text-center hover:border-primary/70">
+                  <Gift className="h-7 w-7 text-primary" />
+                  <span className="line-clamp-2 text-xs font-bold">{gift.name}</span>
+                  <DiffBadge d={gift.rank} />
+                </button>
+              ))}
             </div>
-            <div>
-              <h3 className="mb-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Gifts · {state.inventoryGifts.length}</h3>
-              {state.inventoryGifts.length === 0 ? <p className="font-mono text-xs text-muted-foreground">Complete a task with a gift reward to collect it here.</p> : (
-                <ul className="space-y-2">
-                  {state.inventoryGifts.map((gift) => (
-                    <li key={gift.id}>
-                      <button type="button" aria-label={`Use gift ${gift.name}`} onClick={() => useGift(gift.id)} className="flex w-full items-start gap-3 border border-border/70 p-3 text-left hover:border-primary/70">
-                        <Gift className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-                        <span className="min-w-0 flex-1">
-                          <span className="block font-bold">{gift.name}</span>
-                          {gift.description && <span className="block text-sm text-muted-foreground">{gift.description}</span>}
-                          <span className="mt-1 block font-mono text-[10px] uppercase text-muted-foreground">From: {gift.sourceTask} · Earned {gift.earnedAt}</span>
-                        </span>
-                        <DiffBadge d={gift.rank} />
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-            <p className="text-center font-mono text-[10px] text-muted-foreground">Click a gift to use it.</p>
           </section>
         </div>,
         document.body,
