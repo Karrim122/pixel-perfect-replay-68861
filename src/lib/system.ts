@@ -57,13 +57,14 @@ export interface BonusPenaltyHabit { id: string; name: string; description?: str
 export type TodoReward = { type: "potion" } | { type: "gift"; name: string; description?: string | undefined };
 export interface InventoryGift { id: string; name: string; description?: string | undefined; rank: Diff; sourceTask: string; earnedAt: string; }
 export interface Todo { id: string; name: string; description?: string | undefined; due: string; time?: string | undefined; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; done: boolean; notified?: boolean; reward?: TodoReward | undefined; emergency?: boolean; emergencyDeadline?: number; emergencyFailed?: boolean; }
+export interface GateBlueprint { id: string; target: string; label: string; diff: Diff; details?: string | undefined; }
 export interface Session { id: string; date: string; minutes: number; success: boolean; label: string; }
 export interface LogEntry { id: string; ts: number; text: string; kind: "info" | "warn" | "level"; }
 
 export interface GameState {
   level: number; xp: number; hp: number; maxHp: number; points: number; potions: number;
   stats: Record<Attr, number>;
-  dailyQuests: DailyQuest[]; weeklyQuests: WeeklyQuest[]; bonusPenaltyHabits: BonusPenaltyHabit[]; todos: Todo[]; inventoryGifts: InventoryGift[]; sessions: Session[]; log: LogEntry[];
+  dailyQuests: DailyQuest[]; weeklyQuests: WeeklyQuest[]; bonusPenaltyHabits: BonusPenaltyHabit[]; todos: Todo[]; gates: GateBlueprint[]; inventoryGifts: InventoryGift[]; sessions: Session[]; log: LogEntry[];
   lastDay: string; dailyGateQuestDoneDate: string | null; dailyQuestRewardDay: string | null;
   playerName: string;
 }
@@ -86,7 +87,7 @@ export function moveItem<T extends { id: string }>(items: T[], id: string, targe
 export const initialState = (): GameState => ({
   level: 1, xp: 0, hp: 100, maxHp: 100, points: 0, potions: 0,
   stats: { strength: 10, discipline: 10, intelligence: 10, perception: 10, vitality: 10 },
-  dailyQuests: [], weeklyQuests: [], bonusPenaltyHabits: [], todos: [], inventoryGifts: [], sessions: [], log: [], lastDay: today(), dailyGateQuestDoneDate: null, dailyQuestRewardDay: null, playerName: "",
+  dailyQuests: [], weeklyQuests: [], bonusPenaltyHabits: [], todos: [], gates: [], inventoryGifts: [], sessions: [], log: [], lastDay: today(), dailyGateQuestDoneDate: null, dailyQuestRewardDay: null, playerName: "",
 });
 
 export type Alert = { kind: "info" | "penalty" | "level" | "awaken" | "exhausted" | "monarch" | "lowHp"; title: string; body: string };
@@ -294,5 +295,5 @@ export function hydrateState(raw: string): GameState {
     ? saved.penaltyHabits.map((habit) => ({ ...habit, kind: "penalty" as const }))
     : (saved.habits ?? []).map(({ kind, ...habit }) => ({ ...habit, kind: kind === "+" ? "bonus" as const : "penalty" as const })));
   const { dailies: _dailies, habits: _habits, penaltyHabits: _penaltyHabits, ...current } = saved;
-  return { ...base, ...current, dailyQuests: saved.dailyQuests ?? [], weeklyQuests: weeklyQuests.map((quest) => ({ ...quest, masteryLevel: Math.max(1, quest.masteryLevel ?? 1), masteryXp: Math.max(0, quest.masteryXp ?? 0) })), bonusPenaltyHabits, inventoryGifts: saved.inventoryGifts ?? [], dailyGateQuestDoneDate: saved.dailyGateQuestDoneDate ?? null } as GameState;
+  return { ...base, ...current, dailyQuests: saved.dailyQuests ?? [], weeklyQuests: weeklyQuests.map((quest) => ({ ...quest, masteryLevel: Math.max(1, quest.masteryLevel ?? 1), masteryXp: Math.max(0, quest.masteryXp ?? 0) })), bonusPenaltyHabits, gates: saved.gates ?? [], inventoryGifts: saved.inventoryGifts ?? [], dailyGateQuestDoneDate: saved.dailyGateQuestDoneDate ?? null } as GameState;
 }
