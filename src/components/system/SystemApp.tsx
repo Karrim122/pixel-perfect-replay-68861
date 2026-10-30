@@ -102,7 +102,7 @@ function Shell() {
                 className={cn("relative flex h-16 flex-col items-center justify-center gap-1 font-mono text-[10px] uppercase tracking-wider transition", on ? "text-primary" : "text-muted-foreground")}>
                 <span className="relative inline-flex">
                   <t.icon className={cn("h-5 w-5", on && "drop-shadow-[0_0_6px_var(--primary)]")} />
-                  {badgeCount !== null && <span className={cn("absolute -right-2 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 font-mono text-[9px] leading-none", badgeCount ? "bg-destructive text-destructive-foreground" : "bg-success text-background")}>{badgeCount > 99 ? "99+" : badgeCount}</span>}
+                  {badgeCount !== null && badgeCount > 0 && <span className="absolute -right-2 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 font-mono text-[9px] leading-none text-destructive-foreground">{badgeCount > 99 ? "99+" : badgeCount}</span>}
                 </span>
                 {t.label}
                 {on && <span className="absolute bottom-1 h-0.5 w-8 bg-primary shadow-[0_0_8px_var(--primary)]" />}
