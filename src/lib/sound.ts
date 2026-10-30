@@ -1,6 +1,15 @@
-type Cue = "tap" | "reward" | "warning";
+type Cue = "tap" | "done" | "reward" | "warning";
 let audio: AudioContext | undefined;
 let enabled = true;
+
+type Voice = { notes: number[]; type: OscillatorType; gap: number; peak: number; decay: number };
+
+const CUES: Record<Cue, Voice> = {
+  tap: { notes: [520], type: "sine", gap: 0.12, peak: 0.08, decay: 0.13 },
+  done: { notes: [880, 1318.5], type: "triangle", gap: 0.075, peak: 0.09, decay: 0.12 },
+  reward: { notes: [440, 660, 880], type: "sine", gap: 0.12, peak: 0.08, decay: 0.13 },
+  warning: { notes: [220, 160, 220], type: "triangle", gap: 0.12, peak: 0.08, decay: 0.13 },
+};
 
 export function setSoundEnabled(value: boolean) { enabled = value; }
 
@@ -9,19 +18,19 @@ export function playSound(cue: Cue = "tap") {
   try {
     audio ??= new AudioContext();
     void audio.resume().catch(() => {});
-    const notes = cue === "reward" ? [440, 660, 880] : cue === "warning" ? [220, 160, 220] : [520];
+    const { notes, type, gap, peak, decay } = CUES[cue];
     notes.forEach((frequency, i) => {
       if (!audio) return;
-      const start = audio.currentTime + i * 0.12;
+      const start = audio.currentTime + i * gap;
       const oscillator = audio.createOscillator();
       const gain = audio.createGain();
-      oscillator.type = cue === "warning" ? "triangle" : "sine";
+      oscillator.type = type;
       oscillator.frequency.value = frequency;
       gain.gain.setValueAtTime(0, start);
-      gain.gain.linearRampToValueAtTime(0.08, start + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.13);
+      gain.gain.linearRampToValueAtTime(peak, start + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + decay);
       oscillator.connect(gain); gain.connect(audio.destination);
-      oscillator.start(start); oscillator.stop(start + 0.14);
+      oscillator.start(start); oscillator.stop(start + decay + 0.01);
     });
   } catch { /* Audio may be unavailable or blocked until interaction. */ }
 }
