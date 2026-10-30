@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { Check, LockKeyhole, Pencil, Plus, Trash2 } from "lucide-react";
+import { Check, Pencil, Plus, Trash2 } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
 import { baseDifficultyForDiff, completeDailyQuest, completeWeeklyQuest, difficultyForRankIndex, isWeeklyQuestScheduled, rankIndex, resolveDifficulty, uid, type Attr, type BaseDifficulty } from "@/lib/system";
 import { playSound } from "@/lib/sound";
@@ -59,9 +59,10 @@ export function QuestsTab() {
     <div className="space-y-4">
       <Panel title="Daily Quest">
         <div className="flex items-center gap-3 border-b border-border/40 pb-3">
-          <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center border", dailyDone ? "border-success bg-success/20 text-success" : "border-primary/60 text-primary")}>
-            {dailyDone ? <Check className="h-5 w-5" /> : <LockKeyhole className="h-4 w-4" />}
-          </div>
+          <button type="button" role="checkbox" aria-checked={dailyDone} aria-label="Close todays gate" disabled
+            className={cn("flex h-10 w-10 shrink-0 cursor-not-allowed items-center justify-center border", dailyDone ? "border-success bg-success/20 text-success" : "border-primary/60 text-primary")}>
+            {dailyDone && <Check className="h-5 w-5" />}
+          </button>
           <div className="flex-1">
             <p className={cn("text-lg", dailyDone && "text-muted-foreground line-through")}>Close todays gate</p>
             <p className="font-mono text-[10px] uppercase text-muted-foreground">Fixed · Mandatory · Complete a Gate focus timer</p>
