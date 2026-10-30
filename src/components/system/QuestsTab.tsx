@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { Bell, Check, Minus, Pencil, Plus, Trash2 } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
 import { playSound } from "@/lib/sound";
@@ -134,9 +135,9 @@ export function QuestsTab() {
         <SysButton className="mt-3 w-full" onClick={() => { setEditingId(null); setName(""); setDescription(""); setKind("+"); setAttrs(["discipline"]); setBaseDifficulty("Easy"); setMode("habit"); }}>+ New Habit</SysButton>
       </Panel>
 
-      {mode && (
-        <div className="fixed inset-0 z-40 flex items-end bg-background/80 backdrop-blur-sm" onClick={closeEditor}>
-          <form onClick={(e) => e.stopPropagation()} onSubmit={submit} className="sys-panel mx-auto max-h-[90dvh] w-full max-w-md space-y-3 overflow-y-auto p-5 animate-in slide-in-from-bottom">
+      {mode && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-end bg-background/80 backdrop-blur-md" onClick={closeEditor}>
+          <form role="dialog" aria-modal="true" aria-label={editingId ? `Edit ${mode}` : `Create ${mode}`} onClick={(e) => e.stopPropagation()} onSubmit={submit} className="sys-panel mx-auto max-h-[90dvh] w-full max-w-md space-y-3 overflow-y-auto p-5 animate-in slide-in-from-bottom">
             <h3 className="font-mono text-xs uppercase tracking-[0.3em] text-primary">{editingId ? "Edit" : "Register"} {mode === "habit" ? "Habit" : "Daily Quest"}</h3>
             <input autoFocus required className={inputCls} placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} />
             <textarea className={`${inputCls} min-h-20 py-2`} placeholder="Description (optional)" value={description} onChange={(e) => setDescription(e.target.value)} />
@@ -151,7 +152,8 @@ export function QuestsTab() {
             {mode === "daily" && <label className="block font-mono text-xs text-muted-foreground">Reminder (optional)<input type="time" className={inputCls} value={reminder} onChange={(e) => setReminder(e.target.value)} /></label>}
             <div className="flex gap-2"><SysButton type="submit" className="flex-1">{editingId ? "Save Changes" : "Confirm"}</SysButton><SysButton type="button" variant="ghost" onClick={closeEditor}>Cancel</SysButton></div>
           </form>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { Bell, Check, Pencil, Trash2 } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
 import { playSound } from "@/lib/sound";
@@ -93,9 +94,9 @@ export function TodoTab() {
         <SysButton className="mt-3 w-full" onClick={() => { setEditingId(null); setName(""); setDescription(""); setDue(today()); setTime(""); setBaseDifficulty("Easy"); setAttrs(["intelligence"]); setOpen(true); }}>+ New Task</SysButton>
       </Panel>
 
-      {open && (
-        <div className="fixed inset-0 z-40 flex items-end bg-background/80 backdrop-blur-sm" onClick={closeEditor}>
-          <form onClick={(e) => e.stopPropagation()} onSubmit={save} className="sys-panel mx-auto max-h-[90dvh] w-full max-w-md space-y-3 overflow-y-auto p-5 animate-in slide-in-from-bottom">
+      {open && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-end bg-background/80 backdrop-blur-md" onClick={closeEditor}>
+          <form role="dialog" aria-modal="true" aria-label={editingId ? "Edit task" : "Create task"} onClick={(e) => e.stopPropagation()} onSubmit={save} className="sys-panel mx-auto max-h-[90dvh] w-full max-w-md space-y-3 overflow-y-auto p-5 animate-in slide-in-from-bottom">
             <h3 className="font-mono text-xs uppercase tracking-[0.3em] text-primary">{editingId ? "Edit Task" : "Register Quest"}</h3>
             <input autoFocus required className={inputCls} placeholder="Task name" value={name} onChange={(e) => setName(e.target.value)} />
             <textarea className={`${inputCls} min-h-20 py-2`} placeholder="Description (optional)" value={description} onChange={(e) => setDescription(e.target.value)} />
@@ -107,7 +108,8 @@ export function TodoTab() {
             <AttrPicker value={attrs} onChange={setAttrs} />
             <div className="flex gap-2"><SysButton type="submit" className="flex-1">{editingId ? "Save Changes" : "Confirm"}</SysButton><SysButton type="button" variant="ghost" onClick={closeEditor}>Cancel</SysButton></div>
           </form>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
