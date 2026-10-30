@@ -187,7 +187,8 @@ export function failEmergencyTodo(s: GameState, id: string, alerts: Alert[]) {
 export function completeDailyGateQuest(s: GameState) {
   if (s.dailyGateQuestDoneDate === s.lastDay) return;
   s.dailyGateQuestDoneDate = s.lastDay;
-  log(s, "Daily Quest complete: Close todays gate", "level");
+  changeStats(s, ["discipline", "perception"], 1);
+  log(s, "Daily Quest complete: Close todays gate (+1 Discipline, +1 Perception)", "level");
 }
 
 export function usePotion(s: GameState) {
