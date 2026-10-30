@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { Bell, Check, FlaskConical, Gift, Pencil, Trash2 } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
 import { playSound } from "@/lib/sound";
-import { baseDifficultyForDiff, completeTodo, DIFFS, rankIndex, resolveDifficulty, RANKS, today, uid, type Attr, type BaseDifficulty, type TodoReward } from "@/lib/system";
+import { baseDifficultyForDiff, completeTodo, DIFFS, resolveDifficulty, RANKS, today, uid, type Attr, type BaseDifficulty, type TodoReward } from "@/lib/system";
 import { AttrPicker, BaseDifficultyPicker, DiffBadge, Panel, SysButton, inputCls } from "./ui";
 import { cn } from "@/lib/utils";
 
@@ -21,7 +21,7 @@ export function TodoTab() {
   const [rewardDescription, setRewardDescription] = useState("");
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const potionRewardAllowed = DIFFS.indexOf(resolveDifficulty(baseDifficulty, state.level)) === rankIndex(state.level);
+  const potionRewardAllowed = baseDifficulty === "Hard" || baseDifficulty === "Very Hard";
 
   const list = state.todos
     .filter((t) => filter === "all" || t.due === state.lastDay)
@@ -33,7 +33,7 @@ export function TodoTab() {
     act((s) => {
       const diff = resolveDifficulty(baseDifficulty, s.level);
       const todo = editingId ? s.todos.find((x) => x.id === editingId) : undefined;
-      const reward: TodoReward | undefined = rewardType === "potion" && DIFFS.indexOf(diff) === rankIndex(s.level)
+      const reward: TodoReward | undefined = rewardType === "potion" && (baseDifficulty === "Hard" || baseDifficulty === "Very Hard")
         ? { type: "potion" }
         : rewardType === "gift"
           ? { type: "gift", name: rewardName.trim(), description: rewardDescription.trim() || undefined }
@@ -50,8 +50,9 @@ export function TodoTab() {
     const task = state.todos.find((x) => x.id === id);
     if (!task) return;
     setEditingId(id); setName(task.name); setDescription(task.description ?? ""); setDue(task.due); setTime(task.time ?? "");
-    setBaseDifficulty(task.baseDifficulty ?? baseDifficultyForDiff(task.diff, state.level)); setAttrs(task.attrs);
-    setRewardType(task.reward?.type === "potion" && DIFFS.indexOf(task.diff) !== rankIndex(state.level) ? "none" : task.reward?.type ?? "none"); setRewardName(task.reward?.type === "gift" ? task.reward.name : "");
+    const taskBaseDifficulty = task.baseDifficulty ?? baseDifficultyForDiff(task.diff, state.level);
+    setBaseDifficulty(taskBaseDifficulty); setAttrs(task.attrs);
+    setRewardType(task.reward?.type === "potion" && taskBaseDifficulty !== "Hard" && taskBaseDifficulty !== "Very Hard" ? "none" : task.reward?.type ?? "none"); setRewardName(task.reward?.type === "gift" ? task.reward.name : "");
     setRewardDescription(task.reward?.type === "gift" ? task.reward.description ?? "" : ""); setOpen(true);
   };
 
@@ -113,14 +114,14 @@ export function TodoTab() {
             </div>
             <BaseDifficultyPicker value={baseDifficulty} onChange={(value) => {
               setBaseDifficulty(value);
-              if (DIFFS.indexOf(resolveDifficulty(value, state.level)) !== rankIndex(state.level)) setRewardType((current) => current === "potion" ? "none" : current);
+              if (value !== "Hard" && value !== "Very Hard") setRewardType((current) => current === "potion" ? "none" : current);
             }} playerLevel={state.level} />
             <AttrPicker value={attrs} onChange={setAttrs} />
             <div className="space-y-2 border-t border-border/60 pt-3">
               <label className="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Completion reward</label>
               <select className={inputCls} value={rewardType} onChange={(e) => setRewardType(e.target.value as "none" | "potion" | "gift")}>
                 <option value="none">No reward</option>
-                <option value="potion" disabled={!potionRewardAllowed}>Healing Potion{potionRewardAllowed ? "" : " (same rank as player only)"}</option>
+                <option value="potion" disabled={!potionRewardAllowed}>Healing Potion{potionRewardAllowed ? "" : " (Hard or Very Hard only)"}</option>
                 <option value="gift">Custom Gift</option>
               </select>
               {rewardType === "gift" && <>
