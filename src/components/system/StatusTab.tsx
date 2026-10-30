@@ -1,5 +1,5 @@
 import { useSystem } from "@/lib/store";
-import { ATTRS, RANKS, rankIndex, xpToNext, usePotion, POTION_HP, isLowHp } from "@/lib/system";
+import { ATTRS, RANKS, rankIndex, xpToNext, usePotion, POTION_HP, isLowHp, DIFFS, type WeeklyQuest } from "@/lib/system";
 import { FlaskConical } from "lucide-react";
 import { Bar, Panel, SysButton } from "./ui";
 import { cn } from "@/lib/utils";
@@ -60,6 +60,42 @@ export function StatusTab() {
             </div>
           ))}
         </div>
+      </Panel>
+
+      <Panel title="Quests Analysis">
+        <p className="mb-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+          Weekly quest mastery · XP from completed weekly quests only
+        </p>
+        {state.weeklyQuests.length === 0 ? (
+          <p className="font-mono text-xs text-muted-foreground">Create a weekly quest to start tracking its mastery.</p>
+        ) : (
+          <div className="space-y-3">
+            {state.weeklyQuests.map((quest: WeeklyQuest) => {
+              const level = Math.max(1, quest.masteryLevel ?? 1);
+              const xp = Math.max(0, quest.masteryXp ?? 0);
+              const required = xpToNext(level);
+              const rank = RANKS[DIFFS.indexOf(quest.diff)];
+              return (
+                <div key={quest.id} className="border border-border/70 bg-background/30 p-3">
+                  <div className="mb-2 flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h3 className="truncate font-bold text-foreground">{quest.name}</h3>
+                      <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                        {rank?.name ?? "Weekly quest"} · {quest.daysOfWeek.length} scheduled {quest.daysOfWeek.length === 1 ? "day" : "days"}
+                      </p>
+                    </div>
+                    <span className="shrink-0 font-mono text-sm font-bold text-primary">Lv {level}</span>
+                  </div>
+                  <div className="mb-1 flex justify-between font-mono text-[10px]">
+                    <span className="text-muted-foreground">Progress to Lv {level + 1}</span>
+                    <span className="text-primary">{xp} / {required} XP</span>
+                  </div>
+                  <Bar value={xp} max={required} />
+                </div>
+              );
+            })}
+          </div>
+        )}
       </Panel>
 
       <Panel title="System Log">

@@ -42,7 +42,7 @@ export function WeeklyQuestsTab() {
       const quest = editingId ? s.weeklyQuests.find((item) => item.id === editingId) : undefined;
       const values = { name: name.trim(), description: description.trim() || undefined, diff, baseDifficulty, attrs, daysOfWeek, reminder: reminder || undefined };
       if (quest) Object.assign(quest, values);
-      else s.weeklyQuests.push({ id: uid(), ...values, doneDates: [] });
+      else s.weeklyQuests.push({ id: uid(), ...values, doneDates: [], masteryLevel: 1, masteryXp: 0 });
     });
     if (reminder && typeof Notification !== "undefined" && Notification.permission === "default") Notification.requestPermission();
     closeEditor();

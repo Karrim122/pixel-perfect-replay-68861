@@ -50,7 +50,7 @@ export function rankIndex(level: number) {
 export const rankOf = (level: number) => RANKS[rankIndex(level)]!;
 export const xpToNext = (level: number) => Math.round(100 * Math.pow(level, 1.35));
 
-export interface WeeklyQuest { id: string; name: string; description?: string | undefined; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; daysOfWeek: number[]; doneDates: string[]; reminder?: string | undefined; }
+export interface WeeklyQuest { id: string; name: string; description?: string | undefined; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; daysOfWeek: number[]; doneDates: string[]; reminder?: string | undefined; masteryLevel: number; masteryXp: number; }
 export interface DailyQuest { id: string; name: string; description?: string | undefined; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; doneDate: string | null; reminder?: string | undefined; }
 export interface BonusPenaltyHabit { id: string; name: string; description?: string | undefined; kind: "bonus" | "penalty"; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; count: number; }
 export interface Todo { id: string; name: string; description?: string | undefined; due: string; time?: string | undefined; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; done: boolean; notified?: boolean; }
@@ -85,9 +85,17 @@ export function completeWeeklyQuest(s: GameState, id: string, alerts: Alert[]) {
   const quest = s.weeklyQuests.find((x) => x.id === id);
   if (!quest || !isWeeklyQuestScheduled(quest, s.lastDay) || quest.doneDates.includes(s.lastDay)) return;
   quest.doneDates = [...quest.doneDates, s.lastDay].slice(-90);
-  gainXp(s, DIFF_XP[quest.diff], alerts);
+  const earnedXp = DIFF_XP[quest.diff];
+  quest.masteryXp = (quest.masteryXp ?? 0) + earnedXp;
+  quest.masteryLevel = quest.masteryLevel ?? 1;
+  while (quest.masteryXp >= xpToNext(quest.masteryLevel)) {
+    quest.masteryXp -= xpToNext(quest.masteryLevel);
+    quest.masteryLevel += 1;
+    log(s, `Weekly quest mastered: ${quest.name} reached level ${quest.masteryLevel}`, "level");
+  }
+  gainXp(s, earnedXp, alerts);
   changeStats(s, quest.attrs, 1);
-  log(s, `Weekly quest complete: ${quest.name} (+${DIFF_XP[quest.diff]} XP)`, "info");
+  log(s, `Weekly quest complete: ${quest.name} (+${earnedXp} XP)`, "info");
 }
 
 export function completeDailyQuest(s: GameState, id: string, alerts: Alert[]) {
@@ -225,11 +233,13 @@ export function hydrateState(raw: string): GameState {
     attrs: daily.attrs,
     daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
     doneDates: daily.doneDate ? [daily.doneDate] : [],
+    masteryLevel: 1,
+    masteryXp: 0,
     ...(daily.reminder ? { reminder: daily.reminder } : {}),
   }));
   const bonusPenaltyHabits = saved.bonusPenaltyHabits ?? (saved.penaltyHabits
     ? saved.penaltyHabits.map((habit) => ({ ...habit, kind: "penalty" as const }))
     : (saved.habits ?? []).map(({ kind, ...habit }) => ({ ...habit, kind: kind === "+" ? "bonus" as const : "penalty" as const })));
   const { dailies: _dailies, habits: _habits, penaltyHabits: _penaltyHabits, ...current } = saved;
-  return { ...base, ...current, dailyQuests: saved.dailyQuests ?? [], weeklyQuests, bonusPenaltyHabits, dailyGateQuestDoneDate: saved.dailyGateQuestDoneDate ?? null } as GameState;
+  return { ...base, ...current, dailyQuests: saved.dailyQuests ?? [], weeklyQuests: weeklyQuests.map((quest) => ({ ...quest, masteryLevel: Math.max(1, quest.masteryLevel ?? 1), masteryXp: Math.max(0, quest.masteryXp ?? 0) })), bonusPenaltyHabits, dailyGateQuestDoneDate: saved.dailyGateQuestDoneDate ?? null } as GameState;
 }
