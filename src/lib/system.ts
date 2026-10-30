@@ -141,9 +141,14 @@ export function completeTodo(s: GameState, id: string, alerts: Alert[]) {
   changeStats(s, task.attrs, 1);
   log(s, `Quest cleared: ${task.name} (+${DIFF_XP[task.diff]} XP)`, "info");
   if (task.reward?.type === "potion") {
-    s.potions += 1;
-    log(s, `Task reward received: Healing Potion (${task.name})`, "level");
-    alerts.push({ kind: "info", title: "[SYSTEM] Reward Received", body: `Task complete: ${task.name}. You received a Healing Potion.` });
+    if (rankIndex(s.level) === DIFFS.indexOf(task.diff)) {
+      s.potions += 1;
+      log(s, `Task reward received: Healing Potion (${task.name})`, "level");
+      alerts.push({ kind: "info", title: "[SYSTEM] Reward Received", body: `Task complete: ${task.name}. You received a Healing Potion.` });
+    } else {
+      log(s, `Healing Potion reward not earned: ${task.name} is not the player's current rank`, "info");
+      alerts.push({ kind: "info", title: "[SYSTEM] Potion Reward Unavailable", body: `The task rank must match your current player rank to earn its Healing Potion.` });
+    }
   } else if (task.reward?.type === "gift") {
     s.inventoryGifts.unshift({ id: uid(), name: task.reward.name, ...(task.reward.description ? { description: task.reward.description } : {}), rank: task.diff, sourceTask: task.name, earnedAt: s.lastDay });
     log(s, `Task reward received: ${task.reward.name} (${task.diff}-Rank Gift)`, "level");
