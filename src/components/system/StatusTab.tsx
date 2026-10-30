@@ -1,11 +1,14 @@
+import { useState } from "react";
+import { createPortal } from "react-dom";
 import { useSystem } from "@/lib/store";
 import { ATTRS, RANKS, rankIndex, xpToNext, usePotion, POTION_HP, isLowHp, DIFFS, type WeeklyQuest } from "@/lib/system";
-import { FlaskConical } from "lucide-react";
-import { Bar, Panel, SysButton } from "./ui";
+import { FlaskConical, Gift, Package, X } from "lucide-react";
+import { Bar, DiffBadge, Panel, SysButton } from "./ui";
 import { cn } from "@/lib/utils";
 
 export function StatusTab() {
   const { state, act } = useSystem();
+  const [inventoryOpen, setInventoryOpen] = useState(false);
   const ri = rankIndex(state.level);
   const rank = RANKS[ri] ?? RANKS[0];
   if (!rank) return null;
@@ -44,10 +47,10 @@ export function StatusTab() {
         </div>
       </Panel>
 
-      <Panel title="Healing Potions">
+      <Panel title="Inventory">
         <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3"><FlaskConical className="h-7 w-7 text-success" /><div><p className="font-mono text-lg text-success">×{state.potions}</p><p className="text-sm text-muted-foreground">Restores up to {POTION_HP} HP</p></div></div>
-          <SysButton disabled={state.potions < 1 || state.hp >= state.maxHp} onClick={() => act((s, a) => usePotion(s, a))}>Use Potion</SysButton>
+          <div><p className="font-bold">Items and rewards</p><p className="font-mono text-xs text-muted-foreground">{state.potions + state.inventoryGifts.length} items · {state.potions} healing potions · {state.inventoryGifts.length} gifts</p></div>
+          <SysButton className="flex items-center gap-2" onClick={() => setInventoryOpen(true)}><Package className="h-4 w-4" />Inventory</SysButton>
         </div>
       </Panel>
 
@@ -109,6 +112,47 @@ export function StatusTab() {
           </ul>
         )}
       </Panel>
+
+      {inventoryOpen && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-end bg-background/80 p-3 backdrop-blur-md sm:items-center" onClick={() => setInventoryOpen(false)}>
+          <section role="dialog" aria-modal="true" aria-label="Inventory" onClick={(e) => e.stopPropagation()} className="sys-panel mx-auto max-h-[90dvh] w-full max-w-md space-y-4 overflow-y-auto p-5 animate-in slide-in-from-bottom">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="font-mono text-xs uppercase tracking-[0.3em] text-primary sys-glow-text">Inventory</h2>
+              <button type="button" aria-label="Close inventory" onClick={() => setInventoryOpen(false)} className="flex h-10 w-10 items-center justify-center text-muted-foreground hover:text-foreground"><X className="h-5 w-5" /></button>
+            </div>
+            <div className="border border-border/70 p-3">
+              <div className="flex items-center gap-3">
+                <FlaskConical className="h-7 w-7 shrink-0 text-success" />
+                <div className="min-w-0 flex-1">
+                  <p className="font-bold">Healing Potion <span className="font-mono text-success">×{state.potions}</span></p>
+                  <p className="text-sm text-muted-foreground">Restores up to {POTION_HP} HP</p>
+                </div>
+                <SysButton disabled={state.potions < 1 || state.hp >= state.maxHp} onClick={() => act((s, a) => usePotion(s, a))}>Use</SysButton>
+              </div>
+            </div>
+            <div>
+              <h3 className="mb-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Gifts · {state.inventoryGifts.length}</h3>
+              {state.inventoryGifts.length === 0 ? <p className="font-mono text-xs text-muted-foreground">Complete a task with a gift reward to collect it here.</p> : (
+                <ul className="space-y-2">
+                  {state.inventoryGifts.map((gift) => (
+                    <li key={gift.id} className="flex items-start gap-3 border border-border/70 p-3">
+                      <Gift className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                      <div className="min-w-0 flex-1">
+                        <p className="font-bold">{gift.name}</p>
+                        {gift.description && <p className="text-sm text-muted-foreground">{gift.description}</p>}
+                        <p className="mt-1 font-mono text-[10px] uppercase text-muted-foreground">From: {gift.sourceTask} · Earned {gift.earnedAt}</p>
+                      </div>
+                      <DiffBadge d={gift.rank} />
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <SysButton variant="ghost" className="w-full" onClick={() => setInventoryOpen(false)}>Close</SysButton>
+          </section>
+        </div>,
+        document.body,
+      )}
     </div>
   );
 }
