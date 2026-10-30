@@ -11,7 +11,11 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
   const [target, setTarget] = useState("");
   const [endAt, setEndAt] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now());
-  const meta = useRef({ minutes: 25, label: "", target: "" });
+  const [timerKind, setTimerKind] = useState<"focus" | "rest" | null>(null);
+  const [timerMinutes, setTimerMinutes] = useState(25);
+  const [focusMinutes, setFocusMinutes] = useState(0);
+  const [gateActive, setGateActive] = useState(false);
+  const meta = useRef({ label: "", target: "" });
 
   const todoOptions = state.todos.filter((task) => !task.done).map((task) => ({ id: `t:${task.id}`, label: task.name }));
   const weeklyOptions = state.weeklyQuests
@@ -20,7 +24,7 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
   const options = [...todoOptions, ...weeklyOptions];
 
   const fail = (reason: string) => {
-    setEndAt(null); onLock(false); buzz([100, 50, 100]);
+    setEndAt(null); setTimerKind(null); setGateActive(false); onLock(false); buzz([100, 50, 100]);
     act((s, a) => {
       s.sessions.unshift({ id: uid(), date: s.lastDay, minutes: 0, success: false, label: meta.current.label });
       s.log.unshift({ id: uid(), ts: Date.now(), text: `Gate Break Failure. -${BREAK_DMG} HP`, kind: "warn" });
@@ -30,18 +34,24 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
   };
 
   const clear = () => {
-    setEndAt(null); onLock(false); buzz([40, 40, 40]);
+    const totalFocusMinutes = focusMinutes;
+    if (!totalFocusMinutes) return;
+    setEndAt(null); setTimerKind(null); setGateActive(false); onLock(false); buzz([40, 40, 40]);
     act((s: GameState, a: Alert[]) => {
-      const { minutes: m, label, target: assignedTarget } = meta.current;
-      s.sessions.unshift({ id: uid(), date: s.lastDay, minutes: m, success: true, label });
-      const xp = Math.round(m * 2);
+      const { label, target: assignedTarget } = meta.current;
+      s.sessions.unshift({ id: uid(), date: s.lastDay, minutes: totalFocusMinutes, success: true, label });
+      const xp = Math.round(totalFocusMinutes * 2);
       gainXp(s, xp, a);
       if (assignedTarget.startsWith("t:")) completeTodo(s, assignedTarget.slice(2), a);
       if (assignedTarget.startsWith("w:")) completeWeeklyQuest(s, assignedTarget.slice(2), a);
       completeDailyGateQuest(s);
-      s.log.unshift({ id: uid(), ts: Date.now(), text: `Gate cleared (${m}m). +${xp} XP`, kind: "level" });
-      a.push({ kind: "info", title: "[SYSTEM] Gate Cleared", body: `Focus complete. +${xp} XP.` });
+      s.log.unshift({ id: uid(), ts: Date.now(), text: `Gate closed (${totalFocusMinutes}m focus). +${xp} XP`, kind: "level" });
+      a.push({ kind: "info", title: "[SYSTEM] Gate Closed", body: `Gate closed after ${totalFocusMinutes} focus minutes. +${xp} XP. Completed: ${label}.` });
     });
+  };
+
+  const startTimer = (kind: "focus" | "rest", duration: number) => {
+    setTimerMinutes(duration); setTimerKind(kind); setNow(Date.now()); setEndAt(Date.now() + duration * 60000); buzz(60);
   };
 
   useEffect(() => {
@@ -53,12 +63,18 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [endAt]);
 
-  useEffect(() => { if (endAt && now >= endAt) clear(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [now, endAt]);
+  useEffect(() => {
+    if (!endAt || now < endAt) return;
+    setEndAt(null);
+    if (timerKind === "focus") setFocusMinutes((total) => total + timerMinutes);
+    setTimerKind(null);
+    buzz([40, 40, 40]);
+  }, [now, endAt, timerKind, timerMinutes]);
 
   const start = () => {
     const selected = options.find((option) => option.id === target);
-    meta.current = { minutes, target: selected?.id ?? "", label: selected?.label ?? "Free focus" };
-    setNow(Date.now()); setEndAt(Date.now() + minutes * 60000); onLock(true); buzz(60);
+    meta.current = { target: selected?.id ?? "", label: selected?.label ?? "Free focus" };
+    setFocusMinutes(0); setGateActive(true); onLock(true); startTimer("focus", minutes);
   };
 
   const today = state.sessions.filter((s) => s.date === state.lastDay);
@@ -66,14 +82,14 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
   const ok = state.sessions.filter((s) => s.success).length;
   const eff = state.sessions.length ? Math.round((ok / state.sessions.length) * 100) : 0;
 
-  if (endAt) {
+  if (gateActive && endAt) {
     const left = Math.max(0, endAt - now);
-    const pct = 1 - left / (meta.current.minutes * 60000);
+    const pct = 1 - left / (timerMinutes * 60000);
     const mm = String(Math.floor(left / 60000)).padStart(2, "0");
     const ss = String(Math.floor((left % 60000) / 1000)).padStart(2, "0");
     return (
       <div className="flex min-h-[70vh] flex-col items-center justify-center gap-8 text-center">
-        <p className="font-mono text-xs uppercase tracking-[0.4em] text-primary animate-sys-pulse">Gate Lockdown Active</p>
+        <p className="font-mono text-xs uppercase tracking-[0.4em] text-primary animate-sys-pulse">{timerKind === "rest" ? "Rest Timer" : "Gate Lockdown Active"}</p>
         <div className="relative flex h-64 w-64 items-center justify-center">
           <svg className="absolute inset-0 -rotate-90" viewBox="0 0 100 100">
             <circle cx="50" cy="50" r="46" fill="none" stroke="var(--secondary)" strokeWidth="3" />
@@ -81,11 +97,39 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
           </svg>
           <span className="font-mono text-6xl font-bold text-primary sys-glow-text">{mm}:{ss}</span>
         </div>
-        <p className="text-lg">{meta.current.label}</p>
+        <p className="text-lg">{timerKind === "rest" ? "Rest and recover" : meta.current.label}</p>
+        {focusMinutes > 0 && <p className="font-mono text-xs text-muted-foreground">Completed focus: {focusMinutes} min · {focusMinutes * 2} XP on gate close</p>}
         <div className="flex gap-2">
           <SysButton variant="danger" onClick={() => fail("You abandoned the Gate.")}>Exit Gate (−{BREAK_DMG} HP)</SysButton>
         </div>
-        <p className="max-w-xs font-mono text-[10px] text-muted-foreground">Leaving this screen or switching apps counts as fleeing.</p>
+        <p className="max-w-xs font-mono text-[10px] text-muted-foreground">Leaving this screen or switching apps counts as fleeing the gate.</p>
+      </div>
+    );
+  }
+
+  if (gateActive) {
+    return (
+      <div className="space-y-4">
+        <Panel title="Gate In Progress">
+          <p className="font-bold">{meta.current.label}</p>
+          <p className="mt-1 font-mono text-xs text-muted-foreground">Completed focus: {focusMinutes} min · {focusMinutes * 2} XP on gate close</p>
+          <p className="mt-4 font-mono text-xs uppercase tracking-wider text-primary">Choose your next step</p>
+          <p className="mb-2 mt-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Another focus timer</p>
+          <div className="mt-2 grid grid-cols-4 gap-2">
+            {[15, 25, 45, 60].map((duration) => (
+              <SysButton key={duration} variant="ghost" onClick={() => startTimer("focus", duration)}>{duration}m</SysButton>
+            ))}
+          </div>
+          <p className="mb-2 mt-4 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Rest timer</p>
+          <div className="grid grid-cols-3 gap-2">
+            {[5, 10, 15].map((duration) => (
+              <SysButton key={duration} variant="ghost" onClick={() => startTimer("rest", duration)}>{duration}m Rest</SysButton>
+            ))}
+          </div>
+        </Panel>
+        <SysButton disabled={!focusMinutes} className="h-14 w-full" onClick={clear}>Close Gate</SysButton>
+        <SysButton variant="danger" className="w-full" onClick={() => fail("You left the Gate.")}>Leave Gate (−{BREAK_DMG} HP)</SysButton>
+        <p className="text-center font-mono text-[10px] text-muted-foreground">Close the gate to complete its daily quest and assigned objective. Leaving applies the penalty.</p>
       </div>
     );
   }
