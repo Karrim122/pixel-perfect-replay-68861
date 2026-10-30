@@ -118,14 +118,11 @@
 @keyframes sys-enter { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes sys-critical { 50% { box-shadow: 0 0 22px -4px var(--destructive); } }
 @keyframes gate-rim-spin { to { transform: rotate(360deg); } }
-@keyframes gate-rift-pulse { 0%,100% { opacity: .55; transform: scale(.92); } 50% { opacity: 1; transform: scale(1.06); } }
 .gate-animation { position: absolute; inset: -18px; pointer-events: none; color: var(--primary); }
 .gate-animation-rest { color: var(--success); }
 .gate-animation-rim { position: absolute; border: 1px solid color-mix(in oklab, currentColor 55%, transparent); border-radius: 50%; box-shadow: 0 0 14px -5px currentColor, inset 0 0 14px -8px currentColor; }
 .gate-animation-rim-outer { inset: 0; border-style: dashed; animation: gate-rim-spin 26s linear infinite; }
 .gate-animation-rim-inner { inset: 12px; border-width: 2px; border-left-color: transparent; border-right-color: transparent; animation: gate-rim-spin 14s linear infinite reverse; }
-.gate-animation-rift { position: absolute; inset: 22px; width: calc(100% - 44px); height: calc(100% - 44px); overflow: visible; filter: drop-shadow(0 0 7px currentColor); animation: gate-rift-pulse 2.8s ease-in-out infinite; }
-.gate-animation-rift path { stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 .status-rank-0 { color: #e2e8f0; }
 .status-rank-1 { color: #67e8f9; text-shadow: 0 0 5px #22d3ee; }
 .status-rank-2 { color: #4ade80; text-shadow: 0 0 7px #22c55e, 0 0 13px #15803d; }

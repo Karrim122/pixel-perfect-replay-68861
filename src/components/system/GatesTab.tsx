@@ -94,10 +94,6 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
           <div className={timerKind === "rest" ? "gate-animation gate-animation-rest" : "gate-animation"} aria-hidden="true">
             <div className="gate-animation-rim gate-animation-rim-outer" />
             <div className="gate-animation-rim gate-animation-rim-inner" />
-            <svg className="gate-animation-rift" viewBox="0 0 240 240" fill="none">
-              <path d="M120 34C94 61 88 78 99 103C106 120 106 136 91 160C80 178 93 199 120 214C147 199 160 178 149 160C134 136 134 120 141 103C152 78 146 61 120 34Z" />
-              <path d="M120 54C108 77 110 93 119 108C128 124 126 145 112 166M120 54C132 77 130 93 121 108C112 124 114 145 128 166" />
-            </svg>
           </div>
           <svg className="absolute inset-0 z-10 -rotate-90" viewBox="0 0 100 100">
             <circle cx="50" cy="50" r="46" fill="none" stroke="var(--secondary)" strokeWidth="3" />
