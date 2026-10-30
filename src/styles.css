@@ -118,6 +118,19 @@
 @keyframes sys-enter { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes sys-critical { 50% { box-shadow: 0 0 22px -4px var(--destructive); } }
 @keyframes gate-rim-spin { to { transform: rotate(360deg); } }
+@keyframes gate-entry-expand { 0% { opacity: 0; transform: scale(.12) rotate(-35deg); } 22% { opacity: 1; } 100% { opacity: 0; transform: scale(1.85) rotate(70deg); } }
+@keyframes gate-entry-core { 0% { opacity: 0; transform: scale(.2); } 24% { opacity: .9; } 100% { opacity: 0; transform: scale(4.8); } }
+@keyframes gate-entry-flash { 0%,100% { opacity: 0; } 28% { opacity: .65; } 55% { opacity: .08; } }
+@keyframes gate-entry-title { 0%,100% { opacity: 0; transform: translateY(9px); letter-spacing: .55em; } 28%,68% { opacity: 1; transform: translateY(0); letter-spacing: .3em; } }
+.gate-entry-screen { min-height: 70vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; overflow: hidden; text-align: center; }
+.gate-entry-portal { position: relative; width: 16rem; height: 16rem; display: flex; align-items: center; justify-content: center; color: var(--primary); }
+.gate-entry-ring { position: absolute; inset: 12px; border: 1px solid currentColor; border-radius: 50%; box-shadow: 0 0 18px -5px currentColor, inset 0 0 18px -7px currentColor; animation: gate-entry-expand 1.6s cubic-bezier(.16,.74,.28,1) both; }
+.gate-entry-ring-outer { border-style: dashed; }
+.gate-entry-ring-middle { inset: 28px; animation-delay: .12s; }
+.gate-entry-ring-inner { inset: 48px; border-width: 2px; border-left-color: transparent; border-right-color: transparent; animation-delay: .24s; }
+.gate-entry-core { position: absolute; width: 3rem; height: 3rem; border-radius: 50%; background: var(--primary); box-shadow: 0 0 22px 8px var(--primary), 0 0 70px 24px var(--glow); animation: gate-entry-core 1.6s ease-out both; }
+.gate-entry-flash { position: absolute; inset: 5px; border-radius: 50%; background: radial-gradient(circle, color-mix(in oklab, var(--primary) 42%, transparent), transparent 68%); animation: gate-entry-flash 1.6s ease-out both; }
+.gate-entry-title { color: var(--primary); font-family: var(--font-mono); font-size: .8rem; font-weight: 700; text-transform: uppercase; text-shadow: 0 0 12px var(--primary), 0 0 26px var(--glow); animation: gate-entry-title 1.6s ease-in-out both; }
 .gate-animation { position: absolute; inset: -18px; pointer-events: none; color: var(--primary); }
 .gate-animation-rest { color: var(--success); }
 .gate-animation-rim { position: absolute; border: 1px solid color-mix(in oklab, currentColor 55%, transparent); border-radius: 50%; box-shadow: 0 0 14px -5px currentColor, inset 0 0 14px -8px currentColor; }

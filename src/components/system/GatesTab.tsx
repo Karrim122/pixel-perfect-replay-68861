@@ -15,7 +15,9 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
   const [timerMinutes, setTimerMinutes] = useState(25);
   const [focusMinutes, setFocusMinutes] = useState(0);
   const [gateActive, setGateActive] = useState(false);
+  const [entering, setEntering] = useState(false);
   const meta = useRef({ label: "", target: "" });
+  const entryTimeout = useRef<number | null>(null);
 
   const todoOptions = state.todos.filter((task) => !task.done).map((task) => ({ id: `t:${task.id}`, label: task.name }));
   const weeklyOptions = state.weeklyQuests
@@ -24,6 +26,8 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
   const options = [...todoOptions, ...weeklyOptions];
 
   const fail = (reason: string) => {
+    if (entryTimeout.current !== null) window.clearTimeout(entryTimeout.current);
+    entryTimeout.current = null; setEntering(false);
     setEndAt(null); setTimerKind(null); setGateActive(false); onLock(false); buzz([100, 50, 100]);
     act((s, a) => {
       s.sessions.unshift({ id: uid(), date: s.lastDay, minutes: 0, success: false, label: meta.current.label });
@@ -36,6 +40,8 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
   const clear = () => {
     const totalFocusMinutes = focusMinutes;
     if (!totalFocusMinutes) return;
+    if (entryTimeout.current !== null) window.clearTimeout(entryTimeout.current);
+    entryTimeout.current = null; setEntering(false);
     setEndAt(null); setTimerKind(null); setGateActive(false); onLock(false); buzz([40, 40, 40]);
     act((s: GameState, a: Alert[]) => {
       const { label, target: assignedTarget } = meta.current;
@@ -55,13 +61,17 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
   };
 
   useEffect(() => {
-    if (!endAt) return;
-    const t = setInterval(() => setNow(Date.now()), 250);
+    if (!gateActive) return;
+    const t = endAt ? setInterval(() => setNow(Date.now()), 250) : null;
     const vis = () => { if (document.visibilityState === "hidden") fail("You fled the Gate."); };
     document.addEventListener("visibilitychange", vis);
-    return () => { clearInterval(t); document.removeEventListener("visibilitychange", vis); };
+    return () => { if (t) clearInterval(t); document.removeEventListener("visibilitychange", vis); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [endAt]);
+  }, [endAt, gateActive]);
+
+  useEffect(() => () => {
+    if (entryTimeout.current !== null) window.clearTimeout(entryTimeout.current);
+  }, []);
 
   useEffect(() => {
     if (!endAt || now < endAt) return;
@@ -74,13 +84,36 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
   const start = () => {
     const selected = options.find((option) => option.id === target);
     meta.current = { target: selected?.id ?? "", label: selected?.label ?? "Free focus" };
-    setFocusMinutes(0); setGateActive(true); onLock(true); startTimer("focus", minutes);
+    setFocusMinutes(0); setGateActive(true); onLock(true); buzz(60);
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+      setEntering(false); startTimer("focus", minutes); return;
+    }
+    setEntering(true);
+    entryTimeout.current = window.setTimeout(() => {
+      entryTimeout.current = null; setEntering(false); startTimer("focus", minutes);
+    }, 1900);
   };
 
   const today = state.sessions.filter((s) => s.date === state.lastDay);
   const total = state.sessions.reduce((n, s) => n + s.minutes, 0);
   const ok = state.sessions.filter((s) => s.success).length;
   const eff = state.sessions.length ? Math.round((ok / state.sessions.length) * 100) : 0;
+
+  if (gateActive && entering) {
+    return (
+      <div className="gate-entry-screen" aria-live="polite">
+        <div className="gate-entry-portal" aria-hidden="true">
+          <div className="gate-entry-flash" />
+          <span className="gate-entry-ring gate-entry-ring-outer" />
+          <span className="gate-entry-ring gate-entry-ring-middle" />
+          <span className="gate-entry-ring gate-entry-ring-inner" />
+          <span className="gate-entry-core" />
+        </div>
+        <p className="gate-entry-title">Entering Gate</p>
+        <p className="font-mono text-xs text-muted-foreground">{meta.current.label}</p>
+      </div>
+    );
+  }
 
   if (gateActive && endAt) {
     const left = Math.max(0, endAt - now);
