@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { hydrateState, initialState, isLowHp, isWeeklyQuestScheduled, rollover, type Alert, type GameState } from "./system";
+import { updateDailyBackup } from "./backup";
 
 const KEY = "sl-system-v1";
 type ActOptions = { suppressLowHpNotification?: boolean };
@@ -50,6 +51,7 @@ export function SystemProvider({ children }: { children: ReactNode }) {
   }, [act]);
 
   useEffect(() => { if (ready) localStorage.setItem(KEY, JSON.stringify(state)); }, [state, ready]);
+  useEffect(() => { if (ready) void updateDailyBackup(state); }, [state, ready]);
 
   // Reminders
   useEffect(() => {
