@@ -52,6 +52,7 @@ export const xpToNext = (level: number) => Math.round(100 * Math.pow(level, 1.35
 
 export interface WeeklyQuest { id: string; name: string; description?: string | undefined; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; daysOfWeek: number[]; doneDates: string[]; reminder?: string | undefined; }
 export interface DailyQuest { id: string; name: string; description?: string | undefined; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; doneDate: string | null; reminder?: string | undefined; }
+export interface PenaltyHabit { id: string; name: string; description?: string | undefined; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; count: number; }
 export interface Todo { id: string; name: string; description?: string | undefined; due: string; time?: string | undefined; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; done: boolean; notified?: boolean; }
 export interface Session { id: string; date: string; minutes: number; success: boolean; label: string; }
 export interface LogEntry { id: string; ts: number; text: string; kind: "info" | "warn" | "level"; }
@@ -59,7 +60,7 @@ export interface LogEntry { id: string; ts: number; text: string; kind: "info" |
 export interface GameState {
   level: number; xp: number; hp: number; maxHp: number; points: number; potions: number;
   stats: Record<Attr, number>;
-  dailyQuests: DailyQuest[]; weeklyQuests: WeeklyQuest[]; todos: Todo[]; sessions: Session[]; log: LogEntry[];
+  dailyQuests: DailyQuest[]; weeklyQuests: WeeklyQuest[]; penaltyHabits: PenaltyHabit[]; todos: Todo[]; sessions: Session[]; log: LogEntry[];
   lastDay: string; dailyGateQuestDoneDate: string | null;
   playerName: string;
 }
@@ -73,7 +74,7 @@ export const uid = () => Math.random().toString(36).slice(2, 10);
 export const initialState = (): GameState => ({
   level: 1, xp: 0, hp: 100, maxHp: 100, points: 0, potions: 0,
   stats: { strength: 10, discipline: 10, intelligence: 10, perception: 10, vitality: 10 },
-  dailyQuests: [], weeklyQuests: [], todos: [], sessions: [], log: [], lastDay: today(), dailyGateQuestDoneDate: null, playerName: "",
+  dailyQuests: [], weeklyQuests: [], penaltyHabits: [], todos: [], sessions: [], log: [], lastDay: today(), dailyGateQuestDoneDate: null, playerName: "",
 });
 
 export type Alert = { kind: "info" | "penalty" | "level" | "awaken" | "death" | "monarch" | "lowHp"; title: string; body: string };
@@ -96,6 +97,16 @@ export function completeDailyQuest(s: GameState, id: string, alerts: Alert[]) {
   gainXp(s, DIFF_XP[quest.diff], alerts);
   changeStats(s, quest.attrs, 1);
   log(s, `Daily quest complete: ${quest.name} (+${DIFF_XP[quest.diff]} XP)`, "info");
+}
+
+export function triggerPenaltyHabit(s: GameState, id: string, alerts: Alert[]) {
+  const habit = s.penaltyHabits.find((item) => item.id === id);
+  if (!habit) return;
+  habit.count += 1;
+  const damage = DIFF_HP[habit.diff];
+  changeStats(s, habit.attrs, -1);
+  log(s, `Penalty habit: ${habit.name}. -${damage} HP, -1 ${habit.attrs.join(", ")}`, "warn");
+  takeDamage(s, damage, alerts);
 }
 
 export function completeTodo(s: GameState, id: string, alerts: Alert[]) {
@@ -189,7 +200,7 @@ export function rollover(s: GameState, alerts: Alert[]) {
 export function hydrateState(raw: string): GameState {
   const saved = JSON.parse(raw) as Partial<GameState> & {
     dailies?: { id: string; name: string; description?: string; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; doneDate: string | null; reminder?: string }[];
-    habits?: unknown;
+    habits?: { id: string; name: string; description?: string; kind: "+" | "-"; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; count: number }[];
   };
   const base = initialState();
   const weeklyQuests = saved.weeklyQuests ?? (saved.dailies ?? []).map((daily) => ({
@@ -203,6 +214,7 @@ export function hydrateState(raw: string): GameState {
     doneDates: daily.doneDate ? [daily.doneDate] : [],
     ...(daily.reminder ? { reminder: daily.reminder } : {}),
   }));
+  const penaltyHabits = saved.penaltyHabits ?? (saved.habits ?? []).filter((habit) => habit.kind === "-").map(({ kind: _kind, ...habit }) => habit);
   const { dailies: _dailies, habits: _habits, ...current } = saved;
-  return { ...base, ...current, dailyQuests: saved.dailyQuests ?? [], weeklyQuests, dailyGateQuestDoneDate: saved.dailyGateQuestDoneDate ?? null } as GameState;
+  return { ...base, ...current, dailyQuests: saved.dailyQuests ?? [], weeklyQuests, penaltyHabits, dailyGateQuestDoneDate: saved.dailyGateQuestDoneDate ?? null } as GameState;
 }
