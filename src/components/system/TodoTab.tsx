@@ -117,10 +117,8 @@ export function TodoTab() {
             );
           })}
         </ul>
-        <div className="mt-3 grid grid-cols-[auto_1fr] gap-2">
-          <SysButton variant="danger" className="h-10 gap-1 px-3 text-xs" disabled={activeEmergencyExists} onClick={startEmergency}><AlertTriangle className="h-4 w-4" /> Emergency</SysButton>
-          <SysButton onClick={() => { setEditingId(null); setName(""); setDescription(""); setDue(today()); setTime(""); setBaseDifficulty("Easy"); setAttrs(["intelligence"]); setRewardType("none"); setRewardName(""); setRewardDescription(""); setOpen(true); }}>+ New Task</SysButton>
-        </div>
+        <SysButton variant="danger" disabled={activeEmergencyExists} className="mt-3 h-8 w-full py-1 text-xs" onClick={startEmergency}><AlertTriangle className="mr-1 h-3.5 w-3.5" />Emergency</SysButton>
+        <SysButton className="mt-2 w-full" onClick={() => { setEditingId(null); setName(""); setDescription(""); setDue(today()); setTime(""); setBaseDifficulty("Easy"); setAttrs(["intelligence"]); setRewardType("none"); setRewardName(""); setRewardDescription(""); setOpen(true); }}>+ New Task</SysButton>
       </Panel>
 
       {open && createPortal(
