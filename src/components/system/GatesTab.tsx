@@ -91,11 +91,19 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
       <div className="flex min-h-[70vh] flex-col items-center justify-center gap-8 text-center">
         <p className="font-mono text-xs uppercase tracking-[0.4em] text-primary animate-sys-pulse">{timerKind === "rest" ? "Rest Timer" : "Gate Lockdown Active"}</p>
         <div className="relative flex h-64 w-64 items-center justify-center">
-          <svg className="absolute inset-0 -rotate-90" viewBox="0 0 100 100">
+          <div className={timerKind === "rest" ? "gate-animation gate-animation-rest" : "gate-animation"} aria-hidden="true">
+            <div className="gate-animation-rim gate-animation-rim-outer" />
+            <div className="gate-animation-rim gate-animation-rim-inner" />
+            <svg className="gate-animation-rift" viewBox="0 0 240 240" fill="none">
+              <path d="M120 34C94 61 88 78 99 103C106 120 106 136 91 160C80 178 93 199 120 214C147 199 160 178 149 160C134 136 134 120 141 103C152 78 146 61 120 34Z" />
+              <path d="M120 54C108 77 110 93 119 108C128 124 126 145 112 166M120 54C132 77 130 93 121 108C112 124 114 145 128 166" />
+            </svg>
+          </div>
+          <svg className="absolute inset-0 z-10 -rotate-90" viewBox="0 0 100 100">
             <circle cx="50" cy="50" r="46" fill="none" stroke="var(--secondary)" strokeWidth="3" />
             <circle cx="50" cy="50" r="46" fill="none" stroke="var(--primary)" strokeWidth="3" strokeDasharray={289} strokeDashoffset={289 * (1 - pct)} style={{ filter: "drop-shadow(0 0 6px var(--primary))" }} />
           </svg>
-          <span className="font-mono text-6xl font-bold text-primary sys-glow-text">{mm}:{ss}</span>
+          <span className="relative z-10 font-mono text-6xl font-bold text-primary sys-glow-text">{mm}:{ss}</span>
         </div>
         <p className="text-lg">{timerKind === "rest" ? "Rest and recover" : meta.current.label}</p>
         {focusMinutes > 0 && <p className="font-mono text-xs text-muted-foreground">Completed focus: {focusMinutes} min · {focusMinutes * 2} XP on gate close</p>}

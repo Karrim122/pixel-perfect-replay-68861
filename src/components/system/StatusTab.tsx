@@ -24,7 +24,7 @@ export function StatusTab() {
           </div>
           <div className="text-right">
             <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Rank</p>
-            <p className={cn("text-2xl font-bold uppercase text-primary sys-glow-text", ri >= 5 && "animate-sys-pulse")}>{rank.name}</p>
+            <p className={cn("status-rank text-2xl font-bold uppercase", `status-rank-${ri}`)}>{rank.name}</p>
             {next && <p className="font-mono text-[10px] text-muted-foreground">Next: {next.name} @ Lv {next.min}</p>}
           </div>
         </div>
