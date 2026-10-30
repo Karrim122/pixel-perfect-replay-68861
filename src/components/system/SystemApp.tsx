@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { Hexagon, ListChecks, Settings, Swords, User, Volume2, VolumeX } from "lucide-react";
+import { CalendarDays, Hexagon, ListChecks, Settings, Swords, User, Volume2, VolumeX } from "lucide-react";
 import { SystemProvider, buzz, useSystem } from "@/lib/store";
 import { rankOf } from "@/lib/system";
 import { StatusTab } from "./StatusTab";
 import { playSound, setSoundEnabled } from "@/lib/sound";
 import { QuestsTab } from "./QuestsTab";
+import { WeeklyQuestsTab } from "./WeeklyQuestsTab";
 import { TodoTab } from "./TodoTab";
 import { GatesTab } from "./GatesTab";
 import { SysButton } from "./ui";
@@ -13,7 +14,8 @@ import { cn } from "@/lib/utils";
 
 const TABS = [
   { key: "status", label: "Status", icon: User },
-  { key: "quests", label: "Quests", icon: Hexagon },
+  { key: "quests", label: "Daily", icon: Hexagon },
+  { key: "weekly", label: "Weekly", icon: CalendarDays },
   { key: "todo", label: "To-Do", icon: ListChecks },
   { key: "gates", label: "Gates", icon: Swords },
 ] as const;
@@ -79,12 +81,13 @@ function Shell() {
         <div key={tab} className="sys-view-enter">
         {tab === "status" && <StatusTab />}
         {tab === "quests" && <QuestsTab />}
+        {tab === "weekly" && <WeeklyQuestsTab />}
         {tab === "todo" && <TodoTab />}
         {tab === "gates" && <GatesTab onLock={setLocked} />}
         </div>
       </main>
       {!locked && (
-        <nav className="fixed inset-x-0 bottom-0 z-30 mx-auto grid max-w-md grid-cols-4 border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
+        <nav className="fixed inset-x-0 bottom-0 z-30 mx-auto grid max-w-md grid-cols-5 border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
           {TABS.map((t) => {
             const on = tab === t.key;
             return (

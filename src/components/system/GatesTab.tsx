@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { buzz, useSystem } from "@/lib/store";
-import { DIFF_XP, changeStats, gainXp, takeDamage, uid, type Alert, type GameState } from "@/lib/system";
+import { completeDailyGateQuest, completeTodo, completeWeeklyQuest, gainXp, isWeeklyQuestScheduled, takeDamage, uid, type Alert, type GameState } from "@/lib/system";
 import { Panel, SysButton, inputCls } from "./ui";
 
 const BREAK_DMG = 25;
@@ -11,12 +11,13 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
   const [target, setTarget] = useState("");
   const [endAt, setEndAt] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now());
-  const meta = useRef({ minutes: 25, label: "" });
+  const meta = useRef({ minutes: 25, label: "", target: "" });
 
-  const options = [
-    ...state.todos.filter((t) => !t.done).map((t) => ({ id: "t:" + t.id, label: t.name })),
-    ...state.dailies.filter((d) => d.doneDate !== state.lastDay).map((d) => ({ id: "d:" + d.id, label: "[Daily] " + d.name })),
-  ];
+  const todoOptions = state.todos.filter((task) => !task.done).map((task) => ({ id: `t:${task.id}`, label: task.name }));
+  const weeklyOptions = state.weeklyQuests
+    .filter((quest) => isWeeklyQuestScheduled(quest, state.lastDay) && !quest.doneDates.includes(state.lastDay))
+    .map((quest) => ({ id: `w:${quest.id}`, label: quest.name }));
+  const options = [...todoOptions, ...weeklyOptions];
 
   const fail = (reason: string) => {
     setEndAt(null); onLock(false); buzz([100, 50, 100]);
@@ -31,17 +32,15 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
   const clear = () => {
     setEndAt(null); onLock(false); buzz([40, 40, 40]);
     act((s: GameState, a: Alert[]) => {
-      const m = meta.current.minutes;
-      s.sessions.unshift({ id: uid(), date: s.lastDay, minutes: m, success: true, label: meta.current.label });
+      const { minutes: m, label, target: assignedTarget } = meta.current;
+      s.sessions.unshift({ id: uid(), date: s.lastDay, minutes: m, success: true, label });
       const xp = Math.round(m * 2);
       gainXp(s, xp, a);
-      changeStats(s, ["perception"], 1);
-      if (target.startsWith("t:")) {
-        const t = s.todos.find((x) => x.id === target.slice(2));
-        if (t && !t.done) { t.done = true; gainXp(s, DIFF_XP[t.diff], a); }
-      }
+      if (assignedTarget.startsWith("t:")) completeTodo(s, assignedTarget.slice(2), a);
+      if (assignedTarget.startsWith("w:")) completeWeeklyQuest(s, assignedTarget.slice(2), a);
+      completeDailyGateQuest(s, a);
       s.log.unshift({ id: uid(), ts: Date.now(), text: `Gate cleared (${m}m). +${xp} XP`, kind: "level" });
-      a.push({ kind: "info", title: "[SYSTEM] Gate Cleared", body: `Dungeon conquered. +${xp} XP, +1 Perception.` });
+      a.push({ kind: "info", title: "[SYSTEM] Gate Cleared", body: `Focus complete. +${xp} XP.` });
     });
   };
 
@@ -57,7 +56,8 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
   useEffect(() => { if (endAt && now >= endAt) clear(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [now, endAt]);
 
   const start = () => {
-    meta.current = { minutes, label: options.find((o) => o.id === target)?.label ?? "Free focus" };
+    const selected = options.find((option) => option.id === target);
+    meta.current = { minutes, target: selected?.id ?? "", label: selected?.label ?? "Free focus" };
     setNow(Date.now()); setEndAt(Date.now() + minutes * 60000); onLock(true); buzz(60);
   };
 
@@ -83,7 +83,6 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
         </div>
         <p className="text-lg">{meta.current.label}</p>
         <div className="flex gap-2">
-          {target.startsWith("t:") && <SysButton onClick={clear}>Task Done</SysButton>}
           <SysButton variant="danger" onClick={() => fail("You abandoned the Gate.")}>Exit Gate (−{BREAK_DMG} HP)</SysButton>
         </div>
         <p className="max-w-xs font-mono text-[10px] text-muted-foreground">Leaving this screen or switching apps counts as fleeing.</p>
@@ -97,7 +96,8 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
         <label className="mb-1 block font-mono text-xs text-muted-foreground">Assigned objective</label>
         <select className={inputCls} value={target} onChange={(e) => setTarget(e.target.value)}>
           <option value="">Free focus</option>
-          {options.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+          {todoOptions.length > 0 && <optgroup label="To-Do Tasks">{todoOptions.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</optgroup>}
+          {weeklyOptions.length > 0 && <optgroup label="Weekly Quests">{weeklyOptions.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</optgroup>}
         </select>
         <p className="mb-1 mt-4 font-mono text-xs text-muted-foreground">Duration</p>
         <div className="grid grid-cols-4 gap-2">

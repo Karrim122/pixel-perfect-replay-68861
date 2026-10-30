@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { Bell, Check, Pencil, Trash2 } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
 import { playSound } from "@/lib/sound";
-import { DIFF_XP, baseDifficultyForDiff, changeStats, gainXp, resolveDifficulty, today, uid, type Attr, type BaseDifficulty } from "@/lib/system";
+import { baseDifficultyForDiff, completeTodo, resolveDifficulty, today, uid, type Attr, type BaseDifficulty } from "@/lib/system";
 import { AttrPicker, BaseDifficultyPicker, DiffBadge, Panel, SysButton, inputCls } from "./ui";
 import { cn } from "@/lib/utils";
 
@@ -50,14 +50,7 @@ export function TodoTab() {
     if (!current || current.done) return;
     buzz();
     playSound("done");
-    act((s, a) => {
-      const t = s.todos.find((x) => x.id === id)!;
-      if (t.done) return;
-      t.done = true;
-      gainXp(s, DIFF_XP[t.diff], a);
-      if (["B", "A", "S", "N", "M"].includes(t.diff)) changeStats(s, t.attrs, 1);
-      s.log.unshift({ id: uid(), ts: Date.now(), text: `Quest cleared: ${t.name} (+${DIFF_XP[t.diff]} XP)`, kind: "info" });
-    });
+    act((s, alerts) => completeTodo(s, id, alerts));
   };
 
   return (

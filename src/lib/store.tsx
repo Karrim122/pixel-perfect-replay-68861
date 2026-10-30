@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import { initialState, isLowHp, rollover, type Alert, type GameState } from "./system";
+import { hydrateState, initialState, isLowHp, isWeeklyQuestScheduled, rollover, type Alert, type GameState } from "./system";
 
 const KEY = "sl-system-v1";
 type Ctx = {
@@ -39,7 +39,7 @@ export function SystemProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       const raw = localStorage.getItem(KEY);
-      if (raw) { stateRef.current = { ...initialState(), ...JSON.parse(raw) }; setState(stateRef.current); }
+      if (raw) { stateRef.current = hydrateState(raw); setState(stateRef.current); }
     } catch { /* ignore */ }
     setReady(true);
     act((s, a) => rollover(s, a));
@@ -64,8 +64,8 @@ export function SystemProvider({ children }: { children: ReactNode }) {
         });
         if (typeof Notification !== "undefined" && Notification.permission === "granted") new Notification("[SYSTEM] Quest Reminder", { body: td.name });
       }
-      const dl = s.dailies.find((d) => d.reminder === hm && d.doneDate !== s.lastDay);
-      if (dl && typeof Notification !== "undefined" && Notification.permission === "granted") new Notification("[SYSTEM] Daily Quest", { body: dl.name });
+      const weeklyQuest = s.weeklyQuests.find((q) => q.reminder === hm && isWeeklyQuestScheduled(q, s.lastDay) && !q.doneDates.includes(s.lastDay));
+      if (weeklyQuest && typeof Notification !== "undefined" && Notification.permission === "granted") new Notification("[SYSTEM] Weekly Quest", { body: weeklyQuest.name });
     };
     const t = setInterval(tick, 20000);
     return () => clearInterval(t);

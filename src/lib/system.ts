@@ -50,17 +50,16 @@ export function rankIndex(level: number) {
 export const rankOf = (level: number) => RANKS[rankIndex(level)]!;
 export const xpToNext = (level: number) => Math.round(100 * Math.pow(level, 1.35));
 
-export interface Habit { id: string; name: string; description?: string; kind: "+" | "-"; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; count: number; }
-export interface Daily { id: string; name: string; description?: string; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; doneDate: string | null; reminder?: string | undefined; }
-export interface Todo { id: string; name: string; description?: string; due: string; time?: string | undefined; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; done: boolean; notified?: boolean; }
+export interface WeeklyQuest { id: string; name: string; description?: string | undefined; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; daysOfWeek: number[]; doneDates: string[]; reminder?: string | undefined; }
+export interface Todo { id: string; name: string; description?: string | undefined; due: string; time?: string | undefined; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; done: boolean; notified?: boolean; }
 export interface Session { id: string; date: string; minutes: number; success: boolean; label: string; }
 export interface LogEntry { id: string; ts: number; text: string; kind: "info" | "warn" | "level"; }
 
 export interface GameState {
   level: number; xp: number; hp: number; maxHp: number; points: number; potions: number;
   stats: Record<Attr, number>;
-  habits: Habit[]; dailies: Daily[]; todos: Todo[]; sessions: Session[]; log: LogEntry[];
-  lastDay: string; dailyRewardDay: string | null;
+  weeklyQuests: WeeklyQuest[]; todos: Todo[]; sessions: Session[]; log: LogEntry[];
+  lastDay: string; dailyGateQuestDoneDate: string | null;
   playerName: string;
 }
 
@@ -73,34 +72,37 @@ export const uid = () => Math.random().toString(36).slice(2, 10);
 export const initialState = (): GameState => ({
   level: 1, xp: 0, hp: 100, maxHp: 100, points: 0, potions: 0,
   stats: { strength: 10, discipline: 10, intelligence: 10, perception: 10, vitality: 10 },
-  habits: [
-    { id: uid(), name: "Workout session", kind: "+", diff: "C", attrs: ["strength", "vitality"], count: 0 },
-    { id: uid(), name: "Doomscrolling", kind: "-", diff: "D", attrs: ["perception", "discipline"], count: 0 },
-  ],
-  dailies: [
-    { id: uid(), name: "100 Push-ups", diff: "C", attrs: ["strength"], doneDate: null },
-    { id: uid(), name: "Read 20 pages", diff: "D", attrs: ["intelligence"], doneDate: null },
-    { id: uid(), name: "10 min meditation", diff: "E", attrs: ["perception"], doneDate: null },
-  ],
-  todos: [], sessions: [], log: [], lastDay: today(), dailyRewardDay: null, playerName: "",
+  weeklyQuests: [], todos: [], sessions: [], log: [], lastDay: today(), dailyGateQuestDoneDate: null, playerName: "",
 });
 
 export type Alert = { kind: "info" | "penalty" | "level" | "awaken" | "death" | "monarch" | "lowHp"; title: string; body: string };
 
-export function completeDaily(s: GameState, id: string, alerts: Alert[]) {
-  const d = s.dailies.find((x) => x.id === id);
-  if (!d || d.doneDate === s.lastDay) return;
-  d.doneDate = s.lastDay;
-  gainXp(s, DIFF_XP[d.diff], alerts);
-  if (s.dailies.length && s.dailies.every((x) => x.doneDate === s.lastDay) && s.dailyRewardDay !== s.lastDay) {
-    s.dailyRewardDay = s.lastDay;
-    s.potions += 1;
-    s.hp = Math.min(s.maxHp, s.hp + 20);
-    s.dailies.forEach((x) => changeStats(s, x.attrs, 1));
-    log(s, "Daily Quest complete. +100 XP, +20 HP, +1 Healing Potion", "level");
-    alerts.push({ kind: "info", title: "[SYSTEM] Daily Quest Complete", body: "Rewards: +100 XP, +20 HP, +1 Healing Potion, +1 to linked attributes." });
-    gainXp(s, 100, alerts);
-  }
+export const isWeeklyQuestScheduled = (quest: WeeklyQuest, date: string) => quest.daysOfWeek.includes(new Date(`${date}T00:00:00`).getDay());
+
+export function completeWeeklyQuest(s: GameState, id: string, alerts: Alert[]) {
+  const quest = s.weeklyQuests.find((x) => x.id === id);
+  if (!quest || !isWeeklyQuestScheduled(quest, s.lastDay) || quest.doneDates.includes(s.lastDay)) return;
+  quest.doneDates = [...quest.doneDates, s.lastDay].slice(-90);
+  gainXp(s, DIFF_XP[quest.diff], alerts);
+  changeStats(s, quest.attrs, 1);
+  log(s, `Weekly quest complete: ${quest.name} (+${DIFF_XP[quest.diff]} XP)`, "info");
+}
+
+export function completeTodo(s: GameState, id: string, alerts: Alert[]) {
+  const task = s.todos.find((x) => x.id === id);
+  if (!task || task.done) return;
+  task.done = true;
+  gainXp(s, DIFF_XP[task.diff], alerts);
+  changeStats(s, task.attrs, 1);
+  log(s, `Quest cleared: ${task.name} (+${DIFF_XP[task.diff]} XP)`, "info");
+}
+
+export function completeDailyGateQuest(s: GameState, alerts: Alert[]) {
+  if (s.dailyGateQuestDoneDate === s.lastDay) return;
+  s.dailyGateQuestDoneDate = s.lastDay;
+  s.potions += 1;
+  log(s, "Daily Quest complete: Close todays gate. +1 Healing Potion", "level");
+  alerts.push({ kind: "info", title: "[SYSTEM] Daily Quest Complete", body: "Close todays gate cleared. Reward: +1 Healing Potion." });
 }
 
 export function usePotion(s: GameState, alerts: Alert[]) {
@@ -153,17 +155,37 @@ export function changeStats(s: GameState, attrs: Attr[], delta: number) {
   attrs.forEach((a) => { s.stats[a] = Math.max(1, s.stats[a] + delta); });
 }
 
-/** Evaluate day rollover: penalties for missed dailies on lastDay. */
+/** Evaluate day rollover: penalty if the mandatory gate quest was missed. */
 export function rollover(s: GameState, alerts: Alert[]) {
   const t = today();
   if (s.lastDay === t) return;
-  const missed = s.dailies.filter((d) => d.doneDate !== s.lastDay);
-  if (missed.length) {
-    let dmg = 0;
-    missed.forEach((d) => { dmg += DIFF_HP[d.diff]; changeStats(s, d.attrs, -1); });
-    log(s, `Daily Quest failed (${missed.length} missed). -${dmg} HP`, "warn");
-    alerts.push({ kind: "penalty", title: "⚠️ [System Alert] Penalty Quest", body: `Daily Quest incomplete: ${missed.map((m) => m.name).join(", ")}. -${dmg} HP and attribute loss applied.` });
-    takeDamage(s, dmg, alerts);
+  if (s.dailyGateQuestDoneDate !== s.lastDay) {
+    const diff = difficultyForRankIndex(rankIndex(s.level));
+    const damage = DIFF_HP[diff];
+    log(s, `Daily Quest failed: Close todays gate. -${damage} HP`, "warn");
+    alerts.push({ kind: "penalty", title: "[System Alert] Daily Quest Failed", body: `Close todays gate was not completed. -${damage} HP.` });
+    takeDamage(s, damage, alerts);
   }
   s.lastDay = t;
+}
+
+export function hydrateState(raw: string): GameState {
+  const saved = JSON.parse(raw) as Partial<GameState> & {
+    dailies?: { id: string; name: string; description?: string; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; doneDate: string | null; reminder?: string }[];
+    habits?: unknown;
+  };
+  const base = initialState();
+  const weeklyQuests = saved.weeklyQuests ?? (saved.dailies ?? []).map((daily) => ({
+    id: daily.id,
+    name: daily.name,
+    ...(daily.description ? { description: daily.description } : {}),
+    diff: daily.diff,
+    ...(daily.baseDifficulty ? { baseDifficulty: daily.baseDifficulty } : {}),
+    attrs: daily.attrs,
+    daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
+    doneDates: daily.doneDate ? [daily.doneDate] : [],
+    ...(daily.reminder ? { reminder: daily.reminder } : {}),
+  }));
+  const { dailies: _dailies, habits: _habits, ...current } = saved;
+  return { ...base, ...current, weeklyQuests, dailyGateQuestDoneDate: saved.dailyGateQuestDoneDate ?? null } as GameState;
 }
