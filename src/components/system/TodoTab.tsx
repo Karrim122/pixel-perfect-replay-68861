@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Bell, Check, Trash2 } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
+import { playSound } from "@/lib/sound";
 import { DIFF_XP, changeStats, gainXp, today, uid, type Attr, type Diff } from "@/lib/system";
 import { AttrPicker, DiffBadge, DiffPicker, Panel, SysButton, inputCls } from "./ui";
 import { cn } from "@/lib/utils";
@@ -28,7 +29,10 @@ export function TodoTab() {
   };
 
   const complete = (id: string) => {
+    const current = state.todos.find((x) => x.id === id);
+    if (!current || current.done) return;
     buzz();
+    playSound("done");
     act((s, a) => {
       const t = s.todos.find((x) => x.id === id)!;
       if (t.done) return;

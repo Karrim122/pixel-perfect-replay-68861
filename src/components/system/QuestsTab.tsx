@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Bell, Check, Minus, Plus, Trash2 } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
+import { playSound } from "@/lib/sound";
 import { DIFF_HP, DIFF_XP, changeStats, gainXp, takeDamage, uid, type Attr, type Diff } from "@/lib/system";
 import { AttrPicker, DiffBadge, DiffPicker, Panel, SysButton, inputCls } from "./ui";
 import { cn } from "@/lib/utils";
@@ -18,6 +19,7 @@ export function QuestsTab() {
 
   const toggleDaily = (id: string) => {
     buzz();
+    playSound(state.dailies.find((x) => x.id === id)?.doneDate === day ? "tap" : "done");
     act((s, a) => {
       const d = s.dailies.find((x) => x.id === id)!;
       if (d.doneDate === s.lastDay) { d.doneDate = null; return; }
@@ -36,6 +38,7 @@ export function QuestsTab() {
 
   const hit = (id: string) => {
     buzz(30);
+    playSound(state.habits.find((x) => x.id === id)?.kind === "-" ? "warning" : "done");
     act((s, a) => {
       const h = s.habits.find((x) => x.id === id)!;
       h.count += 1;
