@@ -58,7 +58,7 @@ export function QuestsTab() {
 
   return (
     <div className="space-y-4">
-      <Panel title="Daily Quest">
+      <Panel title="Daily">
         <div className="flex items-center gap-3 border-b border-border/40 pb-3">
           <button type="button" role="checkbox" aria-checked={dailyDone} aria-label="Close todays gate" disabled
             className={cn("flex h-10 w-10 shrink-0 cursor-not-allowed items-center justify-center border", dailyDone ? "border-success bg-success/20 text-success" : "border-primary/60 text-primary")}>

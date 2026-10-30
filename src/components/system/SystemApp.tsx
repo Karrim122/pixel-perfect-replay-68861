@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { CalendarDays, Hexagon, ListChecks, Settings, Swords, User, Volume2, VolumeX } from "lucide-react";
 import { SystemProvider, buzz, useSystem } from "@/lib/store";
-import { rankOf } from "@/lib/system";
+import { isWeeklyQuestScheduled, rankOf } from "@/lib/system";
 import { StatusTab } from "./StatusTab";
 import { playSound, setSoundEnabled } from "@/lib/sound";
 import { QuestsTab } from "./QuestsTab";
@@ -53,6 +53,11 @@ function Shell() {
   const [sounds, setSounds] = useState(true);
   const [settings, setSettings] = useState(false);
   const rank = rankOf(state.level);
+  const remainingToday =
+    Number(state.dailyGateQuestDoneDate !== state.lastDay) +
+    state.dailyQuests.filter((quest) => quest.doneDate !== state.lastDay).length +
+    state.weeklyQuests.filter((quest) => isWeeklyQuestScheduled(quest, state.lastDay) && !quest.doneDates.includes(state.lastDay)).length +
+    state.todos.filter((task) => !task.done && task.due <= state.lastDay).length;
 
   useEffect(() => { document.documentElement.dataset["tier"] = rank.tier; }, [rank.tier]);
 
@@ -91,9 +96,12 @@ function Shell() {
           {TABS.map((t) => {
             const on = tab === t.key;
             return (
-              <SysButton variant="ghost" aria-current={on ? "page" : undefined} key={t.key} onClick={() => { buzz(8); setTab(t.key); }}
+              <SysButton variant="ghost" aria-current={on ? "page" : undefined} aria-label={t.key === "quests" ? `Daily, ${remainingToday} left today` : t.label} key={t.key} onClick={() => { buzz(8); setTab(t.key); }}
                 className={cn("relative flex h-16 flex-col items-center justify-center gap-1 font-mono text-[10px] uppercase tracking-wider transition", on ? "text-primary" : "text-muted-foreground")}>
-                <t.icon className={cn("h-5 w-5", on && "drop-shadow-[0_0_6px_var(--primary)]")} />
+                <span className="relative inline-flex">
+                  <t.icon className={cn("h-5 w-5", on && "drop-shadow-[0_0_6px_var(--primary)]")} />
+                  {t.key === "quests" && <span className={cn("absolute -right-2 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 font-mono text-[9px] leading-none", remainingToday ? "bg-destructive text-destructive-foreground" : "bg-success text-background")}>{remainingToday > 99 ? "99+" : remainingToday}</span>}
+                </span>
                 {t.label}
                 {on && <span className="absolute bottom-1 h-0.5 w-8 bg-primary shadow-[0_0_8px_var(--primary)]" />}
               </SysButton>
