@@ -12,11 +12,11 @@ export function StatusTab() {
   const next = RANKS[ri + 1];
   return (
     <div className="space-y-4">
-      <Panel title="Player">
-        <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Name</p>
-        <p className="text-2xl font-bold uppercase tracking-wider text-foreground">{state.playerName || "Player"}</p>
-      </Panel>
       <Panel title="Status" className={isLowHp(state) ? "sys-danger sys-low-hp" : ""}>
+        <div className="mb-4 border-b border-border pb-3">
+          <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Player</p>
+          <p className="text-2xl font-bold uppercase tracking-wider text-foreground">{state.playerName || "Player"}</p>
+        </div>
         <div className="flex items-end justify-between">
           <div>
             <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Level</p>
