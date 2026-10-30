@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useSystem } from "@/lib/store";
 import { ATTRS, RANKS, rankIndex, xpToNext, usePotion, POTION_HP, isLowHp, DIFFS, uid, type WeeklyQuest } from "@/lib/system";
@@ -10,6 +10,8 @@ export function StatusTab() {
   const { state, act } = useSystem();
   const [inventoryOpen, setInventoryOpen] = useState(false);
   const [selectedGiftId, setSelectedGiftId] = useState<string | null>(null);
+  const [hpHealing, setHpHealing] = useState(false);
+  const hpHealTimeout = useRef<number | null>(null);
   const ri = rankIndex(state.level);
   const rank = RANKS[ri] ?? RANKS[0];
   if (!rank) return null;
@@ -27,6 +29,15 @@ export function StatusTab() {
     setInventoryOpen(false); setSelectedGiftId(null);
   };
   const closeInventory = () => { setInventoryOpen(false); setSelectedGiftId(null); };
+  const useInventoryPotion = () => {
+    if (state.potions < 1 || state.hp >= state.maxHp) return;
+    closeInventory();
+    act((s, a) => usePotion(s, a));
+    if (hpHealTimeout.current !== null) window.clearTimeout(hpHealTimeout.current);
+    setHpHealing(false);
+    window.requestAnimationFrame(() => setHpHealing(true));
+    hpHealTimeout.current = window.setTimeout(() => { hpHealTimeout.current = null; setHpHealing(false); }, 1100);
+  };
   return (
     <div className="space-y-4">
       <Panel title="Status" className={isLowHp(state) ? "sys-danger sys-low-hp" : ""}>
@@ -48,7 +59,7 @@ export function StatusTab() {
         <div className="mt-5 space-y-3">
           <div>
             <div className="mb-1 flex justify-between font-mono text-xs"><span className="text-hp">HP</span><span>{state.hp} / {state.maxHp}</span></div>
-            <Bar value={state.hp} max={state.maxHp} hp />
+            <Bar value={state.hp} max={state.maxHp} hp heal={hpHealing} />
           </div>
           <div>
             <div className="mb-1 flex justify-between font-mono text-xs"><span className="text-primary">XP</span><span>{state.xp} / {xpToNext(state.level)}</span></div>
@@ -141,7 +152,7 @@ export function StatusTab() {
                   <p className="font-bold">Healing Potion <span className="font-mono text-success">×{state.potions}</span></p>
                   <p className="text-sm text-muted-foreground">Restores up to {POTION_HP} HP</p>
                 </div>
-                <SysButton disabled={state.potions < 1 || state.hp >= state.maxHp} onClick={() => act((s, a) => usePotion(s, a))}>Use</SysButton>
+                <SysButton disabled={state.potions < 1 || state.hp >= state.maxHp} onClick={useInventoryPotion}>Use</SysButton>
               </div>
             </div>
             <div>

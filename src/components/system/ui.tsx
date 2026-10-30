@@ -13,10 +13,10 @@ export function Panel({ children, className, title }: { children: ReactNode; cla
   );
 }
 
-export function Bar({ value, max, hp }: { value: number; max: number; hp?: boolean }) {
+export function Bar({ value, max, hp, heal }: { value: number; max: number; hp?: boolean; heal?: boolean }) {
   return (
-    <div className="h-2 w-full overflow-hidden bg-secondary">
-      <div className={cn("h-full transition-all duration-700", hp ? "sys-bar-hp" : "sys-bar")} style={{ width: `${Math.min(100, (value / max) * 100)}%` }} />
+    <div className={cn("h-2 w-full overflow-hidden bg-secondary", heal && "hp-heal-frame")}>
+      <div className={cn("h-full transition-all duration-700", hp ? "sys-bar-hp" : "sys-bar", hp && heal && "hp-heal-fill")} style={{ width: `${Math.min(100, (value / max) * 100)}%` }} />
     </div>
   );
 }
