@@ -2,9 +2,10 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import { hydrateState, initialState, isLowHp, isWeeklyQuestScheduled, rollover, type Alert, type GameState } from "./system";
 
 const KEY = "sl-system-v1";
+type ActOptions = { suppressLowHpNotification?: boolean };
 type Ctx = {
   state: GameState;
-  act: (fn: (s: GameState, alerts: Alert[]) => void) => void;
+  act: (fn: (s: GameState, alerts: Alert[]) => void, options?: ActOptions) => void;
   alerts: Alert[];
   dismiss: () => void;
   ready: boolean;
@@ -20,17 +21,18 @@ export function SystemProvider({ children }: { children: ReactNode }) {
   const lowHpNotified = useRef(false);
   stateRef.current = state;
 
-  const act = useCallback((fn: (s: GameState, a: Alert[]) => void) => {
+  const act = useCallback((fn: (s: GameState, a: Alert[]) => void, options?: ActOptions) => {
     const s: GameState = structuredClone(stateRef.current);
     const a: Alert[] = [];
     fn(s, a);
-    if (isLowHp(s) && !lowHpNotified.current) {
+    if (isLowHp(s) && !lowHpNotified.current && !options?.suppressLowHpNotification) {
       a.push({ kind: "lowHp", title: "[SYSTEM] Low HP", body: `HP critical: ${s.hp}/${s.maxHp}. Use a healing potion or complete your daily quests.` });
       if (typeof Notification !== "undefined" && Notification.permission === "granted") {
         try { new Notification("[SYSTEM] Low HP", { body: `HP critical: ${s.hp}/${s.maxHp}.`, tag: "system-low-hp" }); } catch { /* Browser notifications unavailable. */ }
       }
     }
-    lowHpNotified.current = isLowHp(s);
+    if (!isLowHp(s)) lowHpNotified.current = false;
+    else if (!options?.suppressLowHpNotification) lowHpNotified.current = true;
     stateRef.current = s;
     setState(s);
     if (a.length) setAlerts((p) => [...p, ...a]);

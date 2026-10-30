@@ -9,34 +9,42 @@ import { cn } from "@/lib/utils";
 export function StatusTab() {
   const { state, act } = useSystem();
   const [inventoryOpen, setInventoryOpen] = useState(false);
-  const [selectedGiftId, setSelectedGiftId] = useState<string | null>(null);
   const [hpHealing, setHpHealing] = useState(false);
   const hpHealTimeout = useRef<number | null>(null);
+  const [itemEffect, setItemEffect] = useState<{ type: "potion" | "gift"; label: string; id: number } | null>(null);
+  const itemEffectTimeout = useRef<number | null>(null);
   const ri = rankIndex(state.level);
   const rank = RANKS[ri] ?? RANKS[0];
   if (!rank) return null;
   const next = RANKS[ri + 1];
-  const selectedGift = state.inventoryGifts.find((gift) => gift.id === selectedGiftId);
-  const useGift = () => {
+  const showItemEffect = (type: "potion" | "gift", label: string) => {
+    if (itemEffectTimeout.current !== null) window.clearTimeout(itemEffectTimeout.current);
+    setItemEffect({ type, label, id: Date.now() });
+    itemEffectTimeout.current = window.setTimeout(() => { itemEffectTimeout.current = null; setItemEffect(null); }, 1450);
+  };
+  const useGift = (giftId: string) => {
+    const selectedGift = state.inventoryGifts.find((gift) => gift.id === giftId);
     if (!selectedGift) return;
-    act((s, alerts) => {
-      const gift = s.inventoryGifts.find((item) => item.id === selectedGift.id);
+    closeInventory();
+    act((s) => {
+      const gift = s.inventoryGifts.find((item) => item.id === giftId);
       if (!gift) return;
       s.inventoryGifts = s.inventoryGifts.filter((item) => item.id !== gift.id);
       s.log.unshift({ id: uid(), ts: Date.now(), text: `Gift used: ${gift.name}`, kind: "info" });
-      alerts.push({ kind: "info", title: "[SYSTEM] Gift Used", body: `${gift.name} has been used.` });
-    });
-    setInventoryOpen(false); setSelectedGiftId(null);
+    }, { suppressLowHpNotification: true });
+    showItemEffect("gift", selectedGift.name);
   };
-  const closeInventory = () => { setInventoryOpen(false); setSelectedGiftId(null); };
+  const closeInventory = () => setInventoryOpen(false);
   const useInventoryPotion = () => {
     if (state.potions < 1 || state.hp >= state.maxHp) return;
+    const restored = Math.min(POTION_HP, state.maxHp - state.hp);
     closeInventory();
-    act((s, a) => usePotion(s, a));
+    act((s, a) => usePotion(s, a), { suppressLowHpNotification: true });
     if (hpHealTimeout.current !== null) window.clearTimeout(hpHealTimeout.current);
     setHpHealing(false);
     window.requestAnimationFrame(() => setHpHealing(true));
     hpHealTimeout.current = window.setTimeout(() => { hpHealTimeout.current = null; setHpHealing(false); }, 1100);
+    showItemEffect("potion", `+${restored} HP`);
   };
   return (
     <div className="space-y-4">
@@ -145,15 +153,12 @@ export function StatusTab() {
               <h2 className="font-mono text-xs uppercase tracking-[0.3em] text-primary sys-glow-text">Inventory</h2>
               <button type="button" aria-label="Close inventory" onClick={closeInventory} className="flex h-10 w-10 items-center justify-center text-muted-foreground hover:text-foreground"><X className="h-5 w-5" /></button>
             </div>
-            <div className="border border-border/70 p-3">
-              <div className="flex items-center gap-3">
+            <div>
+              <h3 className="mb-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Potions</h3>
+              <button type="button" disabled={state.potions < 1 || state.hp >= state.maxHp} onClick={useInventoryPotion} className="flex w-full items-center gap-3 border border-border/70 p-3 text-left disabled:opacity-40">
                 <FlaskConical className="h-7 w-7 shrink-0 text-success" />
-                <div className="min-w-0 flex-1">
-                  <p className="font-bold">Healing Potion <span className="font-mono text-success">×{state.potions}</span></p>
-                  <p className="text-sm text-muted-foreground">Restores up to {POTION_HP} HP</p>
-                </div>
-                <SysButton disabled={state.potions < 1 || state.hp >= state.maxHp} onClick={useInventoryPotion}>Use</SysButton>
-              </div>
+                <span className="min-w-0 flex-1"><span className="block font-bold">Healing Potion <span className="font-mono text-success">×{state.potions}</span></span><span className="block text-sm text-muted-foreground">Restores up to {POTION_HP} HP · click to use</span></span>
+              </button>
             </div>
             <div>
               <h3 className="mb-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Gifts · {state.inventoryGifts.length}</h3>
@@ -161,7 +166,7 @@ export function StatusTab() {
                 <ul className="space-y-2">
                   {state.inventoryGifts.map((gift) => (
                     <li key={gift.id}>
-                      <button type="button" aria-label={`View ${gift.name}`} onClick={() => setSelectedGiftId(gift.id)} className="flex w-full items-start gap-3 border border-border/70 p-3 text-left hover:border-primary/70">
+                      <button type="button" aria-label={`Use gift ${gift.name}`} onClick={() => useGift(gift.id)} className="flex w-full items-start gap-3 border border-border/70 p-3 text-left hover:border-primary/70">
                         <Gift className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
                         <span className="min-w-0 flex-1">
                           <span className="block font-bold">{gift.name}</span>
@@ -175,22 +180,16 @@ export function StatusTab() {
                 </ul>
               )}
             </div>
-            <SysButton variant="ghost" className="w-full" onClick={closeInventory}>Close</SysButton>
+            <p className="text-center font-mono text-[10px] text-muted-foreground">Click a gift to use it.</p>
           </section>
-          {selectedGift && (
-            <div className="fixed inset-0 z-[110] flex items-center justify-center bg-background/70 p-4 backdrop-blur-sm" onClick={(e) => { e.stopPropagation(); setSelectedGiftId(null); }}>
-              <section role="dialog" aria-modal="true" aria-label={`${selectedGift.name} details`} onClick={(e) => e.stopPropagation()} className="sys-panel w-full max-w-sm space-y-3 p-5 animate-sys-shatter">
-                <div className="flex items-center gap-3"><Gift className="h-6 w-6 text-primary" /><h3 className="text-lg font-bold">{selectedGift.name}</h3><DiffBadge d={selectedGift.rank} /></div>
-                {selectedGift.description && <p className="text-sm text-muted-foreground">{selectedGift.description}</p>}
-                <p className="font-mono text-[10px] uppercase text-muted-foreground">Gift from: {selectedGift.sourceTask}</p>
-                <p className="font-mono text-[10px] text-muted-foreground">Using this gift removes it from your inventory.</p>
-                <div className="flex gap-2">
-                  <SysButton className="flex-1" onClick={useGift}>Use Gift</SysButton>
-                  <SysButton variant="ghost" onClick={() => setSelectedGiftId(null)}>Cancel</SysButton>
-                </div>
-              </section>
-            </div>
-          )}
+        </div>,
+        document.body,
+      )}
+      {itemEffect && createPortal(
+        <div key={itemEffect.id} className={`item-use-effect item-use-effect-${itemEffect.type}`} aria-hidden="true">
+          <span className="item-use-ring" />
+          {itemEffect.type === "potion" ? <FlaskConical className="item-use-icon" /> : <Gift className="item-use-icon" />}
+          <span className="item-use-label">{itemEffect.label}</span>
         </div>,
         document.body,
       )}
