@@ -57,11 +57,11 @@ export function ReorderButtons({ itemName, canMoveUp, canMoveDown, onMoveUp, onM
   onMoveUp: () => void;
   onMoveDown: () => void;
 }) {
-  const buttonClass = "flex h-7 w-7 shrink-0 items-center justify-center text-muted-foreground hover:text-primary disabled:cursor-default disabled:opacity-25";
+  const buttonClass = "flex h-5 w-5 shrink-0 items-center justify-center text-muted-foreground hover:text-primary disabled:cursor-default disabled:opacity-25";
   return (
-    <div className="flex shrink-0 items-center">
-      <button type="button" disabled={!canMoveUp} aria-label={`Move ${itemName} up`} title="Move up" onClick={onMoveUp} className={buttonClass}><ArrowUp className="h-3.5 w-3.5" /></button>
-      <button type="button" disabled={!canMoveDown} aria-label={`Move ${itemName} down`} title="Move down" onClick={onMoveDown} className={buttonClass}><ArrowDown className="h-3.5 w-3.5" /></button>
+    <div className="flex shrink-0 flex-col items-center">
+      <button type="button" disabled={!canMoveUp} aria-label={`Move ${itemName} up`} title="Move up" onClick={onMoveUp} className={buttonClass}><ArrowUp className="h-3 w-3" /></button>
+      <button type="button" disabled={!canMoveDown} aria-label={`Move ${itemName} down`} title="Move down" onClick={onMoveDown} className={buttonClass}><ArrowDown className="h-3 w-3" /></button>
     </div>
   );
 }
