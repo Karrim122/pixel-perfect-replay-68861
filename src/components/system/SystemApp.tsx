@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle, Timer, CalendarDays, Hexagon, ListChecks, Settings, Swords, User, Volume2, VolumeX } from "lucide-react";
+import { Timer, CalendarDays, Hexagon, ListChecks, Settings, Swords, User, Volume2, VolumeX } from "lucide-react";
 import { SystemProvider, buzz, useSystem } from "@/lib/store";
-import { completeTodo, failEmergencyTodo, isWeeklyQuestScheduled, rankOf } from "@/lib/system";
+import { completeTodo, failEmergencyTodo, postponeEmergencyTodo, isWeeklyQuestScheduled, rankOf } from "@/lib/system";
 import { StatusTab } from "./StatusTab";
 import { playSound, setSoundEnabled } from "@/lib/sound";
 import { QuestsTab } from "./QuestsTab";
@@ -70,32 +70,33 @@ function EmergencyOverlay() {
   const seconds = String(secondsLeft % 60).padStart(2, "0");
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-destructive/25 p-5 text-foreground backdrop-blur-md" role="alertdialog" aria-modal="true" aria-label="Emergency focus reset">
-      <div className="sys-panel sys-danger w-full max-w-sm border-destructive bg-background/95 p-6 text-center animate-sys-shake">
-        <div className="mx-auto flex w-fit items-center gap-2 border border-destructive/60 bg-destructive/10 px-3 py-1.5 text-destructive animate-sys-pulse">
-          <AlertTriangle className="h-4 w-4" />
-          <span className="font-mono text-[10px] font-bold uppercase tracking-[0.25em]">Emergency Protocol Active</span>
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-background/90 p-5 text-foreground backdrop-blur-md" role="alertdialog" aria-modal="true" aria-label="Urgent Quest: Focus Regain">
+      <div className="sys-panel w-full max-w-sm p-6 text-center">
+        <div className="mx-auto flex w-fit items-center gap-2 border border-primary/60 bg-primary/10 px-3 py-1.5 text-primary">
+          <Timer className="h-4 w-4" />
+          <span className="font-mono text-[10px] font-bold uppercase tracking-[0.25em]">Urgent Quest Active</span>
         </div>
-        <Timer className="mx-auto mt-5 h-10 w-10 text-destructive" />
-        <p className="mt-4 font-mono text-xs uppercase tracking-[0.4em] text-destructive">Focus Reset Reminder</p>
-        <h2 className="mt-2 text-3xl font-black uppercase text-destructive [text-shadow:0_0_16px_var(--destructive)]">Urgent Quest</h2>
-        <p className="mt-2 text-sm font-bold uppercase tracking-wider text-foreground">Take a breath</p>
-        <p className="mt-3 text-sm text-foreground/90">When the timer ends, choose what feels right. You can postpone without losing progress.</p>
+        <h2 className="mt-4 text-3xl font-black uppercase text-primary sys-glow-text">Urgent Quest</h2>
+        <p className="mt-2 text-sm font-bold uppercase tracking-wider text-foreground">Focus Regain</p>
+        <p className="mt-3 text-sm text-foreground/90">Take a short reset, then choose how you want to continue.</p>
         <div role="timer" className="relative mx-auto my-6 flex h-44 w-44 items-center justify-center" aria-label={`Urgent quest timer: ${minutes}:${seconds}`}>
           <span aria-hidden="true" className="urgent-breath-ring absolute inset-0" />
           <span aria-hidden="true" className="urgent-breath-ring urgent-breath-ring-delayed absolute inset-4" />
-          <p className="relative z-10 border border-destructive/60 bg-background/80 px-5 py-3 font-mono text-5xl font-black tabular-nums text-destructive [text-shadow:0_0_18px_var(--destructive)]" aria-live="off">{minutes}:{seconds}</p>
+          <p className="relative z-10 border border-primary/60 bg-background/80 px-5 py-3 font-mono text-5xl font-black tabular-nums text-primary sys-glow-text" aria-live="off">{minutes}:{seconds}</p>
         </div>
         {secondsLeft > 0
           ? <>
-            <p className="font-mono text-xs uppercase text-muted-foreground">You can return to your day whenever you are ready.</p>
-            <SysButton variant="ghost" className="mt-4 w-full" onClick={() => act((s, alerts) => failEmergencyTodo(s, id, alerts))}>Postpone</SysButton>
+            <p className="font-mono text-xs text-muted-foreground">Failing costs 20 HP and 25 Discipline and Perception practice.</p>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <SysButton variant="ghost" onClick={() => act((s, alerts) => postponeEmergencyTodo(s, id, alerts))}>Postpone</SysButton>
+              <SysButton variant="danger" onClick={() => act((s, alerts) => failEmergencyTodo(s, id, alerts))}>Fail Quest</SysButton>
+            </div>
           </>
           : <>
-            <p className="mb-4 font-mono text-xs text-muted-foreground">Refocusing earns XP and Discipline practice. Postponing keeps your progress unchanged.</p>
+            <p className="mb-4 font-mono text-xs text-muted-foreground">Completing Focus Regain earns XP and Discipline practice. You can postpone without penalty.</p>
             <div className="grid grid-cols-2 gap-2">
-              <SysButton className="py-4" onClick={() => act((s, alerts) => completeTodo(s, id, alerts))}>I refocused</SysButton>
-              <SysButton variant="ghost" className="py-4" onClick={() => act((s, alerts) => failEmergencyTodo(s, id, alerts))}>Postpone</SysButton>
+              <SysButton className="py-4" onClick={() => act((s, alerts) => completeTodo(s, id, alerts))}>Focus Regained</SysButton>
+              <SysButton variant="ghost" className="py-4" onClick={() => act((s, alerts) => postponeEmergencyTodo(s, id, alerts))}>Postpone</SysButton>
             </div>
           </>}
       </div>

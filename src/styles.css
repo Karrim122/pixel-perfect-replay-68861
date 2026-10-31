@@ -119,9 +119,9 @@
 @keyframes sys-critical { 50% { box-shadow: 0 0 22px -4px var(--destructive); } }
 @keyframes urgent-breath { 0%,100% { transform: scale(.68); opacity: .18; } 50% { transform: scale(1.08); opacity: .68; } }
 .urgent-breath-ring {
-  border: 1px solid color-mix(in oklab, var(--destructive) 75%, transparent);
+  border: 1px solid color-mix(in oklab, var(--primary) 75%, transparent);
   border-radius: 9999px;
-  box-shadow: 0 0 22px -5px var(--destructive), inset 0 0 18px -8px var(--destructive);
+  box-shadow: 0 0 22px -5px var(--primary), inset 0 0 18px -8px var(--primary);
   animation: urgent-breath 8s ease-in-out infinite;
 }
 .urgent-breath-ring-delayed { animation-delay: -4s; }

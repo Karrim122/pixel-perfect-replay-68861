@@ -218,12 +218,24 @@ export function completeTodo(s: GameState, id: string, alerts: Alert[]) {
   }
 }
 
-export function failEmergencyTodo(s: GameState, id: string, alerts: Alert[]) {
+export function postponeEmergencyTodo(s: GameState, id: string, alerts: Alert[]) {
   const task = s.todos.find((item) => item.id === id);
-  if (!task || !task.emergency || task.done || task.emergencyFailed || (task.emergencyDeadline !== undefined && task.emergencyDeadline > Date.now())) return;
+  if (!task || !task.emergency || task.done || task.emergencyFailed) return;
   task.emergencyFailed = true;
   log(s, `Emergency task postponed: ${task.name}. Your progress is unchanged.`, "info");
-  alerts.push({ kind: "info", title: "[SYSTEM] Task Postponed", body: "You can return to this task when you are ready. No progress was lost." });
+  alerts.push({ kind: "info", title: "[SYSTEM] Task Postponed", body: "You can return to your day whenever you are ready. No progress was lost." });
+}
+
+export function failEmergencyTodo(s: GameState, id: string, alerts: Alert[]) {
+  const task = s.todos.find((item) => item.id === id);
+  if (!task || !task.emergency || task.done || task.emergencyFailed) return;
+  task.emergencyFailed = true;
+  const damage = 20;
+  const attributePenalty = 25;
+  changeStats(s, ["discipline", "perception"], -attributePenalty);
+  log(s, `Emergency quest failed: ${task.name}. -${damage} HP, -${attributePenalty} Discipline practice, -${attributePenalty} Perception practice.`, "warn");
+  alerts.push({ kind: "penalty", title: "[SYSTEM] Urgent Quest Failed", body: `${task.name} failed. -${damage} HP, -${attributePenalty} Discipline practice, and -${attributePenalty} Perception practice.` });
+  takeDamage(s, damage, alerts);
 }
 
 export function completeDailyGateQuest(s: GameState) {

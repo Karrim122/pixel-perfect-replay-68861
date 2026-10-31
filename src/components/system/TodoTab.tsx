@@ -22,18 +22,15 @@ export function TodoTab() {
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const potionRewardAllowed = baseDifficulty === "Hard" || baseDifficulty === "Very Hard";
-  const emergencyUnavailable = state.todos.some((task) => task.emergency && (!task.done && !task.emergencyFailed || task.due === today()));
-
   const list = state.todos
     .filter((t) => filter === "all" || t.due === state.lastDay)
     .sort((a, b) => Number(a.done) - Number(b.done));
 
   const startEmergency = () => {
-    if (emergencyUnavailable) return;
     act((s) => {
       s.todos.push({
         id: uid(),
-        name: "regain focus",
+        name: "Focus Regain",
         due: today(),
         diff: resolveDifficulty("Very Hard", s.level),
         baseDifficulty: "Very Hard",
@@ -93,7 +90,7 @@ export function TodoTab() {
       <Panel>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="font-mono text-xs uppercase tracking-[0.3em] text-primary sys-glow-text">Quests · {list.filter((t) => !t.done).length} active</h2>
-          <SysButton variant="danger" disabled={emergencyUnavailable} className="!min-h-0 !h-8 !w-8 rounded-sm p-0 flex items-center justify-center" title={emergencyUnavailable ? "One emergency task per day" : "Start emergency focus timer"} aria-label="Start emergency focus timer" onClick={startEmergency}>
+          <SysButton variant="danger" className="!min-h-0 !h-8 !w-8 rounded-sm p-0 flex items-center justify-center" title="Start a Focus Regain urgent quest" aria-label="Start Focus Regain urgent quest" onClick={startEmergency}>
             <AlertTriangle className="h-3.5 w-3.5" />
           </SysButton>
         </div>
