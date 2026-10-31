@@ -93,7 +93,7 @@ export function StatusTab() {
           {ATTRS.map((a) => (
             <div key={a.key} className="flex justify-between border-b border-border/50 py-1">
               <span className="flex items-center gap-1.5 uppercase text-muted-foreground"><AttributeIcon attr={a.key} className="h-3.5 w-3.5 text-primary" />{a.label.slice(0, 3)}</span>
-              <span className="font-bold text-foreground">{state.stats[a.key].toFixed(2)}</span>
+              <span className="font-bold text-foreground">{state.stats[a.key]}</span>
             </div>
           ))}
         </div>

@@ -49,7 +49,7 @@ export function rankIndex(level: number) {
   return i;
 }
 export const rankOf = (level: number) => RANKS[rankIndex(level)]!;
-export const xpToNext = (level: number) => Math.round(250 * Math.pow(level, 1.2));
+export const xpToNext = (level: number) => Math.round(150 * Math.pow(level, 1.1));
 
 export interface WeeklyQuest { id: string; name: string; description?: string | undefined; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; daysOfWeek: number[]; doneDates: string[]; reminder?: string | undefined; masteryLevel: number; masteryXp: number; }
 export interface DailyQuest { id: string; name: string; description?: string | undefined; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; doneDate: string | null; reminder?: string | undefined; }
@@ -63,6 +63,7 @@ export interface LogEntry { id: string; ts: number; text: string; kind: "info" |
 export interface GameState {
   level: number; xp: number; hp: number; maxHp: number; points: number; potions: number;
   stats: Record<Attr, number>;
+  statProgress: Record<Attr, number>;
   dailyQuests: DailyQuest[]; weeklyQuests: WeeklyQuest[]; bonusPenaltyHabits: BonusPenaltyHabit[]; todos: Todo[]; inventoryGifts: InventoryGift[]; sessions: Session[]; log: LogEntry[];
   lastDay: string; dailyGateQuestDoneDate: string | null; dailyQuestRewardDay: string | null;
   playerName: string;
@@ -86,6 +87,7 @@ export function moveItem<T extends { id: string }>(items: T[], id: string, targe
 export const initialState = (): GameState => ({
   level: 1, xp: 0, hp: 100, maxHp: 100, points: 0, potions: 0,
   stats: { strength: 10, discipline: 10, intelligence: 10, perception: 10, vitality: 10 },
+  statProgress: { strength: 0, discipline: 0, intelligence: 0, perception: 0, vitality: 0 },
   dailyQuests: [], weeklyQuests: [], bonusPenaltyHabits: [], todos: [], inventoryGifts: [], sessions: [], log: [], lastDay: today(), dailyGateQuestDoneDate: null, dailyQuestRewardDay: null, playerName: "",
 });
 
@@ -240,8 +242,17 @@ export function takeDamage(s: GameState, amount: number, alerts: Alert[]) {
 export function changeStats(s: GameState, attrs: Attr[], delta: number) {
   attrs.forEach((a) => {
     const current = s.stats[a];
-    const adjustedDelta = delta > 0 ? delta / (1 + current / 10) : delta;
-    s.stats[a] = Math.max(1, Math.round((current + adjustedDelta) * 100) / 100);
+    if (delta < 0) {
+      s.stats[a] = Math.max(1, current + Math.trunc(delta));
+      return;
+    }
+    const practice = delta / (1 + current / 10);
+    let progress = Math.round((s.statProgress[a] + practice) * 100) / 100;
+    while (progress >= 1) {
+      s.stats[a] += 1;
+      progress -= 1;
+    }
+    s.statProgress[a] = Math.round(progress * 100) / 100;
   });
 }
 
@@ -293,6 +304,12 @@ export function hydrateState(raw: string): GameState {
   const bonusPenaltyHabits = saved.bonusPenaltyHabits ?? (saved.penaltyHabits
     ? saved.penaltyHabits.map((habit) => ({ ...habit, kind: "penalty" as const }))
     : (saved.habits ?? []).map(({ kind, ...habit }) => ({ ...habit, kind: kind === "+" ? "bonus" as const : "penalty" as const })));
+  const stats = { ...base.stats, ...saved.stats };
+  const statProgress = { ...base.statProgress, ...saved.statProgress };
+  ATTRS.forEach(({ key }) => {
+    stats[key] = Math.max(1, Math.round(stats[key]));
+    statProgress[key] = Math.max(0, Math.min(0.99, Math.round(statProgress[key] * 100) / 100));
+  });
   const { dailies: _dailies, habits: _habits, penaltyHabits: _penaltyHabits, ...current } = saved;
-  return { ...base, ...current, dailyQuests: saved.dailyQuests ?? [], weeklyQuests: weeklyQuests.map((quest) => ({ ...quest, masteryLevel: Math.max(1, quest.masteryLevel ?? 1), masteryXp: Math.max(0, quest.masteryXp ?? 0) })), bonusPenaltyHabits, inventoryGifts: saved.inventoryGifts ?? [], dailyGateQuestDoneDate: saved.dailyGateQuestDoneDate ?? null } as GameState;
+  return { ...base, ...current, stats, statProgress, dailyQuests: saved.dailyQuests ?? [], weeklyQuests: weeklyQuests.map((quest) => ({ ...quest, masteryLevel: Math.max(1, quest.masteryLevel ?? 1), masteryXp: Math.max(0, quest.masteryXp ?? 0) })), bonusPenaltyHabits, inventoryGifts: saved.inventoryGifts ?? [], dailyGateQuestDoneDate: saved.dailyGateQuestDoneDate ?? null } as GameState;
 }
