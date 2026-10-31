@@ -4,7 +4,7 @@ import { playSound } from "@/lib/sound";
 import { completeDailyGateQuest, completeTodo, completeWeeklyQuest, gainXp, isWeeklyQuestScheduled, takeDamage, uid, type Alert, type GameState } from "@/lib/system";
 import { Panel, SysButton, inputCls } from "./ui";
 
-const BREAK_DMG = 5;
+const BREAK_DMG = 10;
 
 export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
   const { state, act } = useSystem();
