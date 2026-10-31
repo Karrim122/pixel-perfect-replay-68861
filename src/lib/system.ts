@@ -241,8 +241,9 @@ export function takeDamage(s: GameState, amount: number, alerts: Alert[]) {
   const previousHp = s.hp;
   s.hp = Math.max(0, s.hp - amount);
   if (previousHp > 0 && s.hp === 0) {
-    log(s, "Energy depleted. Rest to recover.", "warn");
-    alerts.push({ kind: "exhausted", title: "[SYSTEM] ENERGY DEPLETED", body: "Your energy reached zero. Your level and progress are safe; rest or use a potion to recover." });
+    ATTRS.forEach(({ key }) => { s.stats[key] = Math.max(1, Math.round(s.stats[key] * 0.8)); });
+    log(s, "Energy depleted. All attributes reduced by 20%.", "warn");
+    alerts.push({ kind: "exhausted", title: "[SYSTEM] ENERGY DEPLETED", body: "Your energy reached zero. All attributes were reduced by 20%. Your level and practice progress are safe; rest or use a potion to recover." });
   }
 }
 
