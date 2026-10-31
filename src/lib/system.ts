@@ -242,8 +242,17 @@ export function takeDamage(s: GameState, amount: number, alerts: Alert[]) {
   s.hp = Math.max(0, s.hp - amount);
   if (previousHp > 0 && s.hp === 0) {
     ATTRS.forEach(({ key }) => { s.stats[key] = Math.max(1, Math.round(s.stats[key] * 0.8)); });
-    log(s, "Energy depleted. All attributes reduced by 20%.", "warn");
-    alerts.push({ kind: "exhausted", title: "[SYSTEM] ENERGY DEPLETED", body: "Your energy reached zero. All attributes were reduced by 20%. Your level and practice progress are safe; rest or use a potion to recover." });
+    const currentRankIndex = rankIndex(s.level);
+    let rankLossMessage = "You are already at E-Rank, so your rank cannot drop further.";
+    if (currentRankIndex > 0) {
+      const currentRank = RANKS[currentRankIndex]!;
+      const previousRank = RANKS[currentRankIndex - 1]!;
+      s.level = currentRank.min - 1;
+      s.xp = Math.min(s.xp, xpToNext(s.level) - 1);
+      rankLossMessage = `Your rank fell from ${currentRank.name} to ${previousRank.name}.`;
+    }
+    log(s, `Energy depleted. All attributes reduced by 20%. ${rankLossMessage}`, "warn");
+    alerts.push({ kind: "exhausted", title: "[SYSTEM] ENERGY DEPLETED", body: `Your energy reached zero. All attributes were reduced by 20%. ${rankLossMessage} Rest or use a potion to recover.` });
   }
 }
 
