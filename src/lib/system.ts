@@ -258,6 +258,7 @@ export function gainXp(s: GameState, amount: number, alerts: Alert[]) {
     const prevRank = rankIndex(s.level);
     s.level += 1;
     s.maxHp = Math.max(s.maxHp, 100 + (s.level - 1));
+    s.hp = s.maxHp;
     const r = rankIndex(s.level);
     log(s, `Level up → ${s.level}`, "level");
     if (r !== prevRank) {
@@ -283,8 +284,9 @@ export function takeDamage(s: GameState, amount: number, alerts: Alert[]) {
       s.xp = Math.min(s.xp, xpToNext(s.level) - 1);
       rankLossMessage = `Your rank fell from ${currentRank.name} to ${previousRank.name}.`;
     }
+    s.hp = s.maxHp;
     log(s, `Energy depleted. All attributes reduced by 20%. ${rankLossMessage}`, "warn");
-    alerts.push({ kind: "exhausted", title: "[SYSTEM] ENERGY DEPLETED", body: `Your energy reached zero. All attributes were reduced by 20%. ${rankLossMessage} Rest or use a potion to recover.` });
+    alerts.push({ kind: "exhausted", title: "[SYSTEM] ENERGY DEPLETED", body: `Your energy reached zero. All attributes were reduced by 20%. ${rankLossMessage} Your HP has been restored to full.` });
   }
 }
 
