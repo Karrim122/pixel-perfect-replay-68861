@@ -247,7 +247,7 @@ export function takeDamage(s: GameState, amount: number, alerts: Alert[]) {
     if (currentRankIndex > 0) {
       const currentRank = RANKS[currentRankIndex]!;
       const previousRank = RANKS[currentRankIndex - 1]!;
-      s.level = currentRank.min - 1;
+      s.level = previousRank.min;
       s.xp = Math.min(s.xp, xpToNext(s.level) - 1);
       rankLossMessage = `Your rank fell from ${currentRank.name} to ${previousRank.name}.`;
     }
