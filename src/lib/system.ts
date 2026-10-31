@@ -142,6 +142,7 @@ export function triggerBonusPenaltyHabit(s: GameState, id: string, alerts: Alert
   if (habit.kind === "bonus") {
     if (habit.lastRewardDate === s.lastDay) {
       log(s, `Bonus habit logged: ${habit.name} (×${occurrence}). Daily XP and attribute gain already earned.`, "info");
+      alerts.push({ kind: "info", title: "[SYSTEM] Good Habit Logged", body: `${habit.name} recorded. You already earned today's XP and attribute practice for this habit.` });
       return;
     }
     habit.lastRewardDate = s.lastDay;
@@ -150,12 +151,14 @@ export function triggerBonusPenaltyHabit(s: GameState, id: string, alerts: Alert
     const practice = attributePracticeFor(habit.baseDifficulty, habit.diff, s.level);
     changeStats(s, habit.attrs, practice);
     log(s, `Bonus habit: ${habit.name} (×${occurrence}). +${xp} XP, +${practice} attribute practice`, "info");
+    alerts.push({ kind: "info", title: "[SYSTEM] Good Habit Complete!", body: `${habit.name} complete. +${xp} XP and +${practice} attribute practice for ${habit.attrs.join(", ")}. Keep your streak of good choices going.` });
   } else {
     const damage = DIFF_HP[habit.diff] * occurrence;
     const practice = attributePracticeFor(habit.baseDifficulty, habit.diff, s.level) * occurrence;
     changeStats(s, habit.attrs, -practice);
     log(s, `Penalty habit: ${habit.name} (×${occurrence}). -${damage} HP, -${practice} attribute practice`, "warn");
     takeDamage(s, damage, alerts);
+    alerts.push({ kind: "penalty", title: "[SYSTEM] Bad Habit Penalty", body: `${habit.name} logged (occurrence ${occurrence}). -${damage} HP and -${practice} attribute practice for ${habit.attrs.join(", ")}. The next occurrence will cost more—use this as a cue to choose differently next time.` });
   }
 }
 
