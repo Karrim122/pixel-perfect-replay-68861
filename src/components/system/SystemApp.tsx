@@ -92,7 +92,7 @@ function EmergencyOverlay() {
           </>
           : <>
             <p className="font-mono text-xs font-bold uppercase tracking-wider text-primary">Breathe slowly and follow the rhythm.</p>
-            <SysButton variant="danger" className="mt-4 w-full" onClick={() => act((s, alerts) => failFocusRegain(s, alerts))}>Fail Now</SysButton>
+            <SysButton variant="danger" className="mt-4 w-full" onClick={() => act((s, alerts) => failFocusRegain(s, alerts))}>Failed</SysButton>
             <p className="mt-3 font-mono text-xs text-muted-foreground">Failure costs 20 HP and 25 Discipline and Perception practice.</p>
           </>}
       </div>
