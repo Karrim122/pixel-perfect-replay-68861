@@ -221,7 +221,7 @@ export function completeFocusRegain(s: GameState, alerts: Alert[]) {
 }
 
 export function failFocusRegain(s: GameState, alerts: Alert[]) {
-  if (s.focusRegainDeadline === null || s.focusRegainDeadline > Date.now()) return;
+  if (s.focusRegainDeadline === null) return;
   s.focusRegainDeadline = null;
   const damage = 20;
   const attributePenalty = 25;
