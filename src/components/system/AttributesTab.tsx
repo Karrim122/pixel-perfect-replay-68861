@@ -13,7 +13,7 @@ export function AttributesTab() {
           <span className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Unspent Points</span>
           <span className="text-3xl font-bold text-primary sys-glow-text">{state.points}</span>
         </div>
-        <p className="mt-2 text-xs text-muted-foreground">Skills improve gradually through practice, with smaller gains as they grow. Earn 1 point every 5 levels.</p>
+        <p className="mt-2 text-xs text-muted-foreground">Good actions add 1 assigned point; bad habits subtract 1. Attributes never fall below 1. Earn 1 point every 5 levels.</p>
       </Panel>
       {ATTRS.map((a) => (
         <Panel key={a.key}>
@@ -24,8 +24,6 @@ export function AttributesTab() {
                 <span className="font-mono text-2xl font-bold text-primary">{state.stats[a.key]}</span>
               </div>
               <p className="text-sm text-muted-foreground">{a.desc}</p>
-              <div className="mt-2 flex justify-between font-mono text-[9px] uppercase text-muted-foreground"><span>Progress to next point</span><span>{Math.round(state.statProgress[a.key] * 100)}%</span></div>
-              <div className="mt-1 h-1 bg-secondary"><div className="sys-bar h-full" style={{ width: `${state.statProgress[a.key] * 100}%` }} /></div>
               <div className="mt-2 h-1 bg-secondary"><div className="sys-bar h-full" style={{ width: `${(state.stats[a.key] / max) * 100}%` }} /></div>
             </div>
             <button aria-label={`Increase ${a.label}`} disabled={state.points < 1}

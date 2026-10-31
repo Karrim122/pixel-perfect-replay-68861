@@ -54,7 +54,7 @@ export function BonusPenaltySection() {
   return (
     <>
       <Panel title="Bonus-Penality">
-        <p className="mb-3 font-mono text-[11px] text-muted-foreground">The first good-habit log each day earns XP and gradual skill progress. Bad-habit logs reduce assigned attributes and energy.</p>
+        <p className="mb-3 font-mono text-[11px] text-muted-foreground">The first good-habit log each day earns XP and +1 assigned attribute. Bad-habit logs subtract 1 assigned attribute and energy.</p>
         {state.bonusPenaltyHabits.length === 0 ? (
           <p className="mb-3 font-mono text-xs text-muted-foreground">No bonus or penalty habits registered.</p>
         ) : (
@@ -72,7 +72,7 @@ export function BonusPenaltySection() {
                     <p className="truncate text-base">{habit.name}</p>
                     {habit.description && <p className="text-xs text-muted-foreground">{habit.description}</p>}
                     <p className="font-mono text-[10px] uppercase text-muted-foreground">
-                      {positive ? `${habit.lastRewardDate === state.lastDay ? "XP earned today" : `First log today: +${DIFF_XP[habit.diff]} XP`} | practice: ${habit.attrs.join(" | ")}` : `Next: -${DIFF_HP[habit.diff]} HP | -1 ${habit.attrs.join(" | ")}`} | logged x{habit.count}
+                      {positive ? `${habit.lastRewardDate === state.lastDay ? "XP and +1 earned today" : `First log today: +${DIFF_XP[habit.diff]} XP, +1 ${habit.attrs.join(" | ")}`}` : `Next: -${DIFF_HP[habit.diff]} HP | -1 ${habit.attrs.join(" | ")}`} | logged x{habit.count}
                     </p>
                   </div>
                   <ReorderButtons itemName={habit.name} canMoveUp={index > 0} canMoveDown={index < state.bonusPenaltyHabits.length - 1}

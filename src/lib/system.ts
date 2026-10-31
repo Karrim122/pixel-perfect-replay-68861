@@ -63,7 +63,6 @@ export interface LogEntry { id: string; ts: number; text: string; kind: "info" |
 export interface GameState {
   level: number; xp: number; hp: number; maxHp: number; points: number; potions: number;
   stats: Record<Attr, number>;
-  statProgress: Record<Attr, number>;
   dailyQuests: DailyQuest[]; weeklyQuests: WeeklyQuest[]; bonusPenaltyHabits: BonusPenaltyHabit[]; todos: Todo[]; inventoryGifts: InventoryGift[]; sessions: Session[]; log: LogEntry[];
   lastDay: string; dailyGateQuestDoneDate: string | null; dailyQuestRewardDay: string | null;
   playerName: string;
@@ -87,7 +86,6 @@ export function moveItem<T extends { id: string }>(items: T[], id: string, targe
 export const initialState = (): GameState => ({
   level: 1, xp: 0, hp: 100, maxHp: 100, points: 0, potions: 0,
   stats: { strength: 10, discipline: 10, intelligence: 10, perception: 10, vitality: 10 },
-  statProgress: { strength: 0, discipline: 0, intelligence: 0, perception: 0, vitality: 0 },
   dailyQuests: [], weeklyQuests: [], bonusPenaltyHabits: [], todos: [], inventoryGifts: [], sessions: [], log: [], lastDay: today(), dailyGateQuestDoneDate: null, dailyQuestRewardDay: null, playerName: "",
 });
 
@@ -108,7 +106,7 @@ export function completeWeeklyQuest(s: GameState, id: string, alerts: Alert[]) {
     log(s, `Weekly quest mastered: ${quest.name} reached level ${quest.masteryLevel}`, "level");
   }
   gainXp(s, earnedXp, alerts);
-  changeStats(s, quest.attrs, 0.1);
+  changeStats(s, quest.attrs, 1);
   log(s, `Weekly quest complete: ${quest.name} (+${earnedXp} XP)`, "info");
 }
 
@@ -117,7 +115,7 @@ export function completeDailyQuest(s: GameState, id: string, alerts: Alert[]) {
   if (!quest || quest.doneDate === s.lastDay) return;
   quest.doneDate = s.lastDay;
   gainXp(s, DIFF_XP[quest.diff], alerts);
-  changeStats(s, quest.attrs, 0.1);
+  changeStats(s, quest.attrs, 1);
   log(s, `Daily quest complete: ${quest.name} (+${DIFF_XP[quest.diff]} XP)`, "info");
   if (s.dailyQuests.length && s.dailyQuests.every((item) => item.doneDate === s.lastDay) && s.dailyQuestRewardDay !== s.lastDay) {
     s.dailyQuestRewardDay = s.lastDay;
@@ -134,14 +132,14 @@ export function triggerBonusPenaltyHabit(s: GameState, id: string, alerts: Alert
   habit.count = occurrence;
   if (habit.kind === "bonus") {
     if (habit.lastRewardDate === s.lastDay) {
-      log(s, `Bonus habit logged: ${habit.name} (×${occurrence}). Daily XP and skill practice already earned.`, "info");
+      log(s, `Bonus habit logged: ${habit.name} (×${occurrence}). Daily XP and attribute gain already earned.`, "info");
       return;
     }
     habit.lastRewardDate = s.lastDay;
     const xp = DIFF_XP[habit.diff];
     gainXp(s, xp, alerts);
-    changeStats(s, habit.attrs, 0.1);
-    log(s, `Bonus habit: ${habit.name} (×${occurrence}). +${xp} XP, skill practice: ${habit.attrs.join(", ")}`, "info");
+    changeStats(s, habit.attrs, 1);
+    log(s, `Bonus habit: ${habit.name} (×${occurrence}). +${xp} XP, +1 ${habit.attrs.join(", ")}`, "info");
   } else {
     const damage = DIFF_HP[habit.diff];
     changeStats(s, habit.attrs, -1);
@@ -158,13 +156,13 @@ export function completeTodo(s: GameState, id: string, alerts: Alert[]) {
   if (task.emergency) {
     const bonusXp = 75;
     gainXp(s, bonusXp, alerts);
-    changeStats(s, ["discipline"], 0.2);
-    log(s, `Emergency task complete: ${task.name} (+${bonusXp} XP, Discipline practice)`, "level");
-    alerts.push({ kind: "info", title: "[SYSTEM] EMERGENCY CLEARED", body: `Focus regained. +${bonusXp} XP and Discipline practice.` });
+    changeStats(s, ["discipline"], 1);
+    log(s, `Emergency task complete: ${task.name} (+${bonusXp} XP, +1 Discipline)`, "level");
+    alerts.push({ kind: "info", title: "[SYSTEM] EMERGENCY CLEARED", body: `Focus regained. +${bonusXp} XP and +1 Discipline.` });
     return;
   }
   gainXp(s, DIFF_XP[task.diff], alerts);
-  changeStats(s, task.attrs, 0.1);
+  changeStats(s, task.attrs, 1);
   log(s, `Quest cleared: ${task.name} (+${DIFF_XP[task.diff]} XP)`, "info");
   if (task.reward?.type === "potion") {
     if (task.baseDifficulty === "Hard" || task.baseDifficulty === "Very Hard") {
@@ -195,8 +193,8 @@ export function failEmergencyTodo(s: GameState, id: string, alerts: Alert[]) {
 export function completeDailyGateQuest(s: GameState) {
   if (s.dailyGateQuestDoneDate === s.lastDay) return;
   s.dailyGateQuestDoneDate = s.lastDay;
-  changeStats(s, ["discipline", "perception"], 0.05);
-  log(s, "Daily Quest complete: Close todays gate (Discipline and Perception practice)", "level");
+  changeStats(s, ["discipline", "perception"], 1);
+  log(s, "Daily Quest complete: Close todays gate (+1 Discipline, +1 Perception)", "level");
 }
 
 export function usePotion(s: GameState) {
@@ -240,21 +238,8 @@ export function takeDamage(s: GameState, amount: number, alerts: Alert[]) {
   }
 }
 
-export function changeStats(s: GameState, attrs: Attr[], delta: number) {
-  attrs.forEach((a) => {
-    const current = s.stats[a];
-    if (delta < 0) {
-      s.stats[a] = Math.max(1, current + Math.trunc(delta));
-      return;
-    }
-    const practice = delta / (1 + current / 10);
-    let progress = Math.round((s.statProgress[a] + practice) * 100) / 100;
-    while (progress >= 1) {
-      s.stats[a] += 1;
-      progress -= 1;
-    }
-    s.statProgress[a] = Math.round(progress * 100) / 100;
-  });
+export function changeStats(s: GameState, attrs: Attr[], delta: 1 | -1) {
+  attrs.forEach((a) => { s.stats[a] = Math.max(1, s.stats[a] + delta); });
 }
 
 /** Evaluate day rollover: penalty if the mandatory gate quest was missed. */
@@ -284,6 +269,7 @@ export function rollover(s: GameState, alerts: Alert[]) {
 
 export function hydrateState(raw: string): GameState {
   const saved = JSON.parse(raw) as Partial<GameState> & {
+    statProgress?: Partial<Record<Attr, number>>;
     dailies?: { id: string; name: string; description?: string; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; doneDate: string | null; reminder?: string }[];
     penaltyHabits?: { id: string; name: string; description?: string; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; count: number }[];
     habits?: { id: string; name: string; description?: string; kind: "+" | "-"; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; count: number }[];
@@ -306,11 +292,9 @@ export function hydrateState(raw: string): GameState {
     ? saved.penaltyHabits.map((habit) => ({ ...habit, kind: "penalty" as const }))
     : (saved.habits ?? []).map(({ kind, ...habit }) => ({ ...habit, kind: kind === "+" ? "bonus" as const : "penalty" as const })));
   const stats = { ...base.stats, ...saved.stats };
-  const statProgress = { ...base.statProgress, ...saved.statProgress };
   ATTRS.forEach(({ key }) => {
     stats[key] = Math.max(1, Math.round(stats[key]));
-    statProgress[key] = Math.max(0, Math.min(0.99, Math.round(statProgress[key] * 100) / 100));
   });
-  const { dailies: _dailies, habits: _habits, penaltyHabits: _penaltyHabits, ...current } = saved;
-  return { ...base, ...current, stats, statProgress, dailyQuests: saved.dailyQuests ?? [], weeklyQuests: weeklyQuests.map((quest) => ({ ...quest, masteryLevel: Math.max(1, quest.masteryLevel ?? 1), masteryXp: Math.max(0, quest.masteryXp ?? 0) })), bonusPenaltyHabits, inventoryGifts: saved.inventoryGifts ?? [], dailyGateQuestDoneDate: saved.dailyGateQuestDoneDate ?? null } as GameState;
+  const { dailies: _dailies, habits: _habits, penaltyHabits: _penaltyHabits, statProgress: _statProgress, ...current } = saved;
+  return { ...base, ...current, stats, dailyQuests: saved.dailyQuests ?? [], weeklyQuests: weeklyQuests.map((quest) => ({ ...quest, masteryLevel: Math.max(1, quest.masteryLevel ?? 1), masteryXp: Math.max(0, quest.masteryXp ?? 0) })), bonusPenaltyHabits, inventoryGifts: saved.inventoryGifts ?? [], dailyGateQuestDoneDate: saved.dailyGateQuestDoneDate ?? null } as GameState;
 }

@@ -80,7 +80,7 @@ function EmergencyOverlay() {
         {secondsLeft > 0
           ? <p className="font-mono text-xs uppercase text-red-300">Outcome unlocks when the timer ends</p>
           : <>
-            <p className="mb-4 font-mono text-xs uppercase text-red-300">Choose the outcome · Failure: −10 HP · Success: +75 XP · Discipline practice</p>
+            <p className="mb-4 font-mono text-xs uppercase text-red-300">Choose the outcome · Failure: −10 HP · Success: +75 XP · +1 Discipline</p>
             <div className="grid grid-cols-2 gap-2">
               <SysButton variant="danger" className="border-red-300 bg-red-600 py-4 text-white hover:bg-red-500" onClick={() => act((s, alerts) => completeTodo(s, id, alerts))}>Succeeded</SysButton>
               <SysButton variant="ghost" className="border border-red-400 py-4 text-red-100 hover:bg-red-900" onClick={() => act((s, alerts) => failEmergencyTodo(s, id, alerts))}>Failed</SysButton>
