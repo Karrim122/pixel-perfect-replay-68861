@@ -29,7 +29,12 @@ export function BonusPenaltySection() {
       const habit = editingId ? s.bonusPenaltyHabits.find((item) => item.id === editingId) : undefined;
       const values = { name: name.trim(), description: description.trim() || undefined, kind, diff, baseDifficulty, attrs };
       if (habit) {
-        if (habit.kind !== kind) habit.count = 0;
+        if (habit.kind !== kind) {
+          habit.count = 0;
+          habit.rewardCount = 0;
+          delete habit.lastRewardDate;
+          delete habit.lastPracticeDate;
+        }
         Object.assign(habit, values);
       }
       else s.bonusPenaltyHabits.push({ id: uid(), ...values, count: 0 });
@@ -54,7 +59,7 @@ export function BonusPenaltySection() {
   return (
     <>
       <Panel title="Bonus-Penalty">
-        <p className="mb-3 font-mono text-[11px] text-muted-foreground">The first good-habit log each day earns XP and attribute practice. Each bad-habit log increases its HP and assigned-attribute penalty.</p>
+        <p className="mb-3 font-mono text-[11px] text-muted-foreground">Good habits earn XP on up to 2 logs per day and attribute practice once per day. Each bad-habit log increases its HP and assigned-attribute penalty.</p>
         {state.bonusPenaltyHabits.length === 0 ? (
           <p className="mb-3 font-mono text-xs text-muted-foreground">No bonus or penalty habits registered.</p>
         ) : (
@@ -65,6 +70,11 @@ export function BonusPenaltySection() {
               const practice = attributePracticeFor(habit.baseDifficulty, habit.diff, state.level);
               const penaltyHp = DIFF_HP[habit.diff] * nextOccurrence;
               const penaltyPractice = practice * nextOccurrence;
+              const rewardCount = habit.lastRewardDate === state.lastDay ? habit.rewardCount ?? 1 : 0;
+              const practiceEarned = habit.lastPracticeDate === state.lastDay || (!habit.lastPracticeDate && habit.lastRewardDate === state.lastDay);
+              const bonusStatus = rewardCount >= 2
+                ? "Daily XP limit reached (2/2)"
+                : `Next log: +${DIFF_XP[habit.diff]} XP${practiceEarned ? " (practice earned today)" : `, +${practice} practice for ${habit.attrs.join(" | ")}`} · ${rewardCount}/2 XP rewards today`;
               return (
                 <li key={habit.id} className="flex items-center gap-2 border-b border-border/40 pb-3">
                   <button aria-label={`Log ${positive ? "good" : "bad"} habit ${habit.name}`} onClick={() => trigger(habit.id)}
@@ -75,7 +85,7 @@ export function BonusPenaltySection() {
                     <p className="truncate text-base">{habit.name}</p>
                     {habit.description && <p className="text-xs text-muted-foreground">{habit.description}</p>}
                     <p className="font-mono text-[10px] uppercase text-muted-foreground">
-                      {positive ? `${habit.lastRewardDate === state.lastDay ? "XP and practice earned today" : `First log today: +${DIFF_XP[habit.diff]} XP, +${practice} practice for ${habit.attrs.join(" | ")}`}` : `Next: -${penaltyHp} HP | -${penaltyPractice} practice for ${habit.attrs.join(" | ")}`} | logged x{habit.count}
+                      {positive ? bonusStatus : `Next: -${penaltyHp} HP | -${penaltyPractice} practice for ${habit.attrs.join(" | ")}`} | logged x{habit.count}
                     </p>
                   </div>
                   <ReorderButtons itemName={habit.name} canMoveUp={index > 0} canMoveDown={index < state.bonusPenaltyHabits.length - 1}

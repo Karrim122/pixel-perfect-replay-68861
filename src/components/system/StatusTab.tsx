@@ -52,6 +52,7 @@ export function StatusTab() {
         <div className="mb-4 border-b border-border pb-3">
           <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Player</p>
           <p className="text-2xl font-bold uppercase tracking-wider text-foreground">{state.playerName || "Player"}</p>
+          <p className="mt-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Player Since · {new Date(`${state.playerSince}T00:00:00`).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })}</p>
         </div>
         <div className="flex items-end justify-between">
           <div>
