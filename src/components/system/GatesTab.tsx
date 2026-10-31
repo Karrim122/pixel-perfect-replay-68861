@@ -8,6 +8,7 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
   const { state, act } = useSystem();
   const [minutes, setMinutes] = useState(25);
   const [target, setTarget] = useState("");
+  const [details, setDetails] = useState("");
   const [endAt, setEndAt] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now());
   const [timerKind, setTimerKind] = useState<"focus" | "rest" | null>(null);
@@ -15,7 +16,7 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
   const [focusMinutes, setFocusMinutes] = useState(0);
   const [gateActive, setGateActive] = useState(false);
   const [entering, setEntering] = useState(false);
-  const meta = useRef({ label: "", target: "" });
+  const meta = useRef({ label: "", target: "", details: "" });
   const entryTimeout = useRef<number | null>(null);
 
   const todoOptions = state.todos.filter((task) => !task.done).map((task) => ({ id: `t:${task.id}`, label: task.name }));
@@ -34,7 +35,7 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
     const savedMinutes = focusMinutes + activeElapsed;
     act((s, a) => {
       if (!savedMinutes) return;
-      s.sessions.unshift({ id: uid(), date: s.lastDay, minutes: savedMinutes, success: false, paused: true, label: meta.current.label });
+      s.sessions.unshift({ id: uid(), date: s.lastDay, minutes: savedMinutes, success: false, paused: true, label: meta.current.label, ...(meta.current.details ? { details: meta.current.details } : {}) });
       gainXp(s, savedMinutes, a);
       s.log.unshift({ id: uid(), ts: Date.now(), text: `Focus saved after pausing (${savedMinutes}m). +${savedMinutes} XP`, kind: "info" });
     });
@@ -46,8 +47,8 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
     entryTimeout.current = null; setEntering(false);
     setEndAt(null); setTimerKind(null); setGateActive(false); onLock(false); buzz([40, 40, 40]);
     act((s: GameState, a: Alert[]) => {
-      const { label, target: assignedTarget } = meta.current;
-      s.sessions.unshift({ id: uid(), date: s.lastDay, minutes: totalFocusMinutes, success: true, label });
+      const { label, target: assignedTarget, details: gateDetails } = meta.current;
+      s.sessions.unshift({ id: uid(), date: s.lastDay, minutes: totalFocusMinutes, success: true, label, ...(gateDetails ? { details: gateDetails } : {}) });
       const xp = Math.round(totalFocusMinutes);
       gainXp(s, xp, a);
       if (assignedTarget.startsWith("t:")) completeTodo(s, assignedTarget.slice(2), a);
@@ -84,7 +85,7 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
 
   const start = () => {
     const selected = options.find((option) => option.id === target);
-    meta.current = { target: selected?.id ?? "", label: selected?.label ?? "Free focus" };
+    meta.current = { target: selected?.id ?? "", label: selected?.label ?? "Free focus", details: details.trim() };
     setFocusMinutes(0); setGateActive(true); onLock(true); buzz(60);
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
       setEntering(false); startTimer("focus", minutes); return;
@@ -114,6 +115,7 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
         </div>
         <p className="gate-entry-title">Entering Gate</p>
         <p className="font-mono text-xs text-muted-foreground">{meta.current.label}</p>
+        {meta.current.details && <p className="max-w-sm text-sm text-foreground/80">{meta.current.details}</p>}
       </div>
     );
   }
@@ -138,6 +140,7 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
           <span className="relative z-10 font-mono text-6xl font-bold text-primary sys-glow-text">{mm}:{ss}</span>
         </div>
         <p className="text-lg">{timerKind === "rest" ? "Rest and recover" : meta.current.label}</p>
+        {meta.current.details && <p className="max-w-sm text-sm text-muted-foreground">{meta.current.details}</p>}
         {focusMinutes > 0 && <p className="font-mono text-xs text-muted-foreground">Completed focus: {focusMinutes} min · {focusMinutes} XP on gate close</p>}
         <div className="flex gap-2">
           <SysButton variant="ghost" onClick={leave}>Pause Gate</SysButton>
@@ -152,6 +155,7 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
       <div className="space-y-4">
         <Panel title="Gate In Progress">
           <p className="font-bold">{meta.current.label}</p>
+          {meta.current.details && <p className="mt-1 text-sm text-muted-foreground">{meta.current.details}</p>}
           <p className="mt-1 font-mono text-xs text-muted-foreground">Completed focus: {focusMinutes} min · {focusMinutes} XP on gate close</p>
           <p className="mt-4 font-mono text-xs uppercase tracking-wider text-primary">Choose your next step</p>
           <p className="mb-2 mt-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Another focus timer</p>
@@ -183,6 +187,8 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
           {todoOptions.length > 0 && <optgroup label="To-Do Tasks">{todoOptions.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</optgroup>}
           {weeklyOptions.length > 0 && <optgroup label="Weekly Quests">{weeklyOptions.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</optgroup>}
         </select>
+        <label className="mb-1 mt-4 block font-mono text-xs text-muted-foreground" htmlFor="gate-details">Gate details</label>
+        <textarea id="gate-details" className={`${inputCls} min-h-20 py-2`} maxLength={500} placeholder="What do you plan to focus on? (optional)" value={details} onChange={(event) => setDetails(event.target.value)} />
         <p className="mb-1 mt-4 font-mono text-xs text-muted-foreground">Duration</p>
         <div className="grid grid-cols-4 gap-2">
           {[15, 25, 45, 60].map((m) => (
@@ -201,7 +207,7 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
         <ul className="mt-4 space-y-1 font-mono text-xs">
           {state.sessions.slice(0, 8).map((s) => (
             <li key={s.id} className="flex justify-between">
-              <span className="truncate text-muted-foreground">{s.date} · {s.label}</span>
+              <div className="min-w-0"><span className="truncate text-muted-foreground">{s.date} · {s.label}</span>{s.details && <p className="truncate text-[10px] text-muted-foreground/70">{s.details}</p>}</div>
               <span className={s.paused ? "text-muted-foreground" : s.success ? "text-success" : "text-destructive"}>{s.paused ? `${s.minutes}m PAUSED` : s.success ? `${s.minutes}m CLEAR` : "BREAK"}</span>
             </li>
           ))}

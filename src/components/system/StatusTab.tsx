@@ -81,13 +81,6 @@ export function StatusTab() {
         </div>
       </Panel>
 
-      <Panel title="Inventory">
-        <div className="flex items-center justify-between gap-3">
-          <div><p className="font-bold">Items and rewards</p><p className="font-mono text-xs text-muted-foreground">{state.potions + state.inventoryGifts.length} items · {state.potions} healing potions · {state.inventoryGifts.length} gifts</p></div>
-          <SysButton className="flex items-center gap-2" onClick={() => setInventoryOpen(true)}><Package className="h-4 w-4" />Inventory</SysButton>
-        </div>
-      </Panel>
-
       <Panel title="Attributes">
         <div className="grid grid-cols-2 gap-x-6 gap-y-2 font-mono text-sm">
           {ATTRS.map((a) => (
@@ -96,6 +89,13 @@ export function StatusTab() {
               <span className="font-bold text-foreground">{state.stats[a.key]}</span>
             </div>
           ))}
+        </div>
+      </Panel>
+
+      <Panel title="Inventory">
+        <div className="flex items-center justify-between gap-3">
+          <div><p className="font-bold">Items and rewards</p><p className="font-mono text-xs text-muted-foreground">{state.potions + state.inventoryGifts.length} items · {state.potions} healing potions · {state.inventoryGifts.length} gifts</p></div>
+          <SysButton className="flex items-center gap-2" onClick={() => setInventoryOpen(true)}><Package className="h-4 w-4" />Inventory</SysButton>
         </div>
       </Panel>
 

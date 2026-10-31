@@ -62,7 +62,7 @@ export interface BonusPenaltyHabit { id: string; name: string; description?: str
 export type TodoReward = { type: "potion" } | { type: "gift"; name: string; description?: string | undefined };
 export interface InventoryGift { id: string; name: string; description?: string | undefined; rank: Diff; sourceTask: string; earnedAt: string; }
 export interface Todo { id: string; name: string; description?: string | undefined; due: string; time?: string | undefined; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; done: boolean; notified?: boolean; reward?: TodoReward | undefined; emergency?: boolean; emergencyDeadline?: number; emergencyFailed?: boolean; }
-export interface Session { id: string; date: string; minutes: number; success: boolean; label: string; paused?: boolean; }
+export interface Session { id: string; date: string; minutes: number; success: boolean; label: string; details?: string; paused?: boolean; }
 export interface LogEntry { id: string; ts: number; text: string; kind: "info" | "warn" | "level"; }
 
 export interface GameState {
