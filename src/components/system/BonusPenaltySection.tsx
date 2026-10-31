@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { Minus, Pencil, Plus, Trash2 } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
-import { baseDifficultyForDiff, DIFF_HP, DIFF_XP, moveItem, resolveDifficulty, triggerBonusPenaltyHabit, uid, type Attr, type BaseDifficulty } from "@/lib/system";
+import { attributePracticeFor, baseDifficultyForDiff, DIFF_HP, DIFF_XP, moveItem, resolveDifficulty, triggerBonusPenaltyHabit, uid, type Attr, type BaseDifficulty } from "@/lib/system";
 import { playSound } from "@/lib/sound";
 import { AttrPicker, BaseDifficultyPicker, DiffBadge, Panel, ReorderButtons, SysButton, inputCls } from "./ui";
 
@@ -54,7 +54,7 @@ export function BonusPenaltySection() {
   return (
     <>
       <Panel title="Bonus-Penality">
-        <p className="mb-3 font-mono text-[11px] text-muted-foreground">The first good-habit log each day earns XP and +1 assigned attribute. Bad-habit logs subtract 1 assigned attribute and energy.</p>
+        <p className="mb-3 font-mono text-[11px] text-muted-foreground">The first good-habit log each day earns XP and difficulty-based attribute practice. Bad-habit logs subtract the same practice and energy.</p>
         {state.bonusPenaltyHabits.length === 0 ? (
           <p className="mb-3 font-mono text-xs text-muted-foreground">No bonus or penalty habits registered.</p>
         ) : (
@@ -62,6 +62,7 @@ export function BonusPenaltySection() {
             {state.bonusPenaltyHabits.map((habit, index) => {
               const nextOccurrence = habit.count + 1;
               const positive = habit.kind === "bonus";
+              const practice = attributePracticeFor(habit.baseDifficulty, habit.diff, state.level);
               return (
                 <li key={habit.id} className="flex items-center gap-2 border-b border-border/40 pb-3">
                   <button aria-label={`Log ${positive ? "good" : "bad"} habit ${habit.name}`} onClick={() => trigger(habit.id)}
@@ -72,7 +73,7 @@ export function BonusPenaltySection() {
                     <p className="truncate text-base">{habit.name}</p>
                     {habit.description && <p className="text-xs text-muted-foreground">{habit.description}</p>}
                     <p className="font-mono text-[10px] uppercase text-muted-foreground">
-                      {positive ? `${habit.lastRewardDate === state.lastDay ? "XP and +1 earned today" : `First log today: +${DIFF_XP[habit.diff]} XP, +1 ${habit.attrs.join(" | ")}`}` : `Next: -${DIFF_HP[habit.diff]} HP | -1 ${habit.attrs.join(" | ")}`} | logged x{habit.count}
+                      {positive ? `${habit.lastRewardDate === state.lastDay ? "XP and practice earned today" : `First log today: +${DIFF_XP[habit.diff]} XP, +${practice} practice for ${habit.attrs.join(" | ")}`}` : `Next: -${DIFF_HP[habit.diff]} HP | -${practice} practice for ${habit.attrs.join(" | ")}`} | logged x{habit.count}
                     </p>
                   </div>
                   <ReorderButtons itemName={habit.name} canMoveUp={index > 0} canMoveDown={index < state.bonusPenaltyHabits.length - 1}

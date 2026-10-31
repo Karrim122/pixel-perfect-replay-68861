@@ -66,7 +66,7 @@ export function QuestsTab() {
           </button>
           <div className="flex-1">
             <p className={cn("text-lg", dailyDone && "text-muted-foreground line-through")}>Close todays gate</p>
-            <p className="font-mono text-[10px] uppercase text-muted-foreground">Fixed · Mandatory · Complete a Gate focus timer · Reward: +1 Discipline, +1 Perception</p>
+            <p className="font-mono text-[10px] uppercase text-muted-foreground">Fixed · Mandatory · Complete a Gate focus timer · Reward: +5 Discipline and Perception practice</p>
           </div>
           <DiffBadge d={rankDiff} />
         </div>
