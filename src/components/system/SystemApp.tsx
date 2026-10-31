@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Timer, CalendarDays, Hexagon, ListChecks, Settings, Swords, User, Volume2, VolumeX } from "lucide-react";
 import { SystemProvider, buzz, useSystem } from "@/lib/store";
-import { completeTodo, failEmergencyTodo, postponeEmergencyTodo, isWeeklyQuestScheduled, rankOf } from "@/lib/system";
+import { completeTodo, failEmergencyTodo, isWeeklyQuestScheduled, rankOf } from "@/lib/system";
 import { StatusTab } from "./StatusTab";
 import { playSound, setSoundEnabled } from "@/lib/sound";
 import { QuestsTab } from "./QuestsTab";
@@ -65,6 +65,12 @@ function EmergencyOverlay() {
     if (id && deadline !== undefined && secondsLeft === 0) playSound("done");
   }, [id, deadline, secondsLeft]);
 
+  useEffect(() => {
+    if (id && deadline !== undefined && secondsLeft === 0) {
+      act((s, alerts) => completeTodo(s, id, alerts));
+    }
+  }, [id, deadline, secondsLeft, act]);
+
   if (!active || deadline === undefined) return null;
   const minutes = String(Math.floor(secondsLeft / 60)).padStart(2, "0");
   const seconds = String(secondsLeft % 60).padStart(2, "0");
@@ -88,18 +94,9 @@ function EmergencyOverlay() {
         {secondsLeft > 0
           ? <>
             <p className="font-mono text-xs text-muted-foreground">Failing costs 20 HP and 25 Discipline and Perception practice.</p>
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              <SysButton variant="ghost" onClick={() => act((s, alerts) => postponeEmergencyTodo(s, id, alerts))}>Postpone</SysButton>
-              <SysButton variant="danger" onClick={() => act((s, alerts) => failEmergencyTodo(s, id, alerts))}>Fail Quest</SysButton>
-            </div>
+            <SysButton variant="danger" className="mt-4 w-full" onClick={() => act((s, alerts) => failEmergencyTodo(s, id, alerts))}>Fail Quest</SysButton>
           </>
-          : <>
-            <p className="mb-4 font-mono text-xs text-muted-foreground">Completing Focus Regain earns XP and Discipline practice. You can postpone without penalty.</p>
-            <div className="grid grid-cols-2 gap-2">
-              <SysButton className="py-4" onClick={() => act((s, alerts) => completeTodo(s, id, alerts))}>Focus Regained</SysButton>
-              <SysButton variant="ghost" className="py-4" onClick={() => act((s, alerts) => postponeEmergencyTodo(s, id, alerts))}>Postpone</SysButton>
-            </div>
-          </>}
+          : <p className="font-mono text-xs font-bold uppercase tracking-wider text-primary">Focus Regained · Quest completing</p>}
       </div>
     </div>
   );

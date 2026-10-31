@@ -191,8 +191,8 @@ export function completeTodo(s: GameState, id: string, alerts: Alert[]) {
     const earnedXp = DIFF_XP[task.diff];
     gainXp(s, earnedXp, alerts);
     changeStats(s, ["discipline"], 20);
-    log(s, `Focus reset complete: ${task.name} (+${earnedXp} XP, +20 Discipline practice)`, "level");
-    alerts.push({ kind: "info", title: "[SYSTEM] Focus Reset Complete!", body: `${task.name} complete. +${earnedXp} XP and +20 Discipline practice. Nice work getting back on track.` });
+    log(s, `Focus Regain complete: ${task.name} (+${earnedXp} XP, +20 Discipline practice)`, "level");
+    alerts.push({ kind: "info", title: "[SYSTEM] Focus Regained!", body: `${task.name} complete. +${earnedXp} XP and +20 Discipline practice. Nice work getting back on track.` });
     return;
   }
   const earnedXp = DIFF_XP[task.diff];
@@ -216,14 +216,6 @@ export function completeTodo(s: GameState, id: string, alerts: Alert[]) {
   } else {
     alerts.push({ kind: "info", title: "[SYSTEM] Task Complete!", body: `${task.name} complete. +${earnedXp} XP and +${practice} attribute practice for ${task.attrs.join(", ")}.` });
   }
-}
-
-export function postponeEmergencyTodo(s: GameState, id: string, alerts: Alert[]) {
-  const task = s.todos.find((item) => item.id === id);
-  if (!task || !task.emergency || task.done || task.emergencyFailed) return;
-  task.emergencyFailed = true;
-  log(s, `Emergency task postponed: ${task.name}. Your progress is unchanged.`, "info");
-  alerts.push({ kind: "info", title: "[SYSTEM] Task Postponed", body: "You can return to your day whenever you are ready. No progress was lost." });
 }
 
 export function failEmergencyTodo(s: GameState, id: string, alerts: Alert[]) {
