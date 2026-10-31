@@ -144,7 +144,8 @@ export function triggerBonusPenaltyHabit(s: GameState, id: string, alerts: Alert
     log(s, `Bonus habit: ${habit.name} (×${occurrence}). +${xp} XP, skill practice: ${habit.attrs.join(", ")}`, "info");
   } else {
     const damage = DIFF_HP[habit.diff];
-    log(s, `Penalty habit: ${habit.name} (×${occurrence}). -${damage} HP`, "warn");
+    changeStats(s, habit.attrs, -1);
+    log(s, `Penalty habit: ${habit.name} (×${occurrence}). -${damage} HP, -1 ${habit.attrs.join(", ")}`, "warn");
     takeDamage(s, damage, alerts);
   }
 }
