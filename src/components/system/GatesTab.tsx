@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { buzz, useSystem } from "@/lib/store";
+import { playSound } from "@/lib/sound";
 import { completeDailyGateQuest, completeTodo, completeWeeklyQuest, gainXp, isWeeklyQuestScheduled, takeDamage, uid, type Alert, type GameState } from "@/lib/system";
 import { Panel, SysButton, inputCls } from "./ui";
 
@@ -79,6 +80,7 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
     if (timerKind === "focus") setFocusMinutes((total) => total + timerMinutes);
     setTimerKind(null);
     buzz([40, 40, 40]);
+    playSound("done");
   }, [now, endAt, timerKind, timerMinutes]);
 
   const start = () => {

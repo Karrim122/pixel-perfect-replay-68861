@@ -60,8 +60,12 @@ function EmergencyOverlay() {
     return () => window.clearInterval(timer);
   }, [id, deadline]);
 
+  const secondsLeft = deadline === undefined ? 0 : Math.max(0, Math.ceil((deadline - now) / 1000));
+  useEffect(() => {
+    if (id && deadline !== undefined && secondsLeft === 0) playSound("done");
+  }, [id, deadline, secondsLeft]);
+
   if (!active || deadline === undefined) return null;
-  const secondsLeft = Math.max(0, Math.ceil((deadline - now) / 1000));
   const minutes = String(Math.floor(secondsLeft / 60)).padStart(2, "0");
   const seconds = String(secondsLeft % 60).padStart(2, "0");
 
