@@ -23,7 +23,7 @@ export function TodoTab() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const potionRewardAllowed = baseDifficulty === "Hard" || baseDifficulty === "Very Hard";
   const list = state.todos
-    .filter((t) => filter === "all" || t.due === state.lastDay)
+    .filter((t) => filter === "today" ? t.due === state.lastDay : !t.done)
     .sort((a, b) => Number(a.done) - Number(b.done));
 
   const startEmergency = () => {
