@@ -1,16 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { Trash2 } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
-import { completeDailyGateQuest, completeTodo, completeWeeklyQuest, DIFFS, gainXp, isWeeklyQuestScheduled, RANKS, takeDamage, uid, type Alert, type GameState, type GateBlueprint } from "@/lib/system";
-import { DiffBadge, Panel, SysButton, inputCls } from "./ui";
+import { completeDailyGateQuest, completeTodo, completeWeeklyQuest, gainXp, isWeeklyQuestScheduled, takeDamage, uid, type Alert, type GameState } from "@/lib/system";
+import { Panel, SysButton, inputCls } from "./ui";
 
 const BREAK_DMG = 5;
 
 export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
   const { state, act } = useSystem();
   const [minutes, setMinutes] = useState(25);
-  const [createTarget, setCreateTarget] = useState("");
-  const [gateDetails, setGateDetails] = useState("");
+  const [target, setTarget] = useState("");
   const [endAt, setEndAt] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now());
   const [timerKind, setTimerKind] = useState<"focus" | "rest" | null>(null);
@@ -18,22 +16,14 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
   const [focusMinutes, setFocusMinutes] = useState(0);
   const [gateActive, setGateActive] = useState(false);
   const [entering, setEntering] = useState(false);
-  const meta = useRef({ label: "", target: "", details: "" });
+  const meta = useRef({ label: "", target: "" });
   const entryTimeout = useRef<number | null>(null);
 
-  const todoOptions = state.todos.filter((task) => !task.done).map((task) => ({ id: `t:${task.id}`, label: task.name, diff: task.diff }));
+  const todoOptions = state.todos.filter((task) => !task.done).map((task) => ({ id: `t:${task.id}`, label: task.name }));
   const weeklyOptions = state.weeklyQuests
     .filter((quest) => isWeeklyQuestScheduled(quest, state.lastDay) && !quest.doneDates.includes(state.lastDay))
-    .map((quest) => ({ id: `w:${quest.id}`, label: quest.name, diff: quest.diff }));
+    .map((quest) => ({ id: `w:${quest.id}`, label: quest.name }));
   const options = [...todoOptions, ...weeklyOptions];
-
-  const createGate = () => {
-    const selected = options.find((option) => option.id === createTarget);
-    if (!selected) return;
-    act((s) => s.gates.push({ id: uid(), target: selected.id, label: selected.label, diff: selected.diff, details: gateDetails.trim() || undefined, createdAt: s.lastDay }));
-    setCreateTarget("");
-    setGateDetails("");
-  };
 
   const fail = (reason: string) => {
     if (entryTimeout.current !== null) window.clearTimeout(entryTimeout.current);
@@ -91,10 +81,9 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
     buzz([40, 40, 40]);
   }, [now, endAt, timerKind, timerMinutes]);
 
-  const start = (gate: GateBlueprint) => {
-    const selected = options.find((option) => option.id === gate.target);
-    if (!selected) return;
-    meta.current = { target: selected.id, label: selected.label, details: gate.details ?? "" };
+  const start = () => {
+    const selected = options.find((option) => option.id === target);
+    meta.current = { target: selected?.id ?? "", label: selected?.label ?? "Free focus" };
     setFocusMinutes(0); setGateActive(true); onLock(true); buzz(60);
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
       setEntering(false); startTimer("focus", minutes); return;
@@ -146,7 +135,6 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
           <span className="relative z-10 font-mono text-6xl font-bold text-primary sys-glow-text">{mm}:{ss}</span>
         </div>
         <p className="text-lg">{timerKind === "rest" ? "Rest and recover" : meta.current.label}</p>
-        {timerKind === "focus" && meta.current.details && <p className="max-w-xs text-sm text-muted-foreground">{meta.current.details}</p>}
         {focusMinutes > 0 && <p className="font-mono text-xs text-muted-foreground">Completed focus: {focusMinutes} min · {focusMinutes} XP on gate close</p>}
         <div className="flex gap-2">
           <SysButton variant="danger" onClick={() => fail("You abandoned the Gate.")}>Exit Gate (−{BREAK_DMG} HP)</SysButton>
@@ -161,7 +149,6 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
       <div className="space-y-4">
         <Panel title="Gate In Progress">
           <p className="font-bold">{meta.current.label}</p>
-          {meta.current.details && <p className="mt-1 text-sm text-muted-foreground">{meta.current.details}</p>}
           <p className="mt-1 font-mono text-xs text-muted-foreground">Completed focus: {focusMinutes} min · {focusMinutes} XP on gate close</p>
           <p className="mt-4 font-mono text-xs uppercase tracking-wider text-primary">Choose your next step</p>
           <p className="mb-2 mt-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Another focus timer</p>
@@ -186,60 +173,20 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
 
   return (
     <div className="space-y-4">
-      <Panel title="Gate Timer">
-        <p className="mb-2 font-mono text-xs text-muted-foreground">Choose the focus timer duration for the gate you start.</p>
+      <Panel title="Open a Gate">
+        <label className="mb-1 block font-mono text-xs text-muted-foreground">Assigned objective</label>
+        <select className={inputCls} value={target} onChange={(e) => setTarget(e.target.value)}>
+          <option value="">Free focus</option>
+          {todoOptions.length > 0 && <optgroup label="To-Do Tasks">{todoOptions.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</optgroup>}
+          {weeklyOptions.length > 0 && <optgroup label="Weekly Quests">{weeklyOptions.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</optgroup>}
+        </select>
+        <p className="mb-1 mt-4 font-mono text-xs text-muted-foreground">Duration</p>
         <div className="grid grid-cols-4 gap-2">
           {[15, 25, 45, 60].map((m) => (
             <SysButton key={m} variant={minutes === m ? "primary" : "ghost"} onClick={() => setMinutes(m)}>{m}m</SysButton>
           ))}
         </div>
-      </Panel>
-      <Panel title="Create a Gate">
-        <label className="mb-1 block font-mono text-xs text-muted-foreground">Assigned task or scheduled weekly quest</label>
-        <select className={inputCls} value={createTarget} onChange={(event) => setCreateTarget(event.target.value)}>
-          <option value="">Choose an objective</option>
-          {todoOptions.length > 0 && <optgroup label="To-Do Tasks">{todoOptions.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</optgroup>}
-          {weeklyOptions.length > 0 && <optgroup label="Weekly Quests">{weeklyOptions.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</optgroup>}
-        </select>
-        {options.length === 0 && <p className="mt-2 font-mono text-[10px] text-muted-foreground">Add an active task or schedule a weekly quest to create a gate.</p>}
-        <label className="mb-1 mt-3 block font-mono text-xs text-muted-foreground">Gate details (optional)</label>
-        <textarea maxLength={300} className={`${inputCls} min-h-20 py-2`} placeholder="Notes to keep visible beneath the timer" value={gateDetails} onChange={(event) => setGateDetails(event.target.value)} />
-        <SysButton className="mt-3 w-full" disabled={!options.some((option) => option.id === createTarget)} onClick={createGate}>Create Gate</SysButton>
-      </Panel>
-      <Panel title={`Your Gates · ${state.gates.length}`}>
-        {state.gates.length === 0 ? <p className="font-mono text-xs text-muted-foreground">Created gates will appear here.</p> : (
-          <ul className="space-y-3">
-            {state.gates.map((gate) => {
-              const assigned = options.find((option) => option.id === gate.target);
-              const linkedQuest = gate.target.startsWith("w:") ? state.weeklyQuests.find((quest) => quest.id === gate.target.slice(2)) : undefined;
-              const linkedTask = gate.target.startsWith("t:") ? state.todos.find((task) => task.id === gate.target.slice(2)) : undefined;
-              const source = linkedQuest ?? linkedTask;
-              const label = source?.name ?? gate.label;
-              const diff = source?.diff ?? gate.diff;
-              const rank = RANKS[DIFFS.indexOf(diff)]?.name ?? "E-Rank";
-              const unavailableReason = linkedQuest
-                ? linkedQuest.doneDates.includes(state.lastDay)
-                  ? "Quest already completed today; this gate remains saved for its next scheduled day."
-                  : !isWeeklyQuestScheduled(linkedQuest, state.lastDay)
-                    ? "Gate remains saved. Missed scheduled days cost HP; it is available again on the next scheduled day."
-                    : "Quest unavailable today."
-                : "Objective completed or unavailable.";
-              return (
-                <li key={gate.id} className="flex items-start gap-2 border-b border-border/40 pb-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-base">{label}</p>
-                    <p className="font-mono text-[10px] uppercase text-primary">{rank} Gate · {minutes} min</p>
-                    {gate.details && <p className="mt-1 text-xs text-muted-foreground">{gate.details}</p>}
-                    {!assigned && <p className="mt-1 font-mono text-[10px] text-muted-foreground">{unavailableReason}</p>}
-                  </div>
-                  <DiffBadge d={diff} />
-                  <SysButton disabled={!assigned} onClick={() => start(gate)}>Start</SysButton>
-                  <button type="button" aria-label={`Delete gate for ${label}`} onClick={() => act((s) => { s.gates = s.gates.filter((item) => item.id !== gate.id); })} className="p-2 text-muted-foreground"><Trash2 className="h-4 w-4" /></button>
-                </li>
-              );
-            })}
-          </ul>
-        )}
+        <SysButton className="mt-5 h-14 w-full text-sm" onClick={start}>Enter Gate</SysButton>
       </Panel>
       <Panel title="Focus Analysis">
         <div className="grid grid-cols-2 gap-3 text-center font-mono">
