@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { AlertTriangle, Bell, Check, FlaskConical, Gift, Pencil, Trash2 } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
 import { playSound } from "@/lib/sound";
-import { baseDifficultyForDiff, completeTodo, DIFFS, moveItem, RANKS, today, uid, type Attr, type BaseDifficulty, type TodoReward } from "@/lib/system";
+import { baseDifficultyForDiff, completeTodo, DIFFS, moveItem, RANKS, resolveDifficulty, today, uid, type Attr, type BaseDifficulty, type TodoReward } from "@/lib/system";
 import { AttrPicker, BaseDifficultyPicker, DiffBadge, Panel, ReorderButtons, SysButton, inputCls } from "./ui";
 import { cn } from "@/lib/utils";
 
