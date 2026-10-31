@@ -72,6 +72,7 @@ export interface GameState {
   stats: Record<Attr, number>;
   statProgress: Record<Attr, number>;
   dailyQuests: DailyQuest[]; weeklyQuests: WeeklyQuest[]; bonusPenaltyHabits: BonusPenaltyHabit[]; todos: Todo[]; inventoryGifts: InventoryGift[]; sessions: Session[]; log: LogEntry[];
+  focusRegainDeadline: number | null;
   lastDay: string; dailyGateQuestDoneDate: string | null; dailyQuestRewardDay: string | null;
   playerName: string; playerSince: string;
 }
@@ -95,7 +96,7 @@ export const initialState = (): GameState => ({
   level: 1, xp: 0, hp: 100, maxHp: 100, points: 0, potions: 0,
   stats: { strength: 10, discipline: 10, intelligence: 10, perception: 10, vitality: 10 },
   statProgress: { strength: 0, discipline: 0, intelligence: 0, perception: 0, vitality: 0 },
-  dailyQuests: [], weeklyQuests: [], bonusPenaltyHabits: [], todos: [], inventoryGifts: [], sessions: [], log: [], lastDay: today(), dailyGateQuestDoneDate: null, dailyQuestRewardDay: null, playerName: "", playerSince: today(),
+  dailyQuests: [], weeklyQuests: [], bonusPenaltyHabits: [], todos: [], inventoryGifts: [], sessions: [], log: [], focusRegainDeadline: null, lastDay: today(), dailyGateQuestDoneDate: null, dailyQuestRewardDay: null, playerName: "", playerSince: today(),
 });
 
 export type Alert = { kind: "info" | "penalty" | "level" | "awaken" | "exhausted" | "monarch" | "lowHp"; title: string; body: string };
@@ -185,16 +186,7 @@ export function triggerBonusPenaltyHabit(s: GameState, id: string, alerts: Alert
 export function completeTodo(s: GameState, id: string, alerts: Alert[]) {
   const task = s.todos.find((x) => x.id === id);
   if (!task || task.done) return;
-  if (task.emergency && (task.emergencyFailed || (task.emergencyDeadline !== undefined && task.emergencyDeadline > Date.now()))) return;
   task.done = true;
-  if (task.emergency) {
-    const earnedXp = DIFF_XP[task.diff];
-    gainXp(s, earnedXp, alerts);
-    changeStats(s, ["discipline"], 20);
-    log(s, `Focus Regain complete: ${task.name} (+${earnedXp} XP, +20 Discipline practice)`, "level");
-    alerts.push({ kind: "info", title: "[SYSTEM] Focus Regained!", body: `${task.name} complete. +${earnedXp} XP and +20 Discipline practice. Nice work getting back on track.` });
-    return;
-  }
   const earnedXp = DIFF_XP[task.diff];
   gainXp(s, earnedXp, alerts);
   const practice = attributePracticeFor(task.baseDifficulty, task.diff, s.level);
@@ -218,15 +210,24 @@ export function completeTodo(s: GameState, id: string, alerts: Alert[]) {
   }
 }
 
-export function failEmergencyTodo(s: GameState, id: string, alerts: Alert[]) {
-  const task = s.todos.find((item) => item.id === id);
-  if (!task || !task.emergency || task.done || task.emergencyFailed) return;
-  task.emergencyFailed = true;
+export function completeFocusRegain(s: GameState, alerts: Alert[]) {
+  if (s.focusRegainDeadline === null || s.focusRegainDeadline > Date.now()) return;
+  s.focusRegainDeadline = null;
+  const earnedXp = DIFF_XP[resolveDifficulty("Very Hard", s.level)];
+  gainXp(s, earnedXp, alerts);
+  changeStats(s, ["discipline"], 20);
+  log(s, `Focus Regain complete (+${earnedXp} XP, +20 Discipline practice)`, "level");
+  alerts.push({ kind: "info", title: "[SYSTEM] Focus Regained!", body: `Nice work getting back on track. +${earnedXp} XP and +20 Discipline practice.` });
+}
+
+export function failFocusRegain(s: GameState, alerts: Alert[]) {
+  if (s.focusRegainDeadline === null || s.focusRegainDeadline > Date.now()) return;
+  s.focusRegainDeadline = null;
   const damage = 20;
   const attributePenalty = 25;
   changeStats(s, ["discipline", "perception"], -attributePenalty);
-  log(s, `Emergency quest failed: ${task.name}. -${damage} HP, -${attributePenalty} Discipline practice, -${attributePenalty} Perception practice.`, "warn");
-  alerts.push({ kind: "penalty", title: "[SYSTEM] Urgent Quest Failed", body: `${task.name} failed. -${damage} HP, -${attributePenalty} Discipline practice, and -${attributePenalty} Perception practice.` });
+  log(s, `Focus Regain failed. -${damage} HP, -${attributePenalty} Discipline practice, -${attributePenalty} Perception practice.`, "warn");
+  alerts.push({ kind: "penalty", title: "[SYSTEM] Focus Regain Failed", body: `Focus was not regained. -${damage} HP, -${attributePenalty} Discipline practice, and -${attributePenalty} Perception practice.` });
   takeDamage(s, damage, alerts);
 }
 
@@ -362,5 +363,6 @@ export function hydrateState(raw: string): GameState {
     ...(saved.inventoryGifts ?? []).map((gift) => gift.earnedAt),
   ].filter((date) => /^\d{4}-\d{2}-\d{2}$/.test(date)).sort();
   const playerSince = saved.playerSince ?? legacyActivityDates[0] ?? saved.lastDay ?? today();
-  return { ...base, ...current, stats, statProgress, playerSince, dailyQuests: saved.dailyQuests ?? [], weeklyQuests: weeklyQuests.map((quest) => ({ ...quest, masteryLevel: Math.max(1, quest.masteryLevel ?? 1), masteryXp: Math.max(0, quest.masteryXp ?? 0) })), bonusPenaltyHabits, inventoryGifts: saved.inventoryGifts ?? [], dailyGateQuestDoneDate: saved.dailyGateQuestDoneDate ?? null } as GameState;
+  const legacyFocusDeadline = saved.todos?.find((task) => task.emergency && !task.done && !task.emergencyFailed)?.emergencyDeadline;
+  return { ...base, ...current, todos: (saved.todos ?? []).filter((task) => !task.emergency), focusRegainDeadline: saved.focusRegainDeadline ?? legacyFocusDeadline ?? null, stats, statProgress, playerSince, dailyQuests: saved.dailyQuests ?? [], weeklyQuests: weeklyQuests.map((quest) => ({ ...quest, masteryLevel: Math.max(1, quest.masteryLevel ?? 1), masteryXp: Math.max(0, quest.masteryXp ?? 0) })), bonusPenaltyHabits, inventoryGifts: saved.inventoryGifts ?? [], dailyGateQuestDoneDate: saved.dailyGateQuestDoneDate ?? null } as GameState;
 }

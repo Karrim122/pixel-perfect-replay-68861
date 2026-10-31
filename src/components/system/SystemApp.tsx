@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Timer, CalendarDays, Hexagon, ListChecks, Settings, Swords, User, Volume2, VolumeX } from "lucide-react";
 import { SystemProvider, buzz, useSystem } from "@/lib/store";
-import { completeTodo, failEmergencyTodo, isWeeklyQuestScheduled, rankOf } from "@/lib/system";
+import { completeFocusRegain, failFocusRegain, isWeeklyQuestScheduled, rankOf } from "@/lib/system";
 import { StatusTab } from "./StatusTab";
 import { playSound, setSoundEnabled } from "@/lib/sound";
 import { QuestsTab } from "./QuestsTab";
@@ -49,29 +49,21 @@ function AlertModal() {
 function EmergencyOverlay() {
   const { state, act } = useSystem();
   const [now, setNow] = useState(Date.now());
-  const active = state.todos.find((task) => task.emergency && !task.done && !task.emergencyFailed);
-  const id = active?.id;
-  const deadline = active?.emergencyDeadline;
+  const deadline = state.focusRegainDeadline;
 
   useEffect(() => {
-    if (!id || deadline === undefined) return;
+    if (deadline === null) return;
     setNow(Date.now());
     const timer = window.setInterval(() => setNow(Date.now()), 250);
     return () => window.clearInterval(timer);
-  }, [id, deadline]);
+  }, [deadline]);
 
-  const secondsLeft = deadline === undefined ? 0 : Math.max(0, Math.ceil((deadline - now) / 1000));
+  const secondsLeft = deadline === null ? 0 : Math.max(0, Math.ceil((deadline - now) / 1000));
   useEffect(() => {
-    if (id && deadline !== undefined && secondsLeft === 0) playSound("done");
-  }, [id, deadline, secondsLeft]);
+    if (deadline !== null && secondsLeft === 0) playSound("done");
+  }, [deadline, secondsLeft]);
 
-  useEffect(() => {
-    if (id && deadline !== undefined && secondsLeft === 0) {
-      act((s, alerts) => completeTodo(s, id, alerts));
-    }
-  }, [id, deadline, secondsLeft, act]);
-
-  if (!active || deadline === undefined) return null;
+  if (deadline === null) return null;
   const minutes = String(Math.floor(secondsLeft / 60)).padStart(2, "0");
   const seconds = String(secondsLeft % 60).padStart(2, "0");
 
@@ -91,12 +83,14 @@ function EmergencyOverlay() {
           <span aria-hidden="true" className="urgent-breath-ring urgent-breath-ring-delayed absolute inset-4" />
           <p className="relative z-10 border border-primary/60 bg-background/80 px-5 py-3 font-mono text-5xl font-black tabular-nums text-primary sys-glow-text" aria-live="off">{minutes}:{seconds}</p>
         </div>
-        {secondsLeft > 0
+        {secondsLeft === 0
           ? <>
-            <p className="font-mono text-xs text-muted-foreground">Failing costs 20 HP and 25 Discipline and Perception practice.</p>
-            <SysButton variant="danger" className="mt-4 w-full" onClick={() => act((s, alerts) => failEmergencyTodo(s, id, alerts))}>Fail Quest</SysButton>
+            <p className="font-mono text-xs font-bold uppercase tracking-wider text-primary">Did you regain focus?</p>
+            <SysButton className="mt-4 w-full" onClick={() => act((s, alerts) => completeFocusRegain(s, alerts))}>I Regained Focus</SysButton>
+            <SysButton variant="danger" className="mt-2 w-full" onClick={() => act((s, alerts) => failFocusRegain(s, alerts))}>I Failed</SysButton>
+            <p className="mt-3 font-mono text-xs text-muted-foreground">Failure costs 20 HP and 25 Discipline and Perception practice.</p>
           </>
-          : <p className="font-mono text-xs font-bold uppercase tracking-wider text-primary">Focus Regained · Quest completing</p>}
+          : <p className="font-mono text-xs font-bold uppercase tracking-wider text-primary">Breathe slowly and follow the rhythm.</p>}
       </div>
     </div>
   );
