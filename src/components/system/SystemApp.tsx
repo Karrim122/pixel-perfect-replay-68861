@@ -78,7 +78,8 @@ function EmergencyOverlay() {
         </div>
         <h2 className="mt-4 text-3xl font-black uppercase text-primary sys-glow-text">Urgent Quest</h2>
         <p className="mt-2 text-sm font-bold uppercase tracking-wider text-foreground">Focus Regain</p>
-        <p className="mt-3 text-sm text-foreground/90">Take a short reset, then choose how you want to continue.</p>
+        <p className="mt-3 font-mono text-xs font-bold uppercase tracking-[0.3em] text-primary">Take a Breath</p>
+        <p className="mt-2 text-sm text-foreground/90">Follow the slow breathing rhythm to regain focus.</p>
         <div role="timer" className="relative mx-auto my-6 flex h-44 w-44 items-center justify-center" aria-label={`Urgent quest timer: ${minutes}:${seconds}`}>
           <span aria-hidden="true" className="urgent-breath-ring absolute inset-0" />
           <span aria-hidden="true" className="urgent-breath-ring urgent-breath-ring-delayed absolute inset-4" />

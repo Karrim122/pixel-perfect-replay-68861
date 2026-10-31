@@ -122,9 +122,9 @@
   border: 1px solid color-mix(in oklab, var(--primary) 75%, transparent);
   border-radius: 9999px;
   box-shadow: 0 0 22px -5px var(--primary), inset 0 0 18px -8px var(--primary);
-  animation: urgent-breath 8s ease-in-out infinite;
+  animation: urgent-breath 12s ease-in-out infinite;
 }
-.urgent-breath-ring-delayed { animation-delay: -4s; }
+.urgent-breath-ring-delayed { animation-delay: -6s; }
 @media (prefers-reduced-motion: reduce) {
   .urgent-breath-ring { animation: none; opacity: .3; transform: scale(.88); }
 }
