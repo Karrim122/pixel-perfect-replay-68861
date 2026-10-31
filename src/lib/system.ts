@@ -53,7 +53,8 @@ export function rankIndex(level: number) {
   return i;
 }
 export const rankOf = (level: number) => RANKS[rankIndex(level)]!;
-export const xpToNext = (level: number) => Math.round(150 * Math.pow(level, 1.1));
+export const xpToNext = (level: number) =>
+  Math.round((150 - 100 * Math.pow(0.6, Math.max(0, level - 1))) * Math.pow(level, 1.1));
 
 export interface WeeklyQuest { id: string; name: string; description?: string | undefined; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; daysOfWeek: number[]; doneDates: string[]; reminder?: string | undefined; masteryLevel: number; masteryXp: number; }
 export interface DailyQuest { id: string; name: string; description?: string | undefined; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; doneDate: string | null; reminder?: string | undefined; }
