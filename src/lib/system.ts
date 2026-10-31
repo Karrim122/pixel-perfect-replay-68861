@@ -235,8 +235,9 @@ export function takeDamage(s: GameState, amount: number, alerts: Alert[]) {
   const previousHp = s.hp;
   s.hp = Math.max(0, s.hp - amount);
   if (previousHp > 0 && s.hp === 0) {
-    log(s, "Energy depleted. Rest or use a potion to recover.", "info");
-    alerts.push({ kind: "exhausted", title: "[SYSTEM] ENERGY DEPLETED", body: "Your HP reached zero. Rest or use a potion to recover; your attributes and progress are safe." });
+    ATTRS.forEach(({ key }) => { s.stats[key] = Math.max(1, Math.round(s.stats[key] * 0.8)); });
+    log(s, "Energy depleted. All attributes reduced by 20%.", "warn");
+    alerts.push({ kind: "exhausted", title: "[SYSTEM] ENERGY DEPLETED", body: "Your energy reached zero. All attributes were reduced by 20%. Your level and practice progress are safe; rest or use a potion to recover." });
   }
 }
 
@@ -256,13 +257,20 @@ export function changeStats(s: GameState, attrs: Attr[], practice: number) {
   });
 }
 
-/** Reset daily progress and recover a little HP without penalizing unfinished goals. */
-export function rollover(s: GameState, _alerts: Alert[]) {
+/** Reset daily progress, recover HP, and apply the missed gate penalty. */
+export function rollover(s: GameState, alerts: Alert[]) {
   const t = today();
   if (s.lastDay === t) return;
   const recovered = Math.min(DAILY_REST_HP, s.maxHp - s.hp);
   s.hp += recovered;
   if (recovered > 0) log(s, `Rest recovery. +${recovered} HP`, "info");
+  if (s.dailyGateQuestDoneDate !== s.lastDay) {
+    const diff = difficultyForRankIndex(rankIndex(s.level));
+    const damage = DIFF_HP[diff];
+    log(s, `Daily Quest failed: Close todays gate. -${damage} HP`, "warn");
+    alerts.push({ kind: "penalty", title: "[System Alert] Daily Quest Failed", body: `Close todays gate was not completed. -${damage} HP.` });
+    takeDamage(s, damage, alerts);
+  }
   s.todos = s.todos.filter((task) => !task.done);
   s.lastDay = t;
 }
