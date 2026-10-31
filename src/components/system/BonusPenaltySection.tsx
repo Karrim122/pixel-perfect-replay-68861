@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { Minus, Pencil, Plus, Trash2 } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
-import { attributePracticeFor, baseDifficultyForDiff, DIFF_XP, moveItem, resolveDifficulty, triggerBonusPenaltyHabit, uid, type Attr, type BaseDifficulty } from "@/lib/system";
+import { attributePracticeFor, baseDifficultyForDiff, DIFF_HP, DIFF_XP, moveItem, resolveDifficulty, triggerBonusPenaltyHabit, uid, type Attr, type BaseDifficulty } from "@/lib/system";
 import { playSound } from "@/lib/sound";
 import { AttrPicker, BaseDifficultyPicker, DiffBadge, Panel, ReorderButtons, SysButton, inputCls } from "./ui";
 
@@ -53,8 +53,8 @@ export function BonusPenaltySection() {
 
   return (
     <>
-      <Panel title="Habits">
-        <p className="mb-3 font-mono text-[11px] text-muted-foreground">The first good-habit log each day earns XP and attribute practice. Bad-habit logs track patterns without removing health or progress.</p>
+      <Panel title="Bonus-Penalty">
+        <p className="mb-3 font-mono text-[11px] text-muted-foreground">The first good-habit log each day earns XP and attribute practice. Each bad-habit log increases its HP and assigned-attribute penalty.</p>
         {state.bonusPenaltyHabits.length === 0 ? (
           <p className="mb-3 font-mono text-xs text-muted-foreground">No bonus or penalty habits registered.</p>
         ) : (
@@ -63,17 +63,19 @@ export function BonusPenaltySection() {
               const nextOccurrence = habit.count + 1;
               const positive = habit.kind === "bonus";
               const practice = attributePracticeFor(habit.baseDifficulty, habit.diff, state.level);
+              const penaltyHp = DIFF_HP[habit.diff] * nextOccurrence;
+              const penaltyPractice = practice * nextOccurrence;
               return (
                 <li key={habit.id} className="flex items-center gap-2 border-b border-border/40 pb-3">
                   <button aria-label={`Log ${positive ? "good" : "bad"} habit ${habit.name}`} onClick={() => trigger(habit.id)}
-                    className={`flex h-9 w-9 shrink-0 items-center justify-center border active:scale-90 ${positive ? "border-success text-success" : "border-border text-muted-foreground"}`}>
+                    className={`flex h-9 w-9 shrink-0 items-center justify-center border active:scale-90 ${positive ? "border-success text-success" : "border-destructive text-destructive"}`}>
                     {positive ? <Plus className="h-5 w-5" /> : <Minus className="h-5 w-5" />}
                   </button>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-base">{habit.name}</p>
                     {habit.description && <p className="text-xs text-muted-foreground">{habit.description}</p>}
                     <p className="font-mono text-[10px] uppercase text-muted-foreground">
-                      {positive ? `${habit.lastRewardDate === state.lastDay ? "XP and practice earned today" : `First log today: +${DIFF_XP[habit.diff]} XP, +${practice} practice for ${habit.attrs.join(" | ")}`}` : "No health or progress lost"} | logged x{habit.count}
+                      {positive ? `${habit.lastRewardDate === state.lastDay ? "XP and practice earned today" : `First log today: +${DIFF_XP[habit.diff]} XP, +${practice} practice for ${habit.attrs.join(" | ")}`}` : `Next: -${penaltyHp} HP | -${penaltyPractice} practice for ${habit.attrs.join(" | ")}`} | logged x{habit.count}
                     </p>
                   </div>
                   <ReorderButtons itemName={habit.name} canMoveUp={index > 0} canMoveDown={index < state.bonusPenaltyHabits.length - 1}
@@ -87,7 +89,7 @@ export function BonusPenaltySection() {
             })}
           </ul>
         )}
-        <SysButton className="w-full" onClick={() => setOpen(true)}>+ Add Habit</SysButton>
+        <SysButton className="w-full" onClick={() => setOpen(true)}>+ Add Good or Bad Habit</SysButton>
       </Panel>
 
       {open && createPortal(

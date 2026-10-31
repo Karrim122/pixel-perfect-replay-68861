@@ -149,7 +149,11 @@ export function triggerBonusPenaltyHabit(s: GameState, id: string, alerts: Alert
     changeStats(s, habit.attrs, practice);
     log(s, `Bonus habit: ${habit.name} (×${occurrence}). +${xp} XP, +${practice} attribute practice`, "info");
   } else {
-    log(s, `Habit tracked: ${habit.name} (×${occurrence}). Your progress is unchanged.`, "info");
+    const damage = DIFF_HP[habit.diff] * occurrence;
+    const practice = attributePracticeFor(habit.baseDifficulty, habit.diff, s.level) * occurrence;
+    changeStats(s, habit.attrs, -practice);
+    log(s, `Penalty habit: ${habit.name} (×${occurrence}). -${damage} HP, -${practice} attribute practice`, "warn");
+    takeDamage(s, damage, alerts);
   }
 }
 
