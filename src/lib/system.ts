@@ -62,7 +62,7 @@ export interface BonusPenaltyHabit { id: string; name: string; description?: str
 export type TodoReward = { type: "potion" } | { type: "gift"; name: string; description?: string | undefined };
 export interface InventoryGift { id: string; name: string; description?: string | undefined; rank: Diff; sourceTask: string; earnedAt: string; }
 export interface Todo { id: string; name: string; description?: string | undefined; due: string; time?: string | undefined; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; done: boolean; notified?: boolean; reward?: TodoReward | undefined; emergency?: boolean; emergencyDeadline?: number; emergencyFailed?: boolean; }
-export interface Session { id: string; date: string; minutes: number; success: boolean; label: string; }
+export interface Session { id: string; date: string; minutes: number; success: boolean; label: string; paused?: boolean; }
 export interface LogEntry { id: string; ts: number; text: string; kind: "info" | "warn" | "level"; }
 
 export interface GameState {
@@ -149,11 +149,7 @@ export function triggerBonusPenaltyHabit(s: GameState, id: string, alerts: Alert
     changeStats(s, habit.attrs, practice);
     log(s, `Bonus habit: ${habit.name} (×${occurrence}). +${xp} XP, +${practice} attribute practice`, "info");
   } else {
-    const damage = DIFF_HP[habit.diff];
-    const practice = attributePracticeFor(habit.baseDifficulty, habit.diff, s.level);
-    changeStats(s, habit.attrs, -practice);
-    log(s, `Penalty habit: ${habit.name} (×${occurrence}). -${damage} HP, -${practice} attribute practice`, "warn");
-    takeDamage(s, damage, alerts);
+    log(s, `Habit tracked: ${habit.name} (×${occurrence}). Your progress is unchanged.`, "info");
   }
 }
 
@@ -163,11 +159,11 @@ export function completeTodo(s: GameState, id: string, alerts: Alert[]) {
   if (task.emergency && (task.emergencyFailed || (task.emergencyDeadline !== undefined && task.emergencyDeadline > Date.now()))) return;
   task.done = true;
   if (task.emergency) {
-    const bonusXp = 75;
-    gainXp(s, bonusXp, alerts);
+    const earnedXp = DIFF_XP[task.diff];
+    gainXp(s, earnedXp, alerts);
     changeStats(s, ["discipline"], 20);
-    log(s, `Emergency task complete: ${task.name} (+${bonusXp} XP, +20 Discipline practice)`, "level");
-    alerts.push({ kind: "info", title: "[SYSTEM] EMERGENCY CLEARED", body: `Focus regained. +${bonusXp} XP and +20 Discipline practice.` });
+    log(s, `Focus reset complete: ${task.name} (+${earnedXp} XP, +20 Discipline practice)`, "level");
+    alerts.push({ kind: "info", title: "[SYSTEM] Focus Reset", body: `You refocused. +${earnedXp} XP and +20 Discipline practice.` });
     return;
   }
   gainXp(s, DIFF_XP[task.diff], alerts);
@@ -193,10 +189,8 @@ export function failEmergencyTodo(s: GameState, id: string, alerts: Alert[]) {
   const task = s.todos.find((item) => item.id === id);
   if (!task || !task.emergency || task.done || task.emergencyFailed || (task.emergencyDeadline !== undefined && task.emergencyDeadline > Date.now())) return;
   task.emergencyFailed = true;
-  const damage = 10;
-  log(s, `Emergency failed: ${task.name}. -${damage} HP`, "warn");
-  alerts.push({ kind: "penalty", title: "[SYSTEM] EMERGENCY FAILED", body: `Focus was not regained in time. -${damage} HP.` });
-  takeDamage(s, damage, alerts);
+  log(s, `Emergency task postponed: ${task.name}. Your progress is unchanged.`, "info");
+  alerts.push({ kind: "info", title: "[SYSTEM] Task Postponed", body: "You can return to this task when you are ready. No progress was lost." });
 }
 
 export function completeDailyGateQuest(s: GameState) {
@@ -225,7 +219,6 @@ export function gainXp(s: GameState, amount: number, alerts: Alert[]) {
     s.xp -= xpToNext(s.level);
     const prevRank = rankIndex(s.level);
     s.level += 1;
-    if (s.level % 5 === 0) s.points += 1;
     s.maxHp = Math.max(s.maxHp, 100 + (s.level - 1));
     const r = rankIndex(s.level);
     log(s, `Level up → ${s.level}`, "level");
@@ -233,8 +226,8 @@ export function gainXp(s: GameState, amount: number, alerts: Alert[]) {
       const rank = RANKS[r]!;
       if (rank.name === "S-Rank") alerts.push({ kind: "awaken", title: "[SYSTEM] Level 60 Reached", body: "S-Rank Threshold Breached. The measurement device cannot register your power. Authority granted." });
       else if (rank.name === "Shadow Monarch") alerts.push({ kind: "monarch", title: "[SYSTEM] ARISE", body: "You have become the Shadow Monarch. All shadows kneel." });
-      else alerts.push({ kind: "level", title: `[SYSTEM] Rank Up: ${rank.name}`, body: `You have reached Level ${s.level}.${s.level % 5 === 0 ? " +1 Attribute Point." : ""}` });
-    } else alerts.push({ kind: "level", title: "[SYSTEM] Level Up!", body: `You are now Level ${s.level}.${s.level % 5 === 0 ? " +1 Attribute Point." : ""} Max HP increased by 1.` });
+      else alerts.push({ kind: "level", title: `[SYSTEM] Rank Up: ${rank.name}`, body: `You have reached Level ${s.level}.` });
+    } else alerts.push({ kind: "level", title: "[SYSTEM] Level Up!", body: `You are now Level ${s.level}. Max HP increased by 1.` });
   }
 }
 
@@ -242,9 +235,8 @@ export function takeDamage(s: GameState, amount: number, alerts: Alert[]) {
   const previousHp = s.hp;
   s.hp = Math.max(0, s.hp - amount);
   if (previousHp > 0 && s.hp === 0) {
-    ATTRS.forEach(({ key }) => { s.stats[key] = Math.max(1, Math.round(s.stats[key] * 0.8)); });
-    log(s, "Energy depleted. All attributes reduced by 20%.", "warn");
-    alerts.push({ kind: "exhausted", title: "[SYSTEM] ENERGY DEPLETED", body: "Your energy reached zero. All attributes were reduced by 20%. Your level and practice progress are safe; rest or use a potion to recover." });
+    log(s, "Energy depleted. Rest or use a potion to recover.", "info");
+    alerts.push({ kind: "exhausted", title: "[SYSTEM] ENERGY DEPLETED", body: "Your HP reached zero. Rest or use a potion to recover; your attributes and progress are safe." });
   }
 }
 
@@ -264,27 +256,13 @@ export function changeStats(s: GameState, attrs: Attr[], practice: number) {
   });
 }
 
-/** Evaluate day rollover: penalty if the mandatory gate quest was missed. */
-export function rollover(s: GameState, alerts: Alert[]) {
+/** Reset daily progress and recover a little HP without penalizing unfinished goals. */
+export function rollover(s: GameState, _alerts: Alert[]) {
   const t = today();
   if (s.lastDay === t) return;
   const recovered = Math.min(DAILY_REST_HP, s.maxHp - s.hp);
   s.hp += recovered;
   if (recovered > 0) log(s, `Rest recovery. +${recovered} HP`, "info");
-  if (s.dailyGateQuestDoneDate !== s.lastDay) {
-    const diff = difficultyForRankIndex(rankIndex(s.level));
-    const damage = DIFF_HP[diff];
-    log(s, `Daily Quest failed: Close todays gate. -${damage} HP`, "warn");
-    alerts.push({ kind: "penalty", title: "[System Alert] Daily Quest Failed", body: `Close todays gate was not completed. -${damage} HP.` });
-    takeDamage(s, damage, alerts);
-  }
-  const missedDailyQuests = s.dailyQuests.filter((quest) => quest.doneDate !== s.lastDay);
-  if (missedDailyQuests.length) {
-    const damage = missedDailyQuests.reduce((total, quest) => total + DIFF_HP[quest.diff], 0);
-    log(s, `Daily quests failed (${missedDailyQuests.length} missed). -${damage} HP`, "warn");
-    alerts.push({ kind: "penalty", title: "[System Alert] Daily Quests Failed", body: `${missedDailyQuests.map((quest) => quest.name).join(", ")} were not completed. -${damage} HP.` });
-    takeDamage(s, damage, alerts);
-  }
   s.todos = s.todos.filter((task) => !task.done);
   s.lastDay = t;
 }
@@ -317,7 +295,7 @@ export function hydrateState(raw: string): GameState {
   const statProgress = { ...base.statProgress, ...saved.statProgress };
   ATTRS.forEach(({ key }) => {
     stats[key] = Math.max(1, Math.round(stats[key]));
-    statProgress[key] = Math.max(-99, Math.min(99, Math.round(statProgress[key] ?? 0)));
+    statProgress[key] = Math.max(0, Math.min(99, Math.round(statProgress[key] ?? 0)));
   });
   const { dailies: _dailies, habits: _habits, penaltyHabits: _penaltyHabits, statProgress: _statProgress, ...current } = saved;
   return { ...base, ...current, stats, statProgress, dailyQuests: saved.dailyQuests ?? [], weeklyQuests: weeklyQuests.map((quest) => ({ ...quest, masteryLevel: Math.max(1, quest.masteryLevel ?? 1), masteryXp: Math.max(0, quest.masteryXp ?? 0) })), bonusPenaltyHabits, inventoryGifts: saved.inventoryGifts ?? [], dailyGateQuestDoneDate: saved.dailyGateQuestDoneDate ?? null } as GameState;

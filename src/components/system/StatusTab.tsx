@@ -76,7 +76,7 @@ export function StatusTab() {
           </div>
         </div>
         <div className="mt-4 flex justify-between border-t border-border pt-3 font-mono text-xs">
-          <span className="text-muted-foreground">Available Points</span>
+          <span className="text-muted-foreground">Previously Earned Points</span>
           <span className="font-bold text-primary">{state.points}</span>
         </div>
       </Panel>

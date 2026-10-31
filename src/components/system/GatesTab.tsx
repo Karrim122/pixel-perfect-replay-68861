@@ -1,10 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { buzz, useSystem } from "@/lib/store";
 import { playSound } from "@/lib/sound";
-import { completeDailyGateQuest, completeTodo, completeWeeklyQuest, gainXp, isWeeklyQuestScheduled, takeDamage, uid, type Alert, type GameState } from "@/lib/system";
+import { completeDailyGateQuest, completeTodo, completeWeeklyQuest, gainXp, isWeeklyQuestScheduled, uid, type Alert, type GameState } from "@/lib/system";
 import { Panel, SysButton, inputCls } from "./ui";
-
-const BREAK_DMG = 5;
 
 export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
   const { state, act } = useSystem();
@@ -26,18 +24,21 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
     .map((quest) => ({ id: `w:${quest.id}`, label: quest.name }));
   const options = [...todoOptions, ...weeklyOptions];
 
-  const fail = (reason: string) => {
+  const leave = () => {
     if (entryTimeout.current !== null) window.clearTimeout(entryTimeout.current);
     entryTimeout.current = null; setEntering(false);
     setEndAt(null); setTimerKind(null); setGateActive(false); onLock(false); buzz([100, 50, 100]);
+    const activeElapsed = timerKind === "focus" && endAt
+      ? Math.floor(Math.max(0, timerMinutes * 60000 - Math.max(0, endAt - Date.now())) / 60000)
+      : 0;
+    const savedMinutes = focusMinutes + activeElapsed;
     act((s, a) => {
-      s.sessions.unshift({ id: uid(), date: s.lastDay, minutes: 0, success: false, label: meta.current.label });
-      s.log.unshift({ id: uid(), ts: Date.now(), text: `Gate Break Failure. -${BREAK_DMG} HP`, kind: "warn" });
-      a.push({ kind: "penalty", title: "⚠️ [System Alert] Gate Break Failure", body: `${reason} -${BREAK_DMG} HP.` });
-      takeDamage(s, BREAK_DMG, a);
+      if (!savedMinutes) return;
+      s.sessions.unshift({ id: uid(), date: s.lastDay, minutes: savedMinutes, success: false, paused: true, label: meta.current.label });
+      gainXp(s, savedMinutes, a);
+      s.log.unshift({ id: uid(), ts: Date.now(), text: `Focus saved after pausing (${savedMinutes}m). +${savedMinutes} XP`, kind: "info" });
     });
   };
-
   const clear = () => {
     const totalFocusMinutes = focusMinutes;
     if (!totalFocusMinutes) return;
@@ -64,9 +65,7 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
   useEffect(() => {
     if (!gateActive) return;
     const t = endAt ? setInterval(() => setNow(Date.now()), 250) : null;
-    const vis = () => { if (document.visibilityState === "hidden") fail("You fled the Gate."); };
-    document.addEventListener("visibilitychange", vis);
-    return () => { if (t) clearInterval(t); document.removeEventListener("visibilitychange", vis); };
+    return () => { if (t) clearInterval(t); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [endAt, gateActive]);
 
@@ -98,8 +97,10 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
 
   const today = state.sessions.filter((s) => s.date === state.lastDay);
   const total = state.sessions.reduce((n, s) => n + s.minutes, 0);
-  const ok = state.sessions.filter((s) => s.success).length;
-  const eff = state.sessions.length ? Math.round((ok / state.sessions.length) * 100) : 0;
+  const completedSessions = state.sessions.filter((s) => s.success && !s.paused);
+  const measurableSessions = state.sessions.filter((s) => !s.paused);
+  const ok = completedSessions.length;
+  const eff = measurableSessions.length ? Math.round((ok / measurableSessions.length) * 100) : 0;
 
   if (gateActive && entering) {
     return (
@@ -139,9 +140,9 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
         <p className="text-lg">{timerKind === "rest" ? "Rest and recover" : meta.current.label}</p>
         {focusMinutes > 0 && <p className="font-mono text-xs text-muted-foreground">Completed focus: {focusMinutes} min · {focusMinutes} XP on gate close</p>}
         <div className="flex gap-2">
-          <SysButton variant="danger" onClick={() => fail("You abandoned the Gate.")}>Exit Gate (−{BREAK_DMG} HP)</SysButton>
+          <SysButton variant="ghost" onClick={leave}>Pause Gate</SysButton>
         </div>
-        <p className="max-w-xs font-mono text-[10px] text-muted-foreground">Leaving this screen or switching apps counts as fleeing the gate.</p>
+        <p className="max-w-xs font-mono text-[10px] text-muted-foreground">You can pause or switch apps any time. Completed focus time is saved when you leave.</p>
       </div>
     );
   }
@@ -167,8 +168,8 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
           </div>
         </Panel>
         <SysButton disabled={!focusMinutes} className="h-14 w-full" onClick={clear}>Close Gate</SysButton>
-        <SysButton variant="danger" className="w-full" onClick={() => fail("You left the Gate.")}>Leave Gate (−{BREAK_DMG} HP)</SysButton>
-        <p className="text-center font-mono text-[10px] text-muted-foreground">Close the gate to complete its daily quest and assigned objective. Leaving applies the penalty.</p>
+        <SysButton variant="ghost" className="w-full" onClick={leave}>Pause and Leave</SysButton>
+        <p className="text-center font-mono text-[10px] text-muted-foreground">You can leave without a penalty. Completed focus time is saved; the assigned objective is completed when you close the gate.</p>
       </div>
     );
   }
@@ -201,7 +202,7 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
           {state.sessions.slice(0, 8).map((s) => (
             <li key={s.id} className="flex justify-between">
               <span className="truncate text-muted-foreground">{s.date} · {s.label}</span>
-              <span className={s.success ? "text-success" : "text-destructive"}>{s.success ? `${s.minutes}m CLEAR` : "BREAK"}</span>
+              <span className={s.paused ? "text-muted-foreground" : s.success ? "text-success" : "text-destructive"}>{s.paused ? `${s.minutes}m PAUSED` : s.success ? `${s.minutes}m CLEAR` : "BREAK"}</span>
             </li>
           ))}
         </ul>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle, CalendarDays, Hexagon, ListChecks, Settings, Swords, User, Volume2, VolumeX } from "lucide-react";
+import { Timer, CalendarDays, Hexagon, ListChecks, Settings, Swords, User, Volume2, VolumeX } from "lucide-react";
 import { SystemProvider, buzz, useSystem } from "@/lib/store";
 import { completeTodo, failEmergencyTodo, isWeeklyQuestScheduled, rankOf } from "@/lib/system";
 import { StatusTab } from "./StatusTab";
@@ -70,20 +70,23 @@ function EmergencyOverlay() {
   const seconds = String(secondsLeft % 60).padStart(2, "0");
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-red-950/95 p-5 text-red-50 backdrop-blur-md" role="alertdialog" aria-modal="true" aria-label="Emergency: regain focus">
-      <div className="w-full max-w-sm border-2 border-red-500 bg-red-950 p-6 text-center shadow-[0_0_60px_rgba(239,68,68,0.55)]">
-        <AlertTriangle className="mx-auto h-10 w-10 animate-pulse text-red-400" />
-        <p className="mt-3 font-mono text-xs uppercase tracking-[0.4em] text-red-300">Emergency Task Active</p>
-        <h2 className="mt-3 text-3xl font-black uppercase text-white">regain focus</h2>
-        <p className="mt-3 text-sm text-red-100">Regain focus during the countdown. You will choose the result when time is up.</p>
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-background/90 p-5 text-foreground backdrop-blur-md" role="alertdialog" aria-modal="true" aria-label="Focus reset reminder">
+      <div className="sys-panel w-full max-w-sm p-6 text-center">
+        <Timer className="mx-auto h-10 w-10 text-primary" />
+        <p className="mt-3 font-mono text-xs uppercase tracking-[0.4em] text-muted-foreground">Focus Reset Reminder</p>
+        <h2 className="mt-3 text-3xl font-black uppercase text-primary">Take a breath</h2>
+        <p className="mt-3 text-sm text-foreground/90">When the timer ends, choose what feels right. You can postpone without losing progress.</p>
         <p className="my-6 font-mono text-6xl font-black tabular-nums text-white" aria-live="off">{minutes}:{seconds}</p>
         {secondsLeft > 0
-          ? <p className="font-mono text-xs uppercase text-red-300">Outcome unlocks when the timer ends</p>
+          ? <>
+            <p className="font-mono text-xs uppercase text-muted-foreground">You can return to your day whenever you are ready.</p>
+            <SysButton variant="ghost" className="mt-4 w-full" onClick={() => act((s, alerts) => failEmergencyTodo(s, id, alerts))}>Postpone</SysButton>
+          </>
           : <>
-            <p className="mb-4 font-mono text-xs uppercase text-red-300">Choose the outcome · Failure: −10 HP · Success: +75 XP · +20 Discipline practice</p>
+            <p className="mb-4 font-mono text-xs text-muted-foreground">Refocusing earns XP and Discipline practice. Postponing keeps your progress unchanged.</p>
             <div className="grid grid-cols-2 gap-2">
-              <SysButton variant="danger" className="border-red-300 bg-red-600 py-4 text-white hover:bg-red-500" onClick={() => act((s, alerts) => completeTodo(s, id, alerts))}>Succeeded</SysButton>
-              <SysButton variant="ghost" className="border border-red-400 py-4 text-red-100 hover:bg-red-900" onClick={() => act((s, alerts) => failEmergencyTodo(s, id, alerts))}>Failed</SysButton>
+              <SysButton className="py-4" onClick={() => act((s, alerts) => completeTodo(s, id, alerts))}>I refocused</SysButton>
+              <SysButton variant="ghost" className="py-4" onClick={() => act((s, alerts) => failEmergencyTodo(s, id, alerts))}>Postpone</SysButton>
             </div>
           </>}
       </div>
