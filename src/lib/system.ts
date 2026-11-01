@@ -386,7 +386,17 @@ export function hydrateState(raw: string): GameState {
   const statProgress = { ...base.statProgress, ...saved.statProgress };
   ATTRS.forEach(({ key }) => {
     stats[key] = Math.max(1, Math.round(stats[key]));
-    statProgress[key] = Math.max(0, Math.min(99, Math.round(statProgress[key] ?? 0)));
+    let progress = Math.round(statProgress[key] ?? 0);
+    while (progress >= 100) {
+      stats[key] += 1;
+      progress -= 100;
+    }
+    while (progress <= -100 && stats[key] > 1) {
+      stats[key] -= 1;
+      progress += 100;
+    }
+    if (stats[key] === 1 && progress < 0) progress = 0;
+    statProgress[key] = progress;
   });
   const { dailies: _dailies, habits: _habits, penaltyHabits: _penaltyHabits, statProgress: _statProgress, focusAnalysisOverrides: _focusAnalysisOverrides, weeklyQuestRewardDay: _weeklyQuestRewardDay, ...current } = saved;
   const legacyActivityDates = [

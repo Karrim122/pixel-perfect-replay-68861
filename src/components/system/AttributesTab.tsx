@@ -13,7 +13,7 @@ export function AttributesTab() {
           <span className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Previously Earned Points</span>
           <span className="text-3xl font-bold text-primary sys-glow-text">{state.points}</span>
         </div>
-        <p className="mt-2 text-xs text-muted-foreground">A Medium activity adds 10 practice; 100 practice from assigned activities raises that attribute by 1. Easier or harder activities adjust the amount. Bad-habit logs do not remove progress. Previously earned points remain available.</p>
+        <p className="mt-2 text-xs text-muted-foreground">A Medium activity adds 10 practice; 100 positive practice for an attribute raises it by 1. Easier or harder activities adjust the amount. Bad-habit logs subtract assigned practice and can lower an attribute; attributes cannot fall below 1.</p>
       </Panel>
       {ATTRS.map((a) => (
         <Panel key={a.key}>
