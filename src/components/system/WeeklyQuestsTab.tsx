@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { Check, Pencil, Trash2 } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
-import { baseDifficultyForDiff, completeWeeklyQuest, isWeeklyQuestScheduled, moveItem, resolveDifficulty, uid, type Attr, type BaseDifficulty } from "@/lib/system";
+import { baseDifficultyForDiff, completeWeeklyQuest, isWeeklyQuestScheduled, moveItem, resolveDifficulty, uid, uncompleteWeeklyQuest, type Attr, type BaseDifficulty } from "@/lib/system";
 import { playSound } from "@/lib/sound";
 import { AttrPicker, BaseDifficultyPicker, DiffBadge, Panel, ReorderButtons, SysButton, inputCls } from "./ui";
 import { cn } from "@/lib/utils";
@@ -42,7 +42,7 @@ export function WeeklyQuestsTab() {
       const quest = editingId ? s.weeklyQuests.find((item) => item.id === editingId) : undefined;
       const values = { name: name.trim(), description: description.trim() || undefined, diff, baseDifficulty, attrs, daysOfWeek, reminder: reminder || undefined };
       if (quest) Object.assign(quest, values);
-      else s.weeklyQuests.push({ id: uid(), ...values, doneDates: [], masteryLevel: 1, masteryXp: 0 });
+      else s.weeklyQuests.push({ id: uid(), ...values, doneDates: [], rewardedDates: [], masteryLevel: 1, masteryXp: 0 });
     });
     if (reminder && typeof Notification !== "undefined" && Notification.permission === "default") Notification.requestPermission();
     closeEditor();
@@ -56,8 +56,9 @@ export function WeeklyQuestsTab() {
     setAttrs(quest.attrs); setDaysOfWeek(quest.daysOfWeek); setReminder(quest.reminder ?? ""); setOpen(true);
   };
 
-  const complete = (id: string) => {
-    buzz(); playSound("done"); act((s, alerts) => completeWeeklyQuest(s, id, alerts));
+  const toggleComplete = (id: string, done: boolean) => {
+    buzz(); playSound(done ? "warning" : "done");
+    act((s, alerts) => done ? uncompleteWeeklyQuest(s, id) : completeWeeklyQuest(s, id, alerts));
   };
 
   const toggleDay = (day: number) => setDaysOfWeek((selected) => selected.includes(day) ? selected.filter((value) => value !== day) : [...selected, day]);
@@ -65,7 +66,7 @@ export function WeeklyQuestsTab() {
   return (
     <div className="space-y-4">
       <Panel title="Weekly Quests">
-        <p className="mb-3 font-mono text-[11px] text-muted-foreground">Choose the weekdays when each quest repeats. Complete today’s quests here or from the Daily page. Finish all quests scheduled for today to earn a gift.</p>
+        <p className="mb-3 font-mono text-[11px] text-muted-foreground">Choose the weekdays when each quest repeats. Complete or unmark today's quests here. Finish all quests scheduled for today to earn a gift; unmarking does not retract rewards already earned.</p>
         <SysButton className="w-full" onClick={() => setOpen(true)}>+ New Weekly Quest</SysButton>
       </Panel>
 
@@ -81,7 +82,7 @@ export function WeeklyQuestsTab() {
                   const canComplete = date === state.lastDay;
                   return (
                     <li key={quest.id} className="flex items-center gap-2 border-b border-border/40 pb-3">
-                      <button disabled={!canComplete || done} onClick={() => complete(quest.id)} aria-label={done ? `Completed ${quest.name}` : `Complete ${quest.name}`}
+                      <button type="button" role="checkbox" aria-checked={done} disabled={!canComplete} onClick={() => toggleComplete(quest.id, done)} aria-label={done ? `Unmark ${quest.name} as complete` : `Mark ${quest.name} as complete`}
                         className={cn("flex h-9 w-9 shrink-0 items-center justify-center border disabled:cursor-default", done ? "border-success bg-success/20 text-success" : "border-primary/60 text-primary")}>
                         {done && <Check className="h-4 w-4" />}
                       </button>
