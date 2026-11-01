@@ -18,6 +18,8 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
   const [focusMinutes, setFocusMinutes] = useState(0);
   const [gateActive, setGateActive] = useState(false);
   const [entering, setEntering] = useState(false);
+  const [editingAnalysis, setEditingAnalysis] = useState(false);
+  const [analysisValues, setAnalysisValues] = useState({ todayMinutes: "0", totalMinutes: "0", closedGates: "0", efficiency: "0" });
   const meta = useRef({ label: "", target: "", details: "" });
   const entryTimeout = useRef<number | null>(null);
 
@@ -106,7 +108,47 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
   const completedSessions = state.sessions.filter((s) => s.success && !s.paused);
   const measurableSessions = state.sessions.filter((s) => !s.paused);
   const ok = completedSessions.length;
-  const eff = measurableSessions.length ? Math.round((ok / measurableSessions.length) * 100) : 0;
+  const rawTodayMinutes = today.reduce((n, s) => n + s.minutes, 0);
+  const rawEfficiency = measurableSessions.length ? Math.round((ok / measurableSessions.length) * 100) : 0;
+  const overrides = state.focusAnalysisOverrides;
+  const analysis = {
+    todayMinutes: overrides.todayMinutes ?? rawTodayMinutes,
+    totalMinutes: overrides.totalMinutes ?? total,
+    closedGates: overrides.closedGates ?? ok,
+    efficiency: overrides.efficiency ?? rawEfficiency,
+  };
+
+  const beginAnalysisEdit = () => {
+    setAnalysisValues({
+      todayMinutes: String(analysis.todayMinutes),
+      totalMinutes: String(analysis.totalMinutes),
+      closedGates: String(analysis.closedGates),
+      efficiency: String(analysis.efficiency),
+    });
+    setEditingAnalysis(true);
+  };
+  const saveAnalysisEdit = () => {
+    const parsed = {
+      todayMinutes: Number(analysisValues.todayMinutes),
+      totalMinutes: Number(analysisValues.totalMinutes),
+      closedGates: Number(analysisValues.closedGates),
+      efficiency: Number(analysisValues.efficiency),
+    };
+    if (Object.values(parsed).some((value) => !Number.isFinite(value) || value < 0) || parsed.efficiency > 100) return;
+    act((s) => {
+      const nextOverrides = { ...s.focusAnalysisOverrides };
+      if (parsed.todayMinutes !== analysis.todayMinutes) nextOverrides.todayMinutes = Math.round(parsed.todayMinutes * 10) / 10;
+      if (parsed.totalMinutes !== analysis.totalMinutes) nextOverrides.totalMinutes = Math.round(parsed.totalMinutes * 10) / 10;
+      if (parsed.closedGates !== analysis.closedGates) nextOverrides.closedGates = Math.round(parsed.closedGates);
+      if (parsed.efficiency !== analysis.efficiency) nextOverrides.efficiency = Math.round(parsed.efficiency);
+      s.focusAnalysisOverrides = nextOverrides;
+    });
+    setEditingAnalysis(false);
+  };
+  const resetAnalysisOverrides = () => {
+    act((s) => { s.focusAnalysisOverrides = { todayMinutes: null, totalMinutes: null, closedGates: null, efficiency: null }; });
+    setEditingAnalysis(false);
+  };
 
   if (gateActive && entering) {
     return (
@@ -203,11 +245,31 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
         <SysButton className="mt-5 h-14 w-full text-sm" onClick={start}>Enter Gate</SysButton>
       </Panel>
       <Panel title="Focus Analysis">
+        <p className="mb-3 text-xs text-muted-foreground">Manually set figures stay saved until you reset them. Unedited figures follow your session history.</p>
         <div className="grid grid-cols-2 gap-3 text-center font-mono">
-          <div><p className="text-2xl font-bold text-primary">{today.reduce((n, s) => n + s.minutes, 0)}</p><p className="text-[10px] uppercase text-muted-foreground">Min today</p></div>
-          <div><p className="text-2xl font-bold text-primary">{total}</p><p className="text-[10px] uppercase text-muted-foreground">Min total</p></div>
-          <div><p className="text-2xl font-bold text-primary">{ok}</p><p className="text-[10px] uppercase text-muted-foreground">Gates closed</p></div>
-          <div><p className="text-2xl font-bold text-primary">{eff}%</p><p className="text-[10px] uppercase text-muted-foreground">Efficiency</p></div>
+          <div>
+            {editingAnalysis ? <input className={`${inputCls} text-center font-bold`} type="number" min="0" step="0.1" aria-label="Minutes today" value={analysisValues.todayMinutes} onChange={(e) => setAnalysisValues((v) => ({ ...v, todayMinutes: e.target.value }))} /> : <p className="text-2xl font-bold text-primary">{analysis.todayMinutes}</p>}
+            <p className="text-[10px] uppercase text-muted-foreground">Min today</p>
+          </div>
+          <div>
+            {editingAnalysis ? <input className={`${inputCls} text-center font-bold`} type="number" min="0" step="0.1" aria-label="Total focus minutes" value={analysisValues.totalMinutes} onChange={(e) => setAnalysisValues((v) => ({ ...v, totalMinutes: e.target.value }))} /> : <p className="text-2xl font-bold text-primary">{analysis.totalMinutes}</p>}
+            <p className="text-[10px] uppercase text-muted-foreground">Min total</p>
+          </div>
+          <div>
+            {editingAnalysis ? <input className={`${inputCls} text-center font-bold`} type="number" min="0" step="1" aria-label="Gates closed" value={analysisValues.closedGates} onChange={(e) => setAnalysisValues((v) => ({ ...v, closedGates: e.target.value }))} /> : <p className="text-2xl font-bold text-primary">{analysis.closedGates}</p>}
+            <p className="text-[10px] uppercase text-muted-foreground">Gates closed</p>
+          </div>
+          <div>
+            {editingAnalysis ? <input className={`${inputCls} text-center font-bold`} type="number" min="0" max="100" step="1" aria-label="Efficiency percentage" value={analysisValues.efficiency} onChange={(e) => setAnalysisValues((v) => ({ ...v, efficiency: e.target.value }))} /> : <p className="text-2xl font-bold text-primary">{analysis.efficiency}%</p>}
+            <p className="text-[10px] uppercase text-muted-foreground">Efficiency</p>
+          </div>
+        </div>
+        <div className="mt-3 flex justify-end gap-2">
+          {editingAnalysis ? <>
+            <SysButton variant="ghost" onClick={resetAnalysisOverrides}>Reset</SysButton>
+            <SysButton variant="ghost" onClick={() => setEditingAnalysis(false)}>Cancel</SysButton>
+            <SysButton onClick={saveAnalysisEdit}>Save numbers</SysButton>
+          </> : <SysButton variant="ghost" onClick={beginAnalysisEdit}>Adjust numbers</SysButton>}
         </div>
         <ul className="mt-4 space-y-1 font-mono text-xs">
           {state.sessions.slice(0, 8).map((s) => (
