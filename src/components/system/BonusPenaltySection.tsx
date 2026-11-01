@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { Minus, Pencil, Plus, Trash2 } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
-import { attributePracticeFor, baseDifficultyForDiff, DIFF_XP, moveItem, penaltyHabitDamage, resolveDifficulty, triggerBonusPenaltyHabit, uid, type Attr, type BaseDifficulty } from "@/lib/system";
+import { attributePenaltyPracticeFor, attributePracticeFor, baseDifficultyForDiff, DIFF_XP, moveItem, penaltyHabitDamage, resolveDifficulty, triggerBonusPenaltyHabit, uid, type Attr, type BaseDifficulty } from "@/lib/system";
 import { playSound } from "@/lib/sound";
 import { AttrPicker, BaseDifficultyPicker, DiffBadge, Panel, ReorderButtons, SysButton, inputCls } from "./ui";
 
@@ -69,7 +69,7 @@ export function BonusPenaltySection() {
               const positive = habit.kind === "bonus";
               const practice = attributePracticeFor(habit.baseDifficulty, habit.diff, state.level);
               const penaltyHp = penaltyHabitDamage(habit.diff, nextOccurrence);
-              const penaltyPractice = practice * nextOccurrence;
+              const penaltyPractice = attributePenaltyPracticeFor(habit.baseDifficulty, habit.diff, state.level) * nextOccurrence;
               const rewardCount = habit.lastRewardDate === state.lastDay ? habit.rewardCount ?? 1 : 0;
               const practiceEarned = habit.lastPracticeDate === state.lastDay || (!habit.lastPracticeDate && habit.lastRewardDate === state.lastDay);
               const bonusStatus = rewardCount >= 2

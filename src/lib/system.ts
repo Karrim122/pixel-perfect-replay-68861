@@ -11,10 +11,11 @@ export const DIFFS: Diff[] = ["E", "D", "C", "B", "A", "S", "N", "M"];
 export const DIFF_XP: Record<Diff, number> = { E: 4, D: 6, C: 9, B: 12, A: 16, S: 20, N: 25, M: 30 };
 export const DIFF_HP: Record<Diff, number> = { E: 1, D: 1, C: 2, B: 2, A: 3, S: 4, N: 5, M: 6 };
 export const penaltyHabitDamage = (diff: Diff, occurrence: number) => Math.max(3, DIFF_HP[diff]) * occurrence;
-export const ATTRIBUTE_PRACTICE_THRESHOLD = 90;
+export const ATTRIBUTE_PRACTICE_THRESHOLD = 100;
 export type BaseDifficulty = "Very Easy" | "Easy" | "Medium" | "Hard" | "Very Hard";
 export const BASE_DIFFICULTIES: BaseDifficulty[] = ["Very Easy", "Easy", "Medium", "Hard", "Very Hard"];
-export const ATTRIBUTE_PRACTICE: Record<BaseDifficulty, number> = { "Very Easy": 5, Easy: 7, Medium: 10, Hard: 15, "Very Hard": 20 };
+export const ATTRIBUTE_PRACTICE: Record<BaseDifficulty, number> = { "Very Easy": 6, Easy: 8, Medium: 12, Hard: 18, "Very Hard": 24 };
+export const ATTRIBUTE_PENALTY_PRACTICE: Record<BaseDifficulty, number> = { "Very Easy": 4, Easy: 5, Medium: 8, Hard: 12, "Very Hard": 16 };
 const RANK_DIFFS: Diff[] = ["E", "D", "C", "B", "A", "S", "N", "M"];
 const BASE_OFFSETS: Record<BaseDifficulty, number> = {
   "Very Easy": -2, Easy: -1, Medium: 0, Hard: 1, "Very Hard": 2,
@@ -33,6 +34,9 @@ export function baseDifficultyForDiff(diff: Diff, playerLevel: number): BaseDiff
 }
 export function attributePracticeFor(base: BaseDifficulty | undefined, diff: Diff, playerLevel: number) {
   return ATTRIBUTE_PRACTICE[base ?? baseDifficultyForDiff(diff, playerLevel)];
+}
+export function attributePenaltyPracticeFor(base: BaseDifficulty | undefined, diff: Diff, playerLevel: number) {
+  return ATTRIBUTE_PENALTY_PRACTICE[base ?? baseDifficultyForDiff(diff, playerLevel)];
 }
 export const POTION_HP = 20;
 export const DAILY_REST_HP = 20;
@@ -208,7 +212,7 @@ export function triggerBonusPenaltyHabit(s: GameState, id: string, alerts: Alert
     alerts.push({ kind: "info", title: "[SYSTEM] Good Habit Complete!", body: `${habit.name} complete. +${xp} XP.${practiceMessage} Keep your streak of good choices going.` });
   } else {
     const damage = penaltyHabitDamage(habit.diff, occurrence);
-    const practice = attributePracticeFor(habit.baseDifficulty, habit.diff, s.level) * occurrence;
+    const practice = attributePenaltyPracticeFor(habit.baseDifficulty, habit.diff, s.level) * occurrence;
     changeStats(s, habit.attrs, -practice);
     log(s, `Penalty habit: ${habit.name} (×${occurrence}). -${damage} HP, -${practice} attribute practice`, "warn");
     takeDamage(s, damage, alerts);
@@ -248,16 +252,16 @@ export function completeFocusRegain(s: GameState, alerts: Alert[]) {
   s.focusRegainDeadline = null;
   const earnedXp = DIFF_XP[resolveDifficulty("Very Hard", s.level)];
   gainXp(s, earnedXp, alerts);
-  changeStats(s, ["discipline"], 20);
-  log(s, `Focus Regain complete (+${earnedXp} XP, +20 Discipline practice)`, "level");
-  alerts.push({ kind: "info", title: "[SYSTEM] Focus Regained!", body: `Nice work getting back on track. +${earnedXp} XP and +20 Discipline practice.` });
+  changeStats(s, ["discipline"], 24);
+  log(s, `Focus Regain complete (+${earnedXp} XP, +24 Discipline practice)`, "level");
+  alerts.push({ kind: "info", title: "[SYSTEM] Focus Regained!", body: `Nice work getting back on track. +${earnedXp} XP and +24 Discipline practice.` });
 }
 
 export function failFocusRegain(s: GameState, alerts: Alert[]) {
   if (s.focusRegainDeadline === null) return;
   s.focusRegainDeadline = null;
   const damage = 20;
-  const attributePenalty = 25;
+  const attributePenalty = 20;
   changeStats(s, ["discipline", "perception"], -attributePenalty);
   log(s, `Focus Regain failed. -${damage} HP, -${attributePenalty} Discipline practice, -${attributePenalty} Perception practice.`, "warn");
   alerts.push({ kind: "penalty", title: "[SYSTEM] Focus Regain Failed", body: `Focus was not regained. -${damage} HP, -${attributePenalty} Discipline practice, and -${attributePenalty} Perception practice.` });
@@ -267,8 +271,8 @@ export function failFocusRegain(s: GameState, alerts: Alert[]) {
 export function completeDailyGateQuest(s: GameState) {
   if (s.dailyGateQuestDoneDate === s.lastDay) return;
   s.dailyGateQuestDoneDate = s.lastDay;
-  changeStats(s, ["discipline", "perception"], 5);
-  log(s, "Daily Quest complete: Close todays gate (+5 Discipline and Perception practice)", "level");
+  changeStats(s, ["discipline", "perception"], 6);
+  log(s, "Daily Quest complete: Close todays gate (+6 Discipline and Perception practice)", "level");
 }
 
 export function usePotion(s: GameState) {
