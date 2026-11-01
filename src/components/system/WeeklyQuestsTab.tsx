@@ -8,13 +8,13 @@ import { AttrPicker, BaseDifficultyPicker, DiffBadge, Panel, ReorderButtons, Sys
 import { cn } from "@/lib/utils";
 
 const WEEKDAYS = [
-  { value: 1, label: "Monday" }, { value: 2, label: "Tuesday" }, { value: 3, label: "Wednesday" },
-  { value: 4, label: "Thursday" }, { value: 5, label: "Friday" }, { value: 6, label: "Saturday" }, { value: 0, label: "Sunday" },
+  { value: 6, label: "Saturday" }, { value: 0, label: "Sunday" }, { value: 1, label: "Monday" },
+  { value: 2, label: "Tuesday" }, { value: 3, label: "Wednesday" }, { value: 4, label: "Thursday" }, { value: 5, label: "Friday" },
 ];
 
 function dateForWeekday(referenceDate: string, weekday: number) {
   const date = new Date(`${referenceDate}T00:00:00`);
-  date.setDate(date.getDate() - ((date.getDay() + 6) % 7) + ((weekday + 6) % 7));
+  date.setDate(date.getDate() - ((date.getDay() + 1) % 7) + ((weekday + 1) % 7));
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
