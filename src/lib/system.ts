@@ -65,9 +65,6 @@ export type TodoReward = { type: "potion" } | { type: "gift"; name: string; desc
 export interface InventoryGift { id: string; name: string; description?: string | undefined; rank: Diff; sourceTask: string; earnedAt: string; }
 export interface Todo { id: string; name: string; description?: string | undefined; due: string; time?: string | undefined; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; done: boolean; notified?: boolean; reward?: TodoReward | undefined; emergency?: boolean; emergencyDeadline?: number; emergencyFailed?: boolean; }
 export interface Session { id: string; date: string; minutes: number; success: boolean; label: string; details?: string; paused?: boolean; }
-export interface FocusAnalysisOverrides {
-  todayMinutes: number | null; totalMinutes: number | null; closedGates: number | null; efficiency: number | null;
-}
 export interface LogEntry { id: string; ts: number; text: string; kind: "info" | "warn" | "level"; }
 
 export interface GameState {
@@ -76,7 +73,6 @@ export interface GameState {
   statProgress: Record<Attr, number>;
   dailyQuests: DailyQuest[]; weeklyQuests: WeeklyQuest[]; bonusPenaltyHabits: BonusPenaltyHabit[]; todos: Todo[]; inventoryGifts: InventoryGift[]; sessions: Session[]; log: LogEntry[];
   focusRegainDeadline: number | null;
-  focusAnalysisOverrides: FocusAnalysisOverrides;
   lastDay: string; dailyGateQuestDoneDate: string | null; dailyQuestRewardDay: string | null;
   playerName: string; playerSince: string;
 }
@@ -100,7 +96,7 @@ export const initialState = (): GameState => ({
   level: 1, xp: 0, hp: 100, maxHp: 100, points: 0, potions: 0,
   stats: { strength: 10, discipline: 10, intelligence: 10, perception: 10, vitality: 10 },
   statProgress: { strength: 0, discipline: 0, intelligence: 0, perception: 0, vitality: 0 },
-  dailyQuests: [], weeklyQuests: [], bonusPenaltyHabits: [], todos: [], inventoryGifts: [], sessions: [], log: [], focusRegainDeadline: null, focusAnalysisOverrides: { todayMinutes: null, totalMinutes: null, closedGates: null, efficiency: null }, lastDay: today(), dailyGateQuestDoneDate: null, dailyQuestRewardDay: null, playerName: "", playerSince: today(),
+  dailyQuests: [], weeklyQuests: [], bonusPenaltyHabits: [], todos: [], inventoryGifts: [], sessions: [], log: [], focusRegainDeadline: null, lastDay: today(), dailyGateQuestDoneDate: null, dailyQuestRewardDay: null, playerName: "", playerSince: today(),
 });
 
 export type Alert = { kind: "info" | "penalty" | "level" | "awaken" | "exhausted" | "monarch" | "lowHp"; title: string; body: string };
@@ -334,6 +330,7 @@ export function hydrateState(raw: string): GameState {
     dailies?: { id: string; name: string; description?: string; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; doneDate: string | null; reminder?: string }[];
     penaltyHabits?: { id: string; name: string; description?: string; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; count: number }[];
     habits?: { id: string; name: string; description?: string; kind: "+" | "-"; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; count: number }[];
+    focusAnalysisOverrides?: unknown;
   };
   const base = initialState();
   const weeklyQuests = saved.weeklyQuests ?? (saved.dailies ?? []).map((daily) => ({
@@ -358,7 +355,7 @@ export function hydrateState(raw: string): GameState {
     stats[key] = Math.max(1, Math.round(stats[key]));
     statProgress[key] = Math.max(0, Math.min(99, Math.round(statProgress[key] ?? 0)));
   });
-  const { dailies: _dailies, habits: _habits, penaltyHabits: _penaltyHabits, statProgress: _statProgress, ...current } = saved;
+  const { dailies: _dailies, habits: _habits, penaltyHabits: _penaltyHabits, statProgress: _statProgress, focusAnalysisOverrides: _focusAnalysisOverrides, ...current } = saved;
   const legacyActivityDates = [
     ...(saved.log ?? []).map(({ ts }) => {
       const date = new Date(ts);
@@ -370,5 +367,5 @@ export function hydrateState(raw: string): GameState {
   ].filter((date) => /^\d{4}-\d{2}-\d{2}$/.test(date)).sort();
   const playerSince = saved.playerSince ?? legacyActivityDates[0] ?? saved.lastDay ?? today();
   const legacyFocusDeadline = saved.todos?.find((task) => task.emergency && !task.done && !task.emergencyFailed)?.emergencyDeadline;
-  return { ...base, ...current, todos: (saved.todos ?? []).filter((task) => !task.emergency), focusRegainDeadline: saved.focusRegainDeadline ?? legacyFocusDeadline ?? null, focusAnalysisOverrides: saved.focusAnalysisOverrides ?? base.focusAnalysisOverrides, stats, statProgress, playerSince, dailyQuests: saved.dailyQuests ?? [], weeklyQuests: weeklyQuests.map((quest) => ({ ...quest, masteryLevel: Math.max(1, quest.masteryLevel ?? 1), masteryXp: Math.max(0, quest.masteryXp ?? 0) })), bonusPenaltyHabits, inventoryGifts: saved.inventoryGifts ?? [], dailyGateQuestDoneDate: saved.dailyGateQuestDoneDate ?? null } as GameState;
+  return { ...base, ...current, todos: (saved.todos ?? []).filter((task) => !task.emergency), focusRegainDeadline: saved.focusRegainDeadline ?? legacyFocusDeadline ?? null, stats, statProgress, playerSince, dailyQuests: saved.dailyQuests ?? [], weeklyQuests: weeklyQuests.map((quest) => ({ ...quest, masteryLevel: Math.max(1, quest.masteryLevel ?? 1), masteryXp: Math.max(0, quest.masteryXp ?? 0) })), bonusPenaltyHabits, inventoryGifts: saved.inventoryGifts ?? [], dailyGateQuestDoneDate: saved.dailyGateQuestDoneDate ?? null } as GameState;
 }
