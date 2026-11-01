@@ -33,7 +33,11 @@ export function baseDifficultyForDiff(diff: Diff, playerLevel: number): BaseDiff
   "Medium");
 }
 export function attributePracticeFor(base: BaseDifficulty | undefined, diff: Diff, playerLevel: number) {
-  return ATTRIBUTE_PRACTICE[base ?? baseDifficultyForDiff(diff, playerLevel)];
+  const basePractice = ATTRIBUTE_PRACTICE[base ?? baseDifficultyForDiff(diff, playerLevel)];
+  return scaleAttributePractice(basePractice, playerLevel);
+}
+export function scaleAttributePractice(practice: number, playerLevel: number) {
+  return Math.round(practice * (1 + rankIndex(playerLevel) * 0.1));
 }
 export function attributePenaltyPracticeFor(base: BaseDifficulty | undefined, diff: Diff, playerLevel: number) {
   return ATTRIBUTE_PENALTY_PRACTICE[base ?? baseDifficultyForDiff(diff, playerLevel)];
@@ -252,9 +256,10 @@ export function completeFocusRegain(s: GameState, alerts: Alert[]) {
   s.focusRegainDeadline = null;
   const earnedXp = DIFF_XP[resolveDifficulty("Very Hard", s.level)];
   gainXp(s, earnedXp, alerts);
-  changeStats(s, ["discipline"], 24);
-  log(s, `Focus Regain complete (+${earnedXp} XP, +24 Discipline practice)`, "level");
-  alerts.push({ kind: "info", title: "[SYSTEM] Focus Regained!", body: `Nice work getting back on track. +${earnedXp} XP and +24 Discipline practice.` });
+  const practice = scaleAttributePractice(24, s.level);
+  changeStats(s, ["discipline"], practice);
+  log(s, `Focus Regain complete (+${earnedXp} XP, +${practice} Discipline practice)`, "level");
+  alerts.push({ kind: "info", title: "[SYSTEM] Focus Regained!", body: `Nice work getting back on track. +${earnedXp} XP and +${practice} Discipline practice.` });
 }
 
 export function failFocusRegain(s: GameState, alerts: Alert[]) {
@@ -271,8 +276,9 @@ export function failFocusRegain(s: GameState, alerts: Alert[]) {
 export function completeDailyGateQuest(s: GameState) {
   if (s.dailyGateQuestDoneDate === s.lastDay) return;
   s.dailyGateQuestDoneDate = s.lastDay;
-  changeStats(s, ["discipline", "perception"], 6);
-  log(s, "Daily Quest complete: Close todays gate (+6 Discipline and Perception practice)", "level");
+  const practice = scaleAttributePractice(6, s.level);
+  changeStats(s, ["discipline", "perception"], practice);
+  log(s, `Daily Quest complete: Close todays gate (+${practice} Discipline and Perception practice)`, "level");
 }
 
 export function usePotion(s: GameState) {
