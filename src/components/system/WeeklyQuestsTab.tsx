@@ -65,7 +65,7 @@ export function WeeklyQuestsTab() {
   return (
     <div className="space-y-4">
       <Panel title="Weekly Quests">
-        <p className="mb-3 font-mono text-[11px] text-muted-foreground">Choose the weekdays when each quest repeats. Complete today's quests here or from the Daily page.</p>
+        <p className="mb-3 font-mono text-[11px] text-muted-foreground">Choose the weekdays when each quest repeats. Complete today’s quests here or from the Daily page. Finish all quests scheduled for today to earn a gift.</p>
         <SysButton className="w-full" onClick={() => setOpen(true)}>+ New Weekly Quest</SysButton>
       </Panel>
 
