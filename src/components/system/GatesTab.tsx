@@ -57,8 +57,7 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
       const xp = Math.round(totalFocusMinutes);
       gainXp(s, xp, a);
       if (assignedTarget.startsWith("t:")) completeTodo(s, assignedTarget.slice(2), a);
-      if (assignedTarget.startsWith("w:")) completeWeeklyQuest(s, assignedTarget.slice(2), a);
-      completeDailyGateQuest(s);
+      if (assignedTarget.startsWith("w:") && completeWeeklyQuest(s, assignedTarget.slice(2), a)) completeDailyGateQuest(s);
       s.log.unshift({ id: uid(), ts: Date.now(), text: `Gate closed (${totalFocusMinutes}m focus). +${xp} XP`, kind: "level" });
       a.push({ kind: "info", title: "[SYSTEM] Gate Closed", body: `Gate closed after ${totalFocusMinutes} focus minutes. +${xp} XP. Completed: ${label}.` });
     });
@@ -223,7 +222,7 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
         </Panel>
         <SysButton disabled={!focusMinutes} className="h-14 w-full" onClick={clear}>Close Gate</SysButton>
         <SysButton variant="danger" className="w-full" onClick={() => fail("You left the Gate.")}>Leave Gate (−{BREAK_DMG} HP)</SysButton>
-        <p className="text-center font-mono text-[10px] text-muted-foreground">Close the gate to complete its daily quest and assigned objective. Leaving applies the penalty.</p>
+        <p className="text-center font-mono text-[10px] text-muted-foreground">Only a gate assigned to a weekly quest completes the daily “Close today’s gate” quest. Leaving applies the penalty.</p>
       </div>
     );
   }

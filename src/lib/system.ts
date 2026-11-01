@@ -108,9 +108,9 @@ export type Alert = { kind: "info" | "penalty" | "level" | "awaken" | "exhausted
 
 export const isWeeklyQuestScheduled = (quest: WeeklyQuest, date: string) => quest.daysOfWeek.includes(new Date(`${date}T00:00:00`).getDay());
 
-export function completeWeeklyQuest(s: GameState, id: string, alerts: Alert[]) {
+export function completeWeeklyQuest(s: GameState, id: string, alerts: Alert[]): boolean {
   const quest = s.weeklyQuests.find((x) => x.id === id);
-  if (!quest || !isWeeklyQuestScheduled(quest, s.lastDay) || quest.doneDates.includes(s.lastDay)) return;
+  if (!quest || !isWeeklyQuestScheduled(quest, s.lastDay) || quest.doneDates.includes(s.lastDay)) return false;
   quest.doneDates = [...quest.doneDates, s.lastDay].slice(-90);
   const earnedXp = DIFF_XP[quest.diff];
   quest.masteryXp = (quest.masteryXp ?? 0) + earnedXp;
@@ -133,6 +133,7 @@ export function completeWeeklyQuest(s: GameState, id: string, alerts: Alert[]) {
     log(s, `Weekly quest reward received: ${giftName} (${quest.diff}-Rank Gift)`, "level");
     alerts.push({ kind: "info", title: "[SYSTEM] Weekly Quests Complete!", body: `You completed all weekly quests scheduled for today and received a ${quest.diff}-Rank ${giftName}. It is now in your inventory.` });
   }
+  return true;
 }
 
 export function completeDailyQuest(s: GameState, id: string, alerts: Alert[]) {
