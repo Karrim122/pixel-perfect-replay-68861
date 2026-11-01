@@ -85,9 +85,15 @@ export function StatusTab() {
       <Panel title="Attributes">
         <div className="grid grid-cols-2 gap-x-6 gap-y-2 font-mono text-sm">
           {ATTRS.map((a) => (
-            <div key={a.key} className="flex justify-between border-b border-border/50 py-1">
-              <span className="flex items-center gap-1.5 uppercase text-muted-foreground"><AttributeIcon attr={a.key} className="h-3.5 w-3.5 text-primary" />{a.label.slice(0, 3)}</span>
-              <span className="font-bold text-foreground">{state.stats[a.key]}</span>
+            <div key={a.key} className="border-b border-border/50 py-1">
+              <div className="flex justify-between">
+                <span className="flex items-center gap-1.5 uppercase text-muted-foreground"><AttributeIcon attr={a.key} className="h-3.5 w-3.5 text-primary" />{a.label.slice(0, 3)}</span>
+                <span className="font-bold text-foreground">{state.stats[a.key]}</span>
+              </div>
+              <div className="mt-1 flex items-center gap-1.5">
+                <div className="h-1 flex-1 bg-secondary"><div className={state.statProgress[a.key] < 0 ? "h-full bg-destructive" : "sys-bar h-full"} style={{ width: `${Math.min(100, Math.abs(state.statProgress[a.key]))}%` }} /></div>
+                <span className="text-[8px] text-muted-foreground">{Math.abs(state.statProgress[a.key])}/100</span>
+              </div>
             </div>
           ))}
         </div>
