@@ -28,12 +28,16 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
   const options = [...todoOptions, ...weeklyOptions];
 
   const fail = (reason: string) => {
+    const timerElapsedMinutes = timerKind === "focus" && endAt
+      ? Math.max(0, Math.min(timerMinutes, (Date.now() - (endAt - timerMinutes * 60000)) / 60000))
+      : 0;
+    const totalFocusMinutes = Math.round((focusMinutes + timerElapsedMinutes) * 10) / 10;
     if (entryTimeout.current !== null) window.clearTimeout(entryTimeout.current);
     entryTimeout.current = null; setEntering(false);
     setEndAt(null); setTimerKind(null); setGateActive(false); onLock(false); buzz([100, 50, 100]);
     act((s, a) => {
-      s.sessions.unshift({ id: uid(), date: s.lastDay, minutes: 0, success: false, label: meta.current.label, ...(meta.current.details ? { details: meta.current.details } : {}) });
-      s.log.unshift({ id: uid(), ts: Date.now(), text: `Gate Break Failure. -${BREAK_DMG} HP`, kind: "warn" });
+      s.sessions.unshift({ id: uid(), date: s.lastDay, minutes: totalFocusMinutes, success: false, label: meta.current.label, ...(meta.current.details ? { details: meta.current.details } : {}) });
+      s.log.unshift({ id: uid(), ts: Date.now(), text: `Gate Break Failure (${totalFocusMinutes}m focus saved). -${BREAK_DMG} HP`, kind: "warn" });
       a.push({ kind: "penalty", title: "⚠️ [System Alert] Gate Break Failure", body: `${reason} -${BREAK_DMG} HP.` });
       takeDamage(s, BREAK_DMG, a);
     });
