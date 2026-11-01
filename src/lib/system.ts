@@ -11,6 +11,7 @@ export const DIFFS: Diff[] = ["E", "D", "C", "B", "A", "S", "N", "M"];
 export const DIFF_XP: Record<Diff, number> = { E: 4, D: 6, C: 9, B: 12, A: 16, S: 20, N: 25, M: 30 };
 export const DIFF_HP: Record<Diff, number> = { E: 1, D: 1, C: 2, B: 2, A: 3, S: 4, N: 5, M: 6 };
 export const penaltyHabitDamage = (diff: Diff, occurrence: number) => Math.max(3, DIFF_HP[diff]) * occurrence;
+export const ATTRIBUTE_PRACTICE_THRESHOLD = 90;
 export type BaseDifficulty = "Very Easy" | "Easy" | "Medium" | "Hard" | "Very Hard";
 export const BASE_DIFFICULTIES: BaseDifficulty[] = ["Very Easy", "Easy", "Medium", "Hard", "Very Hard"];
 export const ATTRIBUTE_PRACTICE: Record<BaseDifficulty, number> = { "Very Easy": 5, Easy: 7, Medium: 10, Hard: 15, "Very Hard": 20 };
@@ -78,7 +79,6 @@ export interface GameState {
   dailyQuests: DailyQuest[]; weeklyQuests: WeeklyQuest[]; bonusPenaltyHabits: BonusPenaltyHabit[]; todos: Todo[]; inventoryGifts: InventoryGift[]; sessions: Session[]; log: LogEntry[];
   focusRegainDeadline: number | null;
   focusAnalysisCorrection: FocusAnalysisCorrection;
-  attributeProgressRepairApplied: boolean;
   startingStatsAdjusted: boolean;
   lastDay: string; dailyGateQuestDoneDate: string | null; dailyQuestRewardDay: string | null; weeklyQuestRewardDays: string[];
   playerName: string; playerSince: string;
@@ -103,7 +103,7 @@ export const initialState = (): GameState => ({
   level: 1, xp: 0, hp: 100, maxHp: 100, points: 0, potions: 0,
   stats: { strength: 1, discipline: 1, intelligence: 1, perception: 1, vitality: 1 },
   statProgress: { strength: 0, discipline: 0, intelligence: 0, perception: 0, vitality: 0 },
-  dailyQuests: [], weeklyQuests: [], bonusPenaltyHabits: [], todos: [], inventoryGifts: [], sessions: [], log: [], focusRegainDeadline: null, focusAnalysisCorrection: { used: false, todayMinutes: 0, todayDate: today(), totalMinutes: 0, closedGates: 0, efficiency: 0 }, attributeProgressRepairApplied: true, startingStatsAdjusted: true, lastDay: today(), dailyGateQuestDoneDate: null, dailyQuestRewardDay: null, weeklyQuestRewardDays: [], playerName: "", playerSince: today(),
+  dailyQuests: [], weeklyQuests: [], bonusPenaltyHabits: [], todos: [], inventoryGifts: [], sessions: [], log: [], focusRegainDeadline: null, focusAnalysisCorrection: { used: false, todayMinutes: 0, todayDate: today(), totalMinutes: 0, closedGates: 0, efficiency: 0 }, startingStatsAdjusted: true, lastDay: today(), dailyGateQuestDoneDate: null, dailyQuestRewardDay: null, weeklyQuestRewardDays: [], playerName: "", playerSince: today(),
 });
 
 export type Alert = { kind: "info" | "penalty" | "level" | "awaken" | "exhausted" | "monarch" | "lowHp"; title: string; body: string };
@@ -326,13 +326,13 @@ export function takeDamage(s: GameState, amount: number, alerts: Alert[]) {
 export function changeStats(s: GameState, attrs: Attr[], practice: number) {
   attrs.forEach((a) => {
     let progress = s.statProgress[a] + practice;
-    while (progress >= 100) {
+    while (progress >= ATTRIBUTE_PRACTICE_THRESHOLD) {
       s.stats[a] += 1;
-      progress -= 100;
+      progress -= ATTRIBUTE_PRACTICE_THRESHOLD;
     }
-    while (progress <= -100 && s.stats[a] > 1) {
+    while (progress <= -ATTRIBUTE_PRACTICE_THRESHOLD && s.stats[a] > 1) {
       s.stats[a] -= 1;
-      progress += 100;
+      progress += ATTRIBUTE_PRACTICE_THRESHOLD;
     }
     if (s.stats[a] === 1 && progress < 0) progress = 0;
     s.statProgress[a] = progress;
@@ -365,6 +365,7 @@ export function hydrateState(raw: string): GameState {
     habits?: { id: string; name: string; description?: string; kind: "+" | "-"; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; count: number }[];
     focusAnalysisOverrides?: unknown;
     weeklyQuestRewardDay?: string | null;
+    attributeProgressRepairApplied?: unknown;
   };
   const base = initialState();
   const weeklyQuests = saved.weeklyQuests ?? (saved.dailies ?? []).map((daily) => ({
@@ -386,27 +387,22 @@ export function hydrateState(raw: string): GameState {
     : (saved.habits ?? []).map(({ kind, ...habit }) => ({ ...habit, kind: kind === "+" ? "bonus" as const : "penalty" as const })));
   const stats = { ...base.stats, ...saved.stats };
   const statProgress = { ...base.statProgress, ...saved.statProgress };
-  const repairLegacyProgress = saved.attributeProgressRepairApplied !== true;
   const adjustLegacyStartingStats = saved.startingStatsAdjusted !== true && Boolean(saved.stats);
   ATTRS.forEach(({ key }) => {
     stats[key] = Math.max(1, Math.round(stats[key] - (adjustLegacyStartingStats ? 10 : 0)));
     let progress = Math.round(statProgress[key] ?? 0);
-    if (repairLegacyProgress && progress === 99) {
+    while (progress >= ATTRIBUTE_PRACTICE_THRESHOLD) {
       stats[key] += 1;
-      progress = 0;
+      progress -= ATTRIBUTE_PRACTICE_THRESHOLD;
     }
-    while (progress >= 100) {
-      stats[key] += 1;
-      progress -= 100;
-    }
-    while (progress <= -100 && stats[key] > 1) {
+    while (progress <= -ATTRIBUTE_PRACTICE_THRESHOLD && stats[key] > 1) {
       stats[key] -= 1;
-      progress += 100;
+      progress += ATTRIBUTE_PRACTICE_THRESHOLD;
     }
     if (stats[key] === 1 && progress < 0) progress = 0;
     statProgress[key] = progress;
   });
-  const { dailies: _dailies, habits: _habits, penaltyHabits: _penaltyHabits, statProgress: _statProgress, focusAnalysisOverrides: _focusAnalysisOverrides, weeklyQuestRewardDay: _weeklyQuestRewardDay, ...current } = saved;
+  const { dailies: _dailies, habits: _habits, penaltyHabits: _penaltyHabits, statProgress: _statProgress, focusAnalysisOverrides: _focusAnalysisOverrides, weeklyQuestRewardDay: _weeklyQuestRewardDay, attributeProgressRepairApplied: _attributeProgressRepairApplied, ...current } = saved;
   const legacyActivityDates = [
     ...(saved.log ?? []).map(({ ts }) => {
       const date = new Date(ts);
@@ -418,5 +414,5 @@ export function hydrateState(raw: string): GameState {
   ].filter((date) => /^\d{4}-\d{2}-\d{2}$/.test(date)).sort();
   const playerSince = saved.playerSince ?? legacyActivityDates[0] ?? saved.lastDay ?? today();
   const legacyFocusDeadline = saved.todos?.find((task) => task.emergency && !task.done && !task.emergencyFailed)?.emergencyDeadline;
-  return { ...base, ...current, todos: (saved.todos ?? []).filter((task) => !task.emergency), focusRegainDeadline: saved.focusRegainDeadline ?? legacyFocusDeadline ?? null, focusAnalysisCorrection: saved.focusAnalysisCorrection ?? base.focusAnalysisCorrection, attributeProgressRepairApplied: true, startingStatsAdjusted: true, stats, statProgress, playerSince, dailyQuests: saved.dailyQuests ?? [], weeklyQuests: weeklyQuests.map((quest) => ({ ...quest, rewardedDates: quest.rewardedDates ?? quest.doneDates ?? [], masteryLevel: Math.max(1, quest.masteryLevel ?? 1), masteryXp: Math.max(0, quest.masteryXp ?? 0) })), bonusPenaltyHabits, inventoryGifts: saved.inventoryGifts ?? [], dailyGateQuestDoneDate: saved.dailyGateQuestDoneDate ?? null, weeklyQuestRewardDays: saved.weeklyQuestRewardDays ?? (saved.weeklyQuestRewardDay ? [saved.weeklyQuestRewardDay] : []) } as GameState;
+  return { ...base, ...current, todos: (saved.todos ?? []).filter((task) => !task.emergency), focusRegainDeadline: saved.focusRegainDeadline ?? legacyFocusDeadline ?? null, focusAnalysisCorrection: saved.focusAnalysisCorrection ?? base.focusAnalysisCorrection, startingStatsAdjusted: true, stats, statProgress, playerSince, dailyQuests: saved.dailyQuests ?? [], weeklyQuests: weeklyQuests.map((quest) => ({ ...quest, rewardedDates: quest.rewardedDates ?? quest.doneDates ?? [], masteryLevel: Math.max(1, quest.masteryLevel ?? 1), masteryXp: Math.max(0, quest.masteryXp ?? 0) })), bonusPenaltyHabits, inventoryGifts: saved.inventoryGifts ?? [], dailyGateQuestDoneDate: saved.dailyGateQuestDoneDate ?? null, weeklyQuestRewardDays: saved.weeklyQuestRewardDays ?? (saved.weeklyQuestRewardDay ? [saved.weeklyQuestRewardDay] : []) } as GameState;
 }

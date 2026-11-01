@@ -1,6 +1,6 @@
 import { Plus } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
-import { ATTRS } from "@/lib/system";
+import { ATTRS, ATTRIBUTE_PRACTICE_THRESHOLD } from "@/lib/system";
 import { AttributeIcon, Panel } from "./ui";
 
 export function AttributesTab() {
@@ -13,7 +13,7 @@ export function AttributesTab() {
           <span className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Previously Earned Points</span>
           <span className="text-3xl font-bold text-primary sys-glow-text">{state.points}</span>
         </div>
-        <p className="mt-2 text-xs text-muted-foreground">A Medium activity adds 10 practice; 100 positive practice for an attribute raises it by 1. Easier or harder activities adjust the amount. Bad-habit logs subtract assigned practice and can lower an attribute; attributes cannot fall below 1.</p>
+        <p className="mt-2 text-xs text-muted-foreground">A Medium activity adds 10 practice; {ATTRIBUTE_PRACTICE_THRESHOLD} positive practice for an attribute raises it by 1. Easier or harder activities adjust the amount. Bad-habit logs subtract assigned practice and can lower an attribute; attributes cannot fall below 1.</p>
       </Panel>
       {ATTRS.map((a) => (
         <Panel key={a.key}>
@@ -26,9 +26,9 @@ export function AttributesTab() {
               <p className="text-sm text-muted-foreground">{a.desc}</p>
             <div className="mt-2 flex justify-between font-mono text-[9px] uppercase text-muted-foreground">
               <span>Progress toward gaining 1</span>
-              <span>{Math.abs(state.statProgress[a.key])} / 100</span>
+              <span>{Math.abs(state.statProgress[a.key])} / {ATTRIBUTE_PRACTICE_THRESHOLD}</span>
             </div>
-            <div className="mt-1 h-1 bg-secondary"><div className={state.statProgress[a.key] < 0 ? "h-full bg-destructive" : "sys-bar h-full"} style={{ width: `${Math.abs(state.statProgress[a.key])}%` }} /></div>
+            <div className="mt-1 h-1 bg-secondary"><div className={state.statProgress[a.key] < 0 ? "h-full bg-destructive" : "sys-bar h-full"} style={{ width: `${Math.min(100, Math.abs(state.statProgress[a.key]) / ATTRIBUTE_PRACTICE_THRESHOLD * 100)}%` }} /></div>
               <div className="mt-2 h-1 bg-secondary"><div className="sys-bar h-full" style={{ width: `${(state.stats[a.key] / max) * 100}%` }} /></div>
             </div>
             {state.points > 0 && <button aria-label={`Increase ${a.label}`} onClick={() => { buzz(); act((s) => { s.points -= 1; s.stats[a.key] += 1; }); }}
