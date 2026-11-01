@@ -78,7 +78,7 @@ export interface GameState {
   dailyQuests: DailyQuest[]; weeklyQuests: WeeklyQuest[]; bonusPenaltyHabits: BonusPenaltyHabit[]; todos: Todo[]; inventoryGifts: InventoryGift[]; sessions: Session[]; log: LogEntry[];
   focusRegainDeadline: number | null;
   focusAnalysisCorrection: FocusAnalysisCorrection;
-  lastDay: string; dailyGateQuestDoneDate: string | null; dailyQuestRewardDay: string | null; weeklyQuestRewardDay: string | null;
+  lastDay: string; dailyGateQuestDoneDate: string | null; dailyQuestRewardDay: string | null; weeklyQuestRewardDays: string[];
   playerName: string; playerSince: string;
 }
 
@@ -101,33 +101,33 @@ export const initialState = (): GameState => ({
   level: 1, xp: 0, hp: 100, maxHp: 100, points: 0, potions: 0,
   stats: { strength: 10, discipline: 10, intelligence: 10, perception: 10, vitality: 10 },
   statProgress: { strength: 0, discipline: 0, intelligence: 0, perception: 0, vitality: 0 },
-  dailyQuests: [], weeklyQuests: [], bonusPenaltyHabits: [], todos: [], inventoryGifts: [], sessions: [], log: [], focusRegainDeadline: null, focusAnalysisCorrection: { used: false, todayMinutes: 0, todayDate: today(), totalMinutes: 0, closedGates: 0, efficiency: 0 }, lastDay: today(), dailyGateQuestDoneDate: null, dailyQuestRewardDay: null, weeklyQuestRewardDay: null, playerName: "", playerSince: today(),
+  dailyQuests: [], weeklyQuests: [], bonusPenaltyHabits: [], todos: [], inventoryGifts: [], sessions: [], log: [], focusRegainDeadline: null, focusAnalysisCorrection: { used: false, todayMinutes: 0, todayDate: today(), totalMinutes: 0, closedGates: 0, efficiency: 0 }, lastDay: today(), dailyGateQuestDoneDate: null, dailyQuestRewardDay: null, weeklyQuestRewardDays: [], playerName: "", playerSince: today(),
 });
 
 export type Alert = { kind: "info" | "penalty" | "level" | "awaken" | "exhausted" | "monarch" | "lowHp"; title: string; body: string };
 
 export const isWeeklyQuestScheduled = (quest: WeeklyQuest, date: string) => quest.daysOfWeek.includes(new Date(`${date}T00:00:00`).getDay());
 
-function awardWeeklyCompletionGift(s: GameState, quest: WeeklyQuest, alerts: Alert[]) {
-  const todaysWeeklyQuests = s.weeklyQuests.filter((item) => isWeeklyQuestScheduled(item, s.lastDay));
-  if (!todaysWeeklyQuests.length || !todaysWeeklyQuests.every((item) => item.doneDates.includes(s.lastDay)) || s.weeklyQuestRewardDay === s.lastDay) return;
-  s.weeklyQuestRewardDay = s.lastDay;
+function awardWeeklyCompletionGift(s: GameState, quest: WeeklyQuest, date: string, alerts: Alert[]) {
+  const scheduledWeeklyQuests = s.weeklyQuests.filter((item) => isWeeklyQuestScheduled(item, date));
+  if (!scheduledWeeklyQuests.length || !scheduledWeeklyQuests.every((item) => item.doneDates.includes(date)) || s.weeklyQuestRewardDays.includes(date)) return;
+  s.weeklyQuestRewardDays = [...s.weeklyQuestRewardDays, date].slice(-90);
   const giftName = "Weekly Quest Gift";
-  s.inventoryGifts.unshift({ id: uid(), name: giftName, description: "Earned by completing all weekly quests scheduled for today.", rank: quest.diff, sourceTask: "Today's Weekly Quests", earnedAt: s.lastDay });
+  s.inventoryGifts.unshift({ id: uid(), name: giftName, description: `Earned by completing all weekly quests scheduled for ${date}.`, rank: quest.diff, sourceTask: "Weekly Quests", earnedAt: date });
   log(s, `Weekly quest reward received: ${giftName} (${quest.diff}-Rank Gift)`, "level");
-  alerts.push({ kind: "info", title: "[SYSTEM] Weekly Quests Complete!", body: `You completed all weekly quests scheduled for today and received a ${quest.diff}-Rank ${giftName}. It is now in your inventory.` });
+  alerts.push({ kind: "info", title: "[SYSTEM] Weekly Quests Complete!", body: `You completed all weekly quests scheduled for ${date} and received a ${quest.diff}-Rank ${giftName}. It is now in your inventory.` });
 }
 
-export function completeWeeklyQuest(s: GameState, id: string, alerts: Alert[]): boolean {
+export function completeWeeklyQuest(s: GameState, id: string, alerts: Alert[], date = s.lastDay): boolean {
   const quest = s.weeklyQuests.find((x) => x.id === id);
-  if (!quest || !isWeeklyQuestScheduled(quest, s.lastDay) || quest.doneDates.includes(s.lastDay)) return false;
-  quest.doneDates = [...quest.doneDates, s.lastDay].slice(-90);
+  if (!quest || !isWeeklyQuestScheduled(quest, date) || quest.doneDates.includes(date)) return false;
+  quest.doneDates = [...quest.doneDates, date].slice(-90);
   const rewardedDates = quest.rewardedDates ?? [];
-  if (rewardedDates.includes(s.lastDay)) {
-    awardWeeklyCompletionGift(s, quest, alerts);
+  if (rewardedDates.includes(date)) {
+    awardWeeklyCompletionGift(s, quest, date, alerts);
     return true;
   }
-  quest.rewardedDates = [...rewardedDates, s.lastDay].slice(-90);
+  quest.rewardedDates = [...rewardedDates, date].slice(-90);
   const earnedXp = DIFF_XP[quest.diff];
   quest.masteryXp = (quest.masteryXp ?? 0) + earnedXp;
   quest.masteryLevel = quest.masteryLevel ?? 1;
@@ -141,14 +141,14 @@ export function completeWeeklyQuest(s: GameState, id: string, alerts: Alert[]): 
   changeStats(s, quest.attrs, practice);
   log(s, `Weekly quest complete: ${quest.name} (+${earnedXp} XP)`, "info");
   alerts.push({ kind: "info", title: "[SYSTEM] Weekly Quest Complete!", body: `${quest.name} complete. +${earnedXp} XP and +${practice} attribute practice for ${quest.attrs.join(", ")}. Skill progress: Level ${quest.masteryLevel}, ${quest.masteryXp}/${xpToNext(quest.masteryLevel)} XP.` });
-  awardWeeklyCompletionGift(s, quest, alerts);
+  awardWeeklyCompletionGift(s, quest, date, alerts);
   return true;
 }
 
-export function uncompleteWeeklyQuest(s: GameState, id: string): boolean {
+export function uncompleteWeeklyQuest(s: GameState, id: string, date = s.lastDay): boolean {
   const quest = s.weeklyQuests.find((item) => item.id === id);
-  if (!quest || !isWeeklyQuestScheduled(quest, s.lastDay) || !quest.doneDates.includes(s.lastDay)) return false;
-  quest.doneDates = quest.doneDates.filter((date) => date !== s.lastDay);
+  if (!quest || !isWeeklyQuestScheduled(quest, date) || !quest.doneDates.includes(date)) return false;
+  quest.doneDates = quest.doneDates.filter((doneDate) => doneDate !== date);
   log(s, `Weekly quest unmarked: ${quest.name}`, "info");
   return true;
 }
@@ -362,6 +362,7 @@ export function hydrateState(raw: string): GameState {
     penaltyHabits?: { id: string; name: string; description?: string; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; count: number }[];
     habits?: { id: string; name: string; description?: string; kind: "+" | "-"; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; count: number }[];
     focusAnalysisOverrides?: unknown;
+    weeklyQuestRewardDay?: string | null;
   };
   const base = initialState();
   const weeklyQuests = saved.weeklyQuests ?? (saved.dailies ?? []).map((daily) => ({
@@ -387,7 +388,7 @@ export function hydrateState(raw: string): GameState {
     stats[key] = Math.max(1, Math.round(stats[key]));
     statProgress[key] = Math.max(0, Math.min(99, Math.round(statProgress[key] ?? 0)));
   });
-  const { dailies: _dailies, habits: _habits, penaltyHabits: _penaltyHabits, statProgress: _statProgress, focusAnalysisOverrides: _focusAnalysisOverrides, ...current } = saved;
+  const { dailies: _dailies, habits: _habits, penaltyHabits: _penaltyHabits, statProgress: _statProgress, focusAnalysisOverrides: _focusAnalysisOverrides, weeklyQuestRewardDay: _weeklyQuestRewardDay, ...current } = saved;
   const legacyActivityDates = [
     ...(saved.log ?? []).map(({ ts }) => {
       const date = new Date(ts);
@@ -399,5 +400,5 @@ export function hydrateState(raw: string): GameState {
   ].filter((date) => /^\d{4}-\d{2}-\d{2}$/.test(date)).sort();
   const playerSince = saved.playerSince ?? legacyActivityDates[0] ?? saved.lastDay ?? today();
   const legacyFocusDeadline = saved.todos?.find((task) => task.emergency && !task.done && !task.emergencyFailed)?.emergencyDeadline;
-  return { ...base, ...current, todos: (saved.todos ?? []).filter((task) => !task.emergency), focusRegainDeadline: saved.focusRegainDeadline ?? legacyFocusDeadline ?? null, focusAnalysisCorrection: saved.focusAnalysisCorrection ?? base.focusAnalysisCorrection, stats, statProgress, playerSince, dailyQuests: saved.dailyQuests ?? [], weeklyQuests: weeklyQuests.map((quest) => ({ ...quest, rewardedDates: quest.rewardedDates ?? quest.doneDates ?? [], masteryLevel: Math.max(1, quest.masteryLevel ?? 1), masteryXp: Math.max(0, quest.masteryXp ?? 0) })), bonusPenaltyHabits, inventoryGifts: saved.inventoryGifts ?? [], dailyGateQuestDoneDate: saved.dailyGateQuestDoneDate ?? null, weeklyQuestRewardDay: saved.weeklyQuestRewardDay ?? null } as GameState;
+  return { ...base, ...current, todos: (saved.todos ?? []).filter((task) => !task.emergency), focusRegainDeadline: saved.focusRegainDeadline ?? legacyFocusDeadline ?? null, focusAnalysisCorrection: saved.focusAnalysisCorrection ?? base.focusAnalysisCorrection, stats, statProgress, playerSince, dailyQuests: saved.dailyQuests ?? [], weeklyQuests: weeklyQuests.map((quest) => ({ ...quest, rewardedDates: quest.rewardedDates ?? quest.doneDates ?? [], masteryLevel: Math.max(1, quest.masteryLevel ?? 1), masteryXp: Math.max(0, quest.masteryXp ?? 0) })), bonusPenaltyHabits, inventoryGifts: saved.inventoryGifts ?? [], dailyGateQuestDoneDate: saved.dailyGateQuestDoneDate ?? null, weeklyQuestRewardDays: saved.weeklyQuestRewardDays ?? (saved.weeklyQuestRewardDay ? [saved.weeklyQuestRewardDay] : []) } as GameState;
 }
