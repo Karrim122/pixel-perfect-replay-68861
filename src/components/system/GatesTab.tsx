@@ -277,7 +277,7 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
         <ul className="mt-4 space-y-1 font-mono text-xs">
           {state.sessions.slice(0, 8).map((s) => (
             <li key={s.id} className="flex justify-between">
-              <div className="min-w-0"><span className="truncate text-muted-foreground">{s.date} · {s.label}</span>{s.details && <p className="truncate text-[10px] text-muted-foreground/70">{s.details}</p>}</div>
+              <div className="min-w-0"><span className="truncate text-muted-foreground">{s.date} · {s.label}</span></div>
               <span className={s.paused ? "text-muted-foreground" : s.success ? "text-success" : "text-destructive"}>{s.paused ? `${s.minutes}m PAUSED` : s.success ? `${s.minutes}m CLEAR` : "BREAK"}</span>
             </li>
           ))}

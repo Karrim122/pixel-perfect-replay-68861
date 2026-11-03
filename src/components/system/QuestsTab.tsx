@@ -2,17 +2,16 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { Check, Pencil, Plus, Trash2 } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
-import { baseDifficultyForDiff, completeDailyQuest, completeWeeklyQuest, difficultyForRankIndex, isWeeklyQuestScheduled, moveItem, rankIndex, resolveDifficulty, uid, type Attr, type BaseDifficulty } from "@/lib/system";
+import { baseDifficultyForDiff, completeDailyQuest, completeWeeklyQuest, isWeeklyQuestScheduled, moveItem, resolveDifficulty, uid, type Attr, type BaseDifficulty } from "@/lib/system";
 import { playSound } from "@/lib/sound";
 import { BonusPenaltySection } from "./BonusPenaltySection";
-import { AttrPicker, BaseDifficultyPicker, DiffBadge, Panel, ReorderButtons, SysButton, inputCls } from "./ui";
+import { AttrPicker, BaseDifficultyPicker, Panel, ReorderButtons, SysButton, inputCls } from "./ui";
 import { cn } from "@/lib/utils";
 
 export function QuestsTab() {
   const { state, act } = useSystem();
   const dailyDone = state.dailyGateQuestDoneDate === state.lastDay;
   const todayQuests = state.weeklyQuests.filter((quest) => isWeeklyQuestScheduled(quest, state.lastDay));
-  const rankDiff = difficultyForRankIndex(rankIndex(state.level));
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState("");
@@ -66,9 +65,8 @@ export function QuestsTab() {
           </button>
           <div className="flex-1">
             <p className={cn("text-lg", dailyDone && "text-muted-foreground line-through")}>Close todays gate</p>
-            <p className="font-mono text-[10px] uppercase text-muted-foreground">Fixed · Mandatory · Complete a gate assigned to a weekly quest · Discipline and Perception progress scales with focus XP</p>
+            <p className="font-mono text-[10px] uppercase text-muted-foreground">discipline · perception</p>
           </div>
-          <DiffBadge d={rankDiff} />
         </div>
         <div className="mt-3 flex items-center justify-between gap-2">
           <p className="font-mono text-[10px] text-primary">Reward: +1 Healing Potion when all added Daily quests are complete (Gate quest excluded).</p>
@@ -90,12 +88,11 @@ export function QuestsTab() {
                     <div className="min-w-0 flex-1">
                       <p className={cn("truncate text-base", done && "text-muted-foreground line-through")}>{quest.name}</p>
                       {quest.description && <p className="text-xs text-muted-foreground">{quest.description}</p>}
-                      <p className="font-mono text-[10px] uppercase text-muted-foreground">{quest.attrs.join(" · ")}{quest.reminder ? ` · ${quest.reminder}` : ""}</p>
+                      <p className="font-mono text-[10px] uppercase text-muted-foreground">{quest.attrs.join(" · ")}</p>
                     </div>
                     <ReorderButtons itemName={quest.name} canMoveUp={index > 0} canMoveDown={index < state.dailyQuests.length - 1}
                       onMoveUp={() => act((s) => moveItem(s.dailyQuests, quest.id, state.dailyQuests[index - 1]!.id))}
                       onMoveDown={() => act((s) => moveItem(s.dailyQuests, quest.id, state.dailyQuests[index + 1]!.id))} />
-                    <DiffBadge d={quest.diff} />
                     <button aria-label={`Edit ${quest.name}`} onClick={() => edit(quest.id)} className="p-2 text-muted-foreground"><Pencil className="h-4 w-4" /></button>
                     <button aria-label={`Delete ${quest.name}`} onClick={() => act((s) => { s.dailyQuests = s.dailyQuests.filter((item) => item.id !== quest.id); })} className="p-2 text-muted-foreground"><Trash2 className="h-4 w-4" /></button>
                   </li>
@@ -127,7 +124,6 @@ export function QuestsTab() {
                   <ReorderButtons itemName={quest.name} canMoveUp={index > 0} canMoveDown={index < todayQuests.length - 1}
                     onMoveUp={() => act((s) => moveItem(s.weeklyQuests, quest.id, todayQuests[index - 1]!.id))}
                     onMoveDown={() => act((s) => moveItem(s.weeklyQuests, quest.id, todayQuests[index + 1]!.id))} />
-                  <DiffBadge d={quest.diff} />
                 </li>
               );
             })}

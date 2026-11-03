@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { AlertTriangle, Bell, Check, FlaskConical, Gift, Pencil, Trash2 } from "lucide-react";
+import { AlertTriangle, Check, Pencil, Trash2 } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
 import { playSound } from "@/lib/sound";
 import { baseDifficultyForDiff, completeTodo, DIFFS, moveItem, RANKS, resolveDifficulty, uid, type Attr, type BaseDifficulty, type TodoReward } from "@/lib/system";
-import { AttrPicker, BaseDifficultyPicker, DiffBadge, Panel, ReorderButtons, SysButton, inputCls } from "./ui";
+import { AttrPicker, BaseDifficultyPicker, Panel, ReorderButtons, SysButton, inputCls } from "./ui";
 import { cn } from "@/lib/utils";
 
 export function TodoTab() {
@@ -85,7 +85,6 @@ export function TodoTab() {
         {list.length === 0 && <p className="font-mono text-xs text-muted-foreground">No quests registered.</p>}
         <ul className="space-y-2">
           {list.map((t, index) => {
-            const overdue = !t.done && !!t.due && t.due < state.lastDay;
             return (
               <li key={t.id} className="flex items-center gap-3 border-b border-border/40 pb-2">
                 <button onClick={() => complete(t.id)} aria-label={`Complete ${t.name}`}
@@ -94,17 +93,14 @@ export function TodoTab() {
                 </button>
                 <div className="flex-1">
                   <p className={cn("flex items-center gap-1 text-lg leading-tight", t.done && "text-muted-foreground line-through")}>
-                    {t.name}{t.reward?.type === "gift" && <Gift aria-label="Gift reward" className="h-4 w-4 text-primary" />}{t.reward?.type === "potion" && <FlaskConical aria-label="Healing potion reward" className="h-4 w-4 text-success" />}
+                    {t.name}
                   </p>
                   {t.description && <p className="text-xs text-muted-foreground">{t.description}</p>}
-                  <p className={cn("flex items-center gap-1 font-mono text-[10px] uppercase", overdue ? "text-destructive" : "text-muted-foreground")}>
-                    {t.due || "No date"}{t.time && <><Bell className="ml-1 h-3 w-3" />{t.time}</>} · {t.attrs.join(" · ")}
-                  </p>
+                  <p className="font-mono text-[10px] uppercase text-muted-foreground">{t.attrs.join(" · ")}</p>
                 </div>
                 <ReorderButtons itemName={t.name} canMoveUp={index > 0 && list[index - 1]!.done === t.done} canMoveDown={index < list.length - 1 && list[index + 1]!.done === t.done}
                   onMoveUp={() => act((s) => moveItem(s.todos, t.id, list[index - 1]!.id))}
                   onMoveDown={() => act((s) => moveItem(s.todos, t.id, list[index + 1]!.id))} />
-                <DiffBadge d={t.diff} />
                 {!t.emergency && <button aria-label={`Edit ${t.name}`} onClick={() => edit(t.id)} className="p-2 text-muted-foreground"><Pencil className="h-4 w-4" /></button>}
                 {!(t.emergency && !t.done && !t.emergencyFailed) && <button aria-label="Delete" onClick={() => act((s) => { s.todos = s.todos.filter((x) => x.id !== t.id); })} className="p-2 text-muted-foreground"><Trash2 className="h-4 w-4" /></button>}
               </li>

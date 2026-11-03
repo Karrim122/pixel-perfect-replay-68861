@@ -2,9 +2,9 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { Minus, Pencil, Plus, Trash2 } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
-import { attributePenaltyPracticeFor, attributeProgressForXp, baseDifficultyForDiff, DIFF_XP, moveItem, penaltyHabitDamage, resolveDifficulty, triggerBonusPenaltyHabit, uid, type Attr, type BaseDifficulty } from "@/lib/system";
+import { baseDifficultyForDiff, moveItem, resolveDifficulty, triggerBonusPenaltyHabit, uid, type Attr, type BaseDifficulty } from "@/lib/system";
 import { playSound } from "@/lib/sound";
-import { AttrPicker, BaseDifficultyPicker, DiffBadge, Panel, ReorderButtons, SysButton, inputCls } from "./ui";
+import { AttrPicker, BaseDifficultyPicker, Panel, ReorderButtons, SysButton, inputCls } from "./ui";
 
 export function BonusPenaltySection() {
   const { state, act } = useSystem();
@@ -65,16 +65,7 @@ export function BonusPenaltySection() {
         ) : (
           <ul className="space-y-3">
             {state.bonusPenaltyHabits.map((habit, index) => {
-              const nextOccurrence = habit.kind === "penalty" && habit.penaltyDate === state.lastDay ? (habit.penaltyCount ?? 0) + 1 : habit.kind === "penalty" ? 1 : habit.count + 1;
               const positive = habit.kind === "bonus";
-              const progress = attributeProgressForXp(DIFF_XP[habit.diff], state.level);
-              const penaltyHp = penaltyHabitDamage(habit.diff, nextOccurrence);
-              const penaltyPractice = attributePenaltyPracticeFor(habit.baseDifficulty, habit.diff, state.level) * nextOccurrence;
-              const rewardCount = habit.lastRewardDate === state.lastDay ? habit.rewardCount ?? 1 : 0;
-              const practiceEarned = habit.lastPracticeDate === state.lastDay || (!habit.lastPracticeDate && habit.lastRewardDate === state.lastDay);
-              const bonusStatus = rewardCount >= 2
-                ? "Daily XP limit reached (2/2)"
-                : `Next log: +${DIFF_XP[habit.diff]} XP${practiceEarned ? " (attribute progress earned today)" : `, +${progress}% progress for ${habit.attrs.join(" | ")}`} · ${rewardCount}/2 XP rewards today`;
               return (
                 <li key={habit.id} className="flex items-center gap-2 border-b border-border/40 pb-3">
                   <button aria-label={`Log ${positive ? "good" : "bad"} habit ${habit.name}`} onClick={() => trigger(habit.id)}
@@ -84,14 +75,11 @@ export function BonusPenaltySection() {
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-base">{habit.name}</p>
                     {habit.description && <p className="text-xs text-muted-foreground">{habit.description}</p>}
-                    <p className="font-mono text-[10px] uppercase text-muted-foreground">
-                      {positive ? bonusStatus : `Next: -${penaltyHp} HP | -${penaltyPractice} practice for ${habit.attrs.join(" | ")}`} | logged x{habit.count}
-                    </p>
+                    <p className="font-mono text-[10px] uppercase text-muted-foreground">{habit.attrs.join(" · ")}</p>
                   </div>
                   <ReorderButtons itemName={habit.name} canMoveUp={index > 0} canMoveDown={index < state.bonusPenaltyHabits.length - 1}
                     onMoveUp={() => act((s) => moveItem(s.bonusPenaltyHabits, habit.id, state.bonusPenaltyHabits[index - 1]!.id))}
                     onMoveDown={() => act((s) => moveItem(s.bonusPenaltyHabits, habit.id, state.bonusPenaltyHabits[index + 1]!.id))} />
-                  <DiffBadge d={habit.diff} />
                   <button aria-label={`Edit ${habit.name}`} onClick={() => edit(habit.id)} className="p-2 text-muted-foreground"><Pencil className="h-4 w-4" /></button>
                   <button aria-label={`Delete ${habit.name}`} onClick={() => act((s) => { s.bonusPenaltyHabits = s.bonusPenaltyHabits.filter((item) => item.id !== habit.id); })} className="p-2 text-muted-foreground"><Trash2 className="h-4 w-4" /></button>
                 </li>
