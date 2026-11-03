@@ -4,7 +4,7 @@ import { AlertTriangle, Check, Pencil, Trash2 } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
 import { playSound } from "@/lib/sound";
 import { baseDifficultyForDiff, completeTodo, DIFFS, moveItem, RANKS, resolveDifficulty, uid, type Attr, type BaseDifficulty, type TodoReward } from "@/lib/system";
-import { AttrPicker, BaseDifficultyPicker, Panel, ReorderButtons, SysButton, inputCls } from "./ui";
+import { AttrPicker, BaseDifficultyPicker, DiffBadge, Panel, ReorderButtons, SysButton, inputCls } from "./ui";
 import { cn } from "@/lib/utils";
 
 export function TodoTab() {
@@ -96,8 +96,8 @@ export function TodoTab() {
                     {t.name}
                   </p>
                   {t.description && <p className="text-xs text-muted-foreground">{t.description}</p>}
-                  <p className="font-mono text-[10px] uppercase text-muted-foreground">{t.attrs.join(" · ")}</p>
                 </div>
+                <DiffBadge d={t.diff} />
                 <ReorderButtons itemName={t.name} canMoveUp={index > 0 && list[index - 1]!.done === t.done} canMoveDown={index < list.length - 1 && list[index + 1]!.done === t.done}
                   onMoveUp={() => act((s) => moveItem(s.todos, t.id, list[index - 1]!.id))}
                   onMoveDown={() => act((s) => moveItem(s.todos, t.id, list[index + 1]!.id))} />

@@ -116,7 +116,7 @@ export function AttrPicker({ value, onChange }: { value: Attr[]; onChange: (a: A
 }
 
 export function DiffBadge({ d }: { d: Diff }) {
-  const label = d === "N" ? "NL" : d === "M" ? "SM" : d;
+  const label = d === "N" ? "NL" : d === "M" ? "SM" : `${d}-Rank`;
   const rank = RANKS[DIFFS.indexOf(d)]!;
   return <span title={rank.name} aria-label={rank.name} className="inline-flex h-6 min-w-6 items-center justify-center border border-primary/60 px-1 font-mono text-[10px] font-bold text-primary">{label}</span>;
 }

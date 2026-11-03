@@ -106,10 +106,9 @@ export function StatusTab() {
         ) : (
           <div className="space-y-3">
             {state.weeklyQuests.map((quest) => (
-              <div key={quest.id} className="border border-border/70 bg-background/30 p-3">
+              <div key={quest.id} className="flex items-center justify-between gap-3 border border-border/70 bg-background/30 p-3">
                 <h3 className="truncate font-bold text-foreground">{quest.name}</h3>
-                {quest.description && <p className="text-xs text-muted-foreground">{quest.description}</p>}
-                <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{quest.attrs.join(" · ")}</p>
+                <span className="shrink-0 font-mono text-sm font-bold text-primary">Lv {Math.max(1, quest.masteryLevel ?? 1)}</span>
               </div>
             ))}
           </div>

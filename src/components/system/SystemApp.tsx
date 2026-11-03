@@ -21,6 +21,24 @@ const TABS = [
 ] as const;
 type Tab = (typeof TABS)[number]["key"];
 
+function AlertDetails({ body }: { body: string }) {
+  const sentences = body.split(/(?<=[.!?])\s+/).filter(Boolean);
+  return (
+    <div className="mt-4 space-y-2 border border-border/70 bg-background/60 p-4 text-left">
+      {sentences.map((sentence, index) => (
+        <p key={`${index}-${sentence}`} className="text-sm leading-relaxed text-foreground/90">
+          {sentence.split(/([+−-]?\s?\d+(?:\.\d+)?(?:%|\/\d+(?:\.\d+)?%?)?(?:\s?(?:XP|HP|minutes?|m|attribute progress))?)/gi).map((part, partIndex) => {
+            if (!/\d/.test(part)) return part;
+            const trimmed = part.trimStart();
+            const color = /^[−-]/.test(trimmed) ? "text-destructive" : trimmed.startsWith("+") ? "text-success" : "text-primary";
+            return <span key={`${partIndex}-${part}`} className={`font-bold tabular-nums ${color}`}>{part}</span>;
+          })}
+        </p>
+      ))}
+    </div>
+  );
+}
+
 function AlertModal() {
   const { alerts, dismiss } = useSystem();
   const a = alerts[0];
@@ -39,7 +57,7 @@ function AlertModal() {
       <div role="alertdialog" aria-modal="true" aria-label={a.title} className={cn("sys-panel w-full max-w-sm p-6 text-center animate-sys-shatter", danger && "sys-danger animate-sys-shake")}>
         <p className={cn("font-mono text-[10px] uppercase tracking-[0.4em]", danger ? "text-destructive" : "text-primary")}>[ Notification ]</p>
         <h2 className={cn("mt-3 text-2xl font-bold uppercase", danger ? "text-destructive" : "text-primary sys-glow-text", epic && "text-3xl animate-sys-pulse")}>{a.title}</h2>
-        <p className="mt-3 text-base text-foreground/90">{a.body}</p>
+        <AlertDetails body={a.body} />
         <SysButton variant={danger ? "danger" : "primary"} className="mt-6 w-full" onClick={dismiss}>Acknowledge</SysButton>
       </div>
     </div>

@@ -4,7 +4,7 @@ import { Check, Pencil, Trash2 } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
 import { baseDifficultyForDiff, completeWeeklyQuest, isWeeklyQuestScheduled, moveItem, resolveDifficulty, uid, uncompleteWeeklyQuest, type Attr, type BaseDifficulty } from "@/lib/system";
 import { playSound } from "@/lib/sound";
-import { AttrPicker, BaseDifficultyPicker, Panel, ReorderButtons, SysButton, inputCls } from "./ui";
+import { AttrPicker, BaseDifficultyPicker, DiffBadge, Panel, ReorderButtons, SysButton, inputCls } from "./ui";
 import { cn } from "@/lib/utils";
 
 const WEEKDAYS = [
@@ -88,8 +88,8 @@ export function WeeklyQuestsTab() {
                       <div className="min-w-0 flex-1">
                         <p className={cn("truncate text-base", done && "text-muted-foreground line-through")}>{quest.name}</p>
                         {quest.description && <p className="text-xs text-muted-foreground">{quest.description}</p>}
-                        <p className="font-mono text-[10px] uppercase text-muted-foreground">{quest.attrs.join(" · ")}</p>
                       </div>
+                      <DiffBadge d={quest.diff} />
                       <ReorderButtons itemName={quest.name} canMoveUp={index > 0} canMoveDown={index < quests.length - 1}
                         onMoveUp={() => act((s) => moveItem(s.weeklyQuests, quest.id, quests[index - 1]!.id))}
                         onMoveDown={() => act((s) => moveItem(s.weeklyQuests, quest.id, quests[index + 1]!.id))} />
