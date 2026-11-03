@@ -12,6 +12,7 @@ export const DIFF_XP: Record<Diff, number> = { E: 4, D: 6, C: 9, B: 12, A: 16, S
 export const DIFF_HP: Record<Diff, number> = { E: 1, D: 1, C: 2, B: 2, A: 3, S: 4, N: 5, M: 6 };
 export const penaltyHabitDamage = (diff: Diff, occurrence: number) => Math.max(15, DIFF_HP[diff] * 10) * occurrence;
 export const ATTRIBUTE_PRACTICE_THRESHOLD = 100;
+export const ATTRIBUTE_GAIN_THRESHOLD = 50;
 export type BaseDifficulty = "Very Easy" | "Easy" | "Medium" | "Hard" | "Very Hard";
 export const BASE_DIFFICULTIES: BaseDifficulty[] = ["Very Easy", "Easy", "Medium", "Hard", "Very Hard"];
 export const ATTRIBUTE_PRACTICE: Record<BaseDifficulty, number> = { "Very Easy": 6, Easy: 8, Medium: 12, Hard: 18, "Very Hard": 24 };
@@ -339,9 +340,9 @@ export function takeDamage(s: GameState, amount: number, alerts: Alert[]) {
 export function changeStats(s: GameState, attrs: Attr[], practice: number) {
   attrs.forEach((a) => {
     let progress = s.statProgress[a] + practice;
-    while (progress >= ATTRIBUTE_PRACTICE_THRESHOLD) {
+    while (progress >= ATTRIBUTE_GAIN_THRESHOLD) {
       s.stats[a] += 1;
-      progress -= ATTRIBUTE_PRACTICE_THRESHOLD;
+      progress -= ATTRIBUTE_GAIN_THRESHOLD;
     }
     while (progress <= -ATTRIBUTE_PRACTICE_THRESHOLD && s.stats[a] > 1) {
       s.stats[a] -= 1;
@@ -404,9 +405,9 @@ export function hydrateState(raw: string): GameState {
   ATTRS.forEach(({ key }) => {
     stats[key] = Math.max(1, Math.round(stats[key] - (adjustLegacyStartingStats ? 10 : 0)));
     let progress = Math.round(statProgress[key] ?? 0);
-    while (progress >= ATTRIBUTE_PRACTICE_THRESHOLD) {
+    while (progress >= ATTRIBUTE_GAIN_THRESHOLD) {
       stats[key] += 1;
-      progress -= ATTRIBUTE_PRACTICE_THRESHOLD;
+      progress -= ATTRIBUTE_GAIN_THRESHOLD;
     }
     while (progress <= -ATTRIBUTE_PRACTICE_THRESHOLD && stats[key] > 1) {
       stats[key] -= 1;
