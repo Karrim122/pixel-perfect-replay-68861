@@ -13,7 +13,7 @@ export function AttributesTab() {
           <span className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Previously Earned Points</span>
           <span className="text-3xl font-bold text-primary sys-glow-text">{state.points}</span>
         </div>
-        <p className="mt-2 text-xs text-muted-foreground">An activity grants the same percentage of attribute progress as XP toward your next level. Earn {ATTRIBUTE_GAIN_THRESHOLD}% progress to raise an attribute by 1. Losing {ATTRIBUTE_PRACTICE_THRESHOLD} practice lowers an attribute; attributes cannot fall below 1.</p>
+        <p className="mt-2 text-xs text-muted-foreground">Attribute progress is 3× the activity's XP percentage toward your next level. Earn {ATTRIBUTE_GAIN_THRESHOLD}% progress to raise an attribute by 1. Losing {ATTRIBUTE_PRACTICE_THRESHOLD} practice lowers an attribute; attributes cannot fall below 1.</p>
       </Panel>
       {ATTRS.map((a) => (
         <Panel key={a.key}>
