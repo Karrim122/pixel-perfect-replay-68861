@@ -59,7 +59,7 @@ export function BonusPenaltySection() {
   return (
     <>
       <Panel title="Bonus-Penalty">
-        <p className="mb-3 font-mono text-[11px] text-muted-foreground">Good habits earn XP on up to 2 logs per day and attribute practice once per day. Bad-habit penalties increase with each log that day and reset the next day.</p>
+        <p className="mb-3 font-mono text-[11px] text-muted-foreground">Good habits earn XP on up to 2 logs per day and attribute practice once per day. Bad habits cost 15–60 HP per log at base, escalating with each log that day; penalties reset the next day.</p>
         {state.bonusPenaltyHabits.length === 0 ? (
           <p className="mb-3 font-mono text-xs text-muted-foreground">No bonus or penalty habits registered.</p>
         ) : (

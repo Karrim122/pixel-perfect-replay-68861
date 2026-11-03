@@ -10,7 +10,7 @@ export type Diff = "E" | "D" | "C" | "B" | "A" | "S" | "N" | "M";
 export const DIFFS: Diff[] = ["E", "D", "C", "B", "A", "S", "N", "M"];
 export const DIFF_XP: Record<Diff, number> = { E: 4, D: 6, C: 9, B: 12, A: 16, S: 20, N: 25, M: 30 };
 export const DIFF_HP: Record<Diff, number> = { E: 1, D: 1, C: 2, B: 2, A: 3, S: 4, N: 5, M: 6 };
-export const penaltyHabitDamage = (diff: Diff, occurrence: number) => Math.max(3, DIFF_HP[diff]) * occurrence;
+export const penaltyHabitDamage = (diff: Diff, occurrence: number) => Math.max(15, DIFF_HP[diff] * 10) * occurrence;
 export const ATTRIBUTE_PRACTICE_THRESHOLD = 100;
 export type BaseDifficulty = "Very Easy" | "Easy" | "Medium" | "Hard" | "Very Hard";
 export const BASE_DIFFICULTIES: BaseDifficulty[] = ["Very Easy", "Easy", "Medium", "Hard", "Very Hard"];
