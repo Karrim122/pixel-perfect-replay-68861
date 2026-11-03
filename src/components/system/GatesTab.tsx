@@ -70,7 +70,9 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
   useEffect(() => {
     if (!gateActive) return;
     const t = endAt ? setInterval(() => setNow(Date.now()), 250) : null;
-    const vis = () => { if (document.visibilityState === "hidden") fail("You fled the Gate."); };
+    // Mobile browsers suspend background timers while the screen is locked.
+    // Keep the gate active and resync from the deadline when the page returns.
+    const vis = () => { if (document.visibilityState === "visible") setNow(Date.now()); };
     document.addEventListener("visibilitychange", vis);
     return () => { if (t) clearInterval(t); document.removeEventListener("visibilitychange", vis); };
     // eslint-disable-next-line react-hooks/exhaustive-deps

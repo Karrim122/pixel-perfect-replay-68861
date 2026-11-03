@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { AlertTriangle, Bell, Check, FlaskConical, Gift, Pencil, Trash2 } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
 import { playSound } from "@/lib/sound";
-import { baseDifficultyForDiff, completeTodo, DIFFS, moveItem, RANKS, resolveDifficulty, today, uid, type Attr, type BaseDifficulty, type TodoReward } from "@/lib/system";
+import { baseDifficultyForDiff, completeTodo, DIFFS, moveItem, RANKS, resolveDifficulty, uid, type Attr, type BaseDifficulty, type TodoReward } from "@/lib/system";
 import { AttrPicker, BaseDifficultyPicker, DiffBadge, Panel, ReorderButtons, SysButton, inputCls } from "./ui";
 import { cn } from "@/lib/utils";
 
@@ -12,7 +12,7 @@ export function TodoTab() {
   const [filter, setFilter] = useState<"all" | "today">("today");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [due, setDue] = useState(today());
+  const [due, setDue] = useState("");
   const [time, setTime] = useState("");
   const [baseDifficulty, setBaseDifficulty] = useState<BaseDifficulty>("Easy");
   const [attrs, setAttrs] = useState<Attr[]>(["intelligence"]);
@@ -23,7 +23,7 @@ export function TodoTab() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const potionRewardAllowed = baseDifficulty === "Hard" || baseDifficulty === "Very Hard";
   const list = state.todos
-    .filter((t) => filter === "today" ? t.due === state.lastDay : !t.done)
+    .filter((t) => filter === "today" ? !t.due || t.due === state.lastDay : !t.done)
     .sort((a, b) => Number(a.done) - Number(b.done));
 
   const startEmergency = () => {
@@ -41,7 +41,7 @@ export function TodoTab() {
         : rewardType === "gift"
           ? { type: "gift", name: rewardName.trim(), description: rewardDescription.trim() || undefined }
           : undefined;
-      const values = { name: name.trim(), description: description.trim() || undefined, due, time: time || undefined, diff, baseDifficulty, attrs, reward };
+      const values = { name: name.trim(), description: description.trim() || undefined, due: due || undefined, time: time || undefined, diff, baseDifficulty, attrs, reward };
       if (todo) Object.assign(todo, values);
       else s.todos.push({ id: uid(), ...values, done: false });
     });
@@ -52,7 +52,7 @@ export function TodoTab() {
   const edit = (id: string) => {
     const task = state.todos.find((x) => x.id === id);
     if (!task) return;
-    setEditingId(id); setName(task.name); setDescription(task.description ?? ""); setDue(task.due); setTime(task.time ?? "");
+    setEditingId(id); setName(task.name); setDescription(task.description ?? ""); setDue(task.due ?? ""); setTime(task.time ?? "");
     const taskBaseDifficulty = task.baseDifficulty ?? baseDifficultyForDiff(task.diff, state.level);
     setBaseDifficulty(taskBaseDifficulty); setAttrs(task.attrs);
     setRewardType(task.reward?.type === "potion" && taskBaseDifficulty !== "Hard" && taskBaseDifficulty !== "Very Hard" ? "none" : task.reward?.type ?? "none"); setRewardName(task.reward?.type === "gift" ? task.reward.name : "");
@@ -85,7 +85,7 @@ export function TodoTab() {
         {list.length === 0 && <p className="font-mono text-xs text-muted-foreground">No quests registered.</p>}
         <ul className="space-y-2">
           {list.map((t, index) => {
-            const overdue = !t.done && t.due < state.lastDay;
+            const overdue = !t.done && !!t.due && t.due < state.lastDay;
             return (
               <li key={t.id} className="flex items-center gap-3 border-b border-border/40 pb-2">
                 <button onClick={() => complete(t.id)} aria-label={`Complete ${t.name}`}
@@ -98,7 +98,7 @@ export function TodoTab() {
                   </p>
                   {t.description && <p className="text-xs text-muted-foreground">{t.description}</p>}
                   <p className={cn("flex items-center gap-1 font-mono text-[10px] uppercase", overdue ? "text-destructive" : "text-muted-foreground")}>
-                    {t.due}{t.time && <><Bell className="ml-1 h-3 w-3" />{t.time}</>} · {t.attrs.join(" · ")}
+                    {t.due || "No date"}{t.time && <><Bell className="ml-1 h-3 w-3" />{t.time}</>} · {t.attrs.join(" · ")}
                   </p>
                 </div>
                 <ReorderButtons itemName={t.name} canMoveUp={index > 0 && list[index - 1]!.done === t.done} canMoveDown={index < list.length - 1 && list[index + 1]!.done === t.done}
@@ -111,7 +111,7 @@ export function TodoTab() {
             );
           })}
         </ul>
-        <SysButton className="mt-3 w-full" onClick={() => { setEditingId(null); setName(""); setDescription(""); setDue(today()); setTime(""); setBaseDifficulty("Easy"); setAttrs(["intelligence"]); setRewardType("none"); setRewardName(""); setRewardDescription(""); setOpen(true); }}>+ New Task</SysButton>
+        <SysButton className="mt-3 w-full" onClick={() => { setEditingId(null); setName(""); setDescription(""); setDue(""); setTime(""); setBaseDifficulty("Easy"); setAttrs(["intelligence"]); setRewardType("none"); setRewardName(""); setRewardDescription(""); setOpen(true); }}>+ New Task</SysButton>
       </Panel>
 
       {open && createPortal(
@@ -121,7 +121,7 @@ export function TodoTab() {
             <input autoFocus required className={inputCls} placeholder="Task name" value={name} onChange={(e) => setName(e.target.value)} />
             <textarea className={`${inputCls} min-h-20 py-2`} placeholder="Description (optional)" value={description} onChange={(e) => setDescription(e.target.value)} />
             <div className="grid grid-cols-2 gap-2">
-              <input type="date" className={inputCls} value={due} onChange={(e) => setDue(e.target.value)} />
+              <input type="date" aria-label="Due date (optional)" className={inputCls} value={due} onChange={(e) => setDue(e.target.value)} />
               <input type="time" className={inputCls} value={time} onChange={(e) => setTime(e.target.value)} aria-label="Reminder time" />
             </div>
             <BaseDifficultyPicker value={baseDifficulty} onChange={(value) => {

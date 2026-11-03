@@ -59,13 +59,13 @@ export function BonusPenaltySection() {
   return (
     <>
       <Panel title="Bonus-Penalty">
-        <p className="mb-3 font-mono text-[11px] text-muted-foreground">Good habits earn XP on up to 2 logs per day and attribute practice once per day. Each bad-habit log increases its HP and assigned-attribute penalty.</p>
+        <p className="mb-3 font-mono text-[11px] text-muted-foreground">Good habits earn XP on up to 2 logs per day and attribute practice once per day. Bad-habit penalties increase with each log that day and reset the next day.</p>
         {state.bonusPenaltyHabits.length === 0 ? (
           <p className="mb-3 font-mono text-xs text-muted-foreground">No bonus or penalty habits registered.</p>
         ) : (
           <ul className="space-y-3">
             {state.bonusPenaltyHabits.map((habit, index) => {
-              const nextOccurrence = habit.count + 1;
+              const nextOccurrence = habit.kind === "penalty" && habit.penaltyDate === state.lastDay ? (habit.penaltyCount ?? 0) + 1 : habit.kind === "penalty" ? 1 : habit.count + 1;
               const positive = habit.kind === "bonus";
               const practice = attributePracticeFor(habit.baseDifficulty, habit.diff, state.level);
               const penaltyHp = penaltyHabitDamage(habit.diff, nextOccurrence);

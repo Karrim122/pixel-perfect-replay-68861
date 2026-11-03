@@ -70,10 +70,10 @@ export const xpToNext = (level: number) => level < 60
 
 export interface WeeklyQuest { id: string; name: string; description?: string | undefined; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; daysOfWeek: number[]; doneDates: string[]; rewardedDates: string[]; reminder?: string | undefined; masteryLevel: number; masteryXp: number; }
 export interface DailyQuest { id: string; name: string; description?: string | undefined; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; doneDate: string | null; reminder?: string | undefined; }
-export interface BonusPenaltyHabit { id: string; name: string; description?: string | undefined; kind: "bonus" | "penalty"; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; count: number; lastRewardDate?: string; rewardCount?: number; lastPracticeDate?: string; }
+export interface BonusPenaltyHabit { id: string; name: string; description?: string | undefined; kind: "bonus" | "penalty"; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; count: number; penaltyCount?: number; penaltyDate?: string; lastRewardDate?: string; rewardCount?: number; lastPracticeDate?: string; }
 export type TodoReward = { type: "potion" } | { type: "gift"; name: string; description?: string | undefined };
 export interface InventoryGift { id: string; name: string; description?: string | undefined; rank: Diff; sourceTask: string; earnedAt: string; }
-export interface Todo { id: string; name: string; description?: string | undefined; due: string; time?: string | undefined; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; done: boolean; notified?: boolean; reward?: TodoReward | undefined; emergency?: boolean; emergencyDeadline?: number; emergencyFailed?: boolean; }
+export interface Todo { id: string; name: string; description?: string | undefined; due?: string; time?: string | undefined; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; done: boolean; notified?: boolean; reward?: TodoReward | undefined; emergency?: boolean; emergencyDeadline?: number; emergencyFailed?: boolean; }
 export interface Session { id: string; date: string; minutes: number; success: boolean; label: string; details?: string; paused?: boolean; }
 export interface FocusAnalysisCorrection {
   used: boolean; todayMinutes: number; todayDate: string; totalMinutes: number; closedGates: number; efficiency: number;
@@ -215,12 +215,15 @@ export function triggerBonusPenaltyHabit(s: GameState, id: string, alerts: Alert
     const practiceMessage = gainedPractice ? ` +${practice} attribute practice for ${habit.attrs.join(", ")}.` : " Daily attribute practice was already earned.";
     alerts.push({ kind: "info", title: "[SYSTEM] Good Habit Complete!", body: `${habit.name} complete. +${xp} XP.${practiceMessage} Keep your streak of good choices going.` });
   } else {
-    const damage = penaltyHabitDamage(habit.diff, occurrence);
-    const practice = attributePenaltyPracticeFor(habit.baseDifficulty, habit.diff, s.level) * occurrence;
+    const dailyOccurrence = habit.penaltyDate === s.lastDay ? (habit.penaltyCount ?? 0) + 1 : 1;
+    habit.penaltyDate = s.lastDay;
+    habit.penaltyCount = dailyOccurrence;
+    const damage = penaltyHabitDamage(habit.diff, dailyOccurrence);
+    const practice = attributePenaltyPracticeFor(habit.baseDifficulty, habit.diff, s.level) * dailyOccurrence;
     changeStats(s, habit.attrs, -practice);
-    log(s, `Penalty habit: ${habit.name} (×${occurrence}). -${damage} HP, -${practice} attribute practice`, "warn");
+    log(s, `Penalty habit: ${habit.name} (×${dailyOccurrence} today). -${damage} HP, -${practice} attribute practice`, "warn");
     takeDamage(s, damage, alerts);
-    alerts.push({ kind: "penalty", title: "[SYSTEM] Bad Habit Penalty", body: `${habit.name} logged (occurrence ${occurrence}). -${damage} HP and -${practice} attribute practice for ${habit.attrs.join(", ")}. The next occurrence will cost more—use this as a cue to choose differently next time.` });
+    alerts.push({ kind: "penalty", title: "[SYSTEM] Bad Habit Penalty", body: `${habit.name} logged (occurrence ${dailyOccurrence} today). -${damage} HP and -${practice} attribute practice for ${habit.attrs.join(", ")}. The next occurrence today will cost more; the penalty resets tomorrow.` });
   }
 }
 
@@ -358,7 +361,7 @@ export function rollover(s: GameState, alerts: Alert[]) {
   if (recovered > 0) log(s, `Rest recovery. +${recovered} HP`, "info");
   if (s.dailyGateQuestDoneDate !== s.lastDay) {
     const diff = difficultyForRankIndex(rankIndex(s.level));
-    const damage = DIFF_HP[diff];
+    const damage = Math.max(10, DIFF_HP[diff] * 5);
     log(s, `Daily Quest failed: Close todays gate. -${damage} HP`, "warn");
     alerts.push({ kind: "penalty", title: "[System Alert] Daily Quest Failed", body: `Close todays gate was not completed. -${damage} HP.` });
     takeDamage(s, damage, alerts);
