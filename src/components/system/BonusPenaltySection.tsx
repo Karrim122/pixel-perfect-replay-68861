@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { Minus, Pencil, Plus, Trash2 } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
-import { attributePenaltyPracticeFor, attributePracticeFor, baseDifficultyForDiff, DIFF_XP, moveItem, penaltyHabitDamage, resolveDifficulty, triggerBonusPenaltyHabit, uid, type Attr, type BaseDifficulty } from "@/lib/system";
+import { attributePenaltyPracticeFor, attributeProgressForXp, baseDifficultyForDiff, DIFF_XP, moveItem, penaltyHabitDamage, resolveDifficulty, triggerBonusPenaltyHabit, uid, type Attr, type BaseDifficulty } from "@/lib/system";
 import { playSound } from "@/lib/sound";
 import { AttrPicker, BaseDifficultyPicker, DiffBadge, Panel, ReorderButtons, SysButton, inputCls } from "./ui";
 
@@ -59,7 +59,7 @@ export function BonusPenaltySection() {
   return (
     <>
       <Panel title="Bonus-Penalty">
-        <p className="mb-3 font-mono text-[11px] text-muted-foreground">Good habits earn XP on up to 2 logs per day and attribute practice once per day. Bad habits cost 15–60 HP per log at base, escalating with each log that day; penalties reset the next day.</p>
+        <p className="mb-3 font-mono text-[11px] text-muted-foreground">Good habits earn XP on up to 2 logs per day and attribute progress once per day, scaled to your level. Bad habits cost 15–60 HP per log at base, escalating with each log that day; penalties reset the next day.</p>
         {state.bonusPenaltyHabits.length === 0 ? (
           <p className="mb-3 font-mono text-xs text-muted-foreground">No bonus or penalty habits registered.</p>
         ) : (
@@ -67,14 +67,14 @@ export function BonusPenaltySection() {
             {state.bonusPenaltyHabits.map((habit, index) => {
               const nextOccurrence = habit.kind === "penalty" && habit.penaltyDate === state.lastDay ? (habit.penaltyCount ?? 0) + 1 : habit.kind === "penalty" ? 1 : habit.count + 1;
               const positive = habit.kind === "bonus";
-              const practice = attributePracticeFor(habit.baseDifficulty, habit.diff, state.level);
+              const progress = attributeProgressForXp(DIFF_XP[habit.diff], state.level);
               const penaltyHp = penaltyHabitDamage(habit.diff, nextOccurrence);
               const penaltyPractice = attributePenaltyPracticeFor(habit.baseDifficulty, habit.diff, state.level) * nextOccurrence;
               const rewardCount = habit.lastRewardDate === state.lastDay ? habit.rewardCount ?? 1 : 0;
               const practiceEarned = habit.lastPracticeDate === state.lastDay || (!habit.lastPracticeDate && habit.lastRewardDate === state.lastDay);
               const bonusStatus = rewardCount >= 2
                 ? "Daily XP limit reached (2/2)"
-                : `Next log: +${DIFF_XP[habit.diff]} XP${practiceEarned ? " (practice earned today)" : `, +${practice} practice for ${habit.attrs.join(" | ")}`} · ${rewardCount}/2 XP rewards today`;
+                : `Next log: +${DIFF_XP[habit.diff]} XP${practiceEarned ? " (attribute progress earned today)" : `, +${progress}% progress for ${habit.attrs.join(" | ")}`} · ${rewardCount}/2 XP rewards today`;
               return (
                 <li key={habit.id} className="flex items-center gap-2 border-b border-border/40 pb-3">
                   <button aria-label={`Log ${positive ? "good" : "bad"} habit ${habit.name}`} onClick={() => trigger(habit.id)}

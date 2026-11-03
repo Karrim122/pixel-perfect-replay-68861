@@ -12,7 +12,7 @@ export const DIFF_XP: Record<Diff, number> = { E: 4, D: 6, C: 9, B: 12, A: 16, S
 export const DIFF_HP: Record<Diff, number> = { E: 1, D: 1, C: 2, B: 2, A: 3, S: 4, N: 5, M: 6 };
 export const penaltyHabitDamage = (diff: Diff, occurrence: number) => Math.max(15, DIFF_HP[diff] * 10) * occurrence;
 export const ATTRIBUTE_PRACTICE_THRESHOLD = 100;
-export const ATTRIBUTE_GAIN_THRESHOLD = 50;
+export const ATTRIBUTE_GAIN_THRESHOLD = 100;
 export type BaseDifficulty = "Very Easy" | "Easy" | "Medium" | "Hard" | "Very Hard";
 export const BASE_DIFFICULTIES: BaseDifficulty[] = ["Very Easy", "Easy", "Medium", "Hard", "Very Hard"];
 export const ATTRIBUTE_PRACTICE: Record<BaseDifficulty, number> = { "Very Easy": 6, Easy: 8, Medium: 12, Hard: 18, "Very Hard": 24 };
@@ -39,6 +39,9 @@ export function attributePracticeFor(base: BaseDifficulty | undefined, diff: Dif
 }
 export function scaleAttributePractice(practice: number, playerLevel: number) {
   return Math.round(practice * (1 + rankIndex(playerLevel) * 0.1));
+}
+export function attributeProgressForXp(xp: number, playerLevel: number) {
+  return Math.round((xp / xpToNext(playerLevel)) * ATTRIBUTE_GAIN_THRESHOLD * 10) / 10;
 }
 export function attributePenaltyPracticeFor(base: BaseDifficulty | undefined, diff: Diff, playerLevel: number) {
   return ATTRIBUTE_PENALTY_PRACTICE[base ?? baseDifficultyForDiff(diff, playerLevel)];
@@ -147,11 +150,11 @@ export function completeWeeklyQuest(s: GameState, id: string, alerts: Alert[], d
     quest.masteryLevel += 1;
     log(s, `Weekly quest mastered: ${quest.name} reached level ${quest.masteryLevel}`, "level");
   }
+  const progress = attributeProgressForXp(earnedXp, s.level);
   gainXp(s, earnedXp, alerts);
-  const practice = attributePracticeFor(quest.baseDifficulty, quest.diff, s.level);
-  changeStats(s, quest.attrs, practice);
+  changeStats(s, quest.attrs, progress);
   log(s, `Weekly quest complete: ${quest.name} (+${earnedXp} XP)`, "info");
-  alerts.push({ kind: "info", title: "[SYSTEM] Weekly Quest Complete!", body: `${quest.name} complete. +${earnedXp} XP and +${practice} attribute practice for ${quest.attrs.join(", ")}. Skill progress: Level ${quest.masteryLevel}, ${quest.masteryXp}/${xpToNext(quest.masteryLevel)} XP.` });
+  alerts.push({ kind: "info", title: "[SYSTEM] Weekly Quest Complete!", body: `${quest.name} complete. +${earnedXp} XP and +${progress}% attribute progress for ${quest.attrs.join(", ")}. Skill progress: Level ${quest.masteryLevel}, ${quest.masteryXp}/${xpToNext(quest.masteryLevel)} XP.` });
   awardWeeklyCompletionGift(s, quest, date, alerts);
   return true;
 }
@@ -169,17 +172,17 @@ export function completeDailyQuest(s: GameState, id: string, alerts: Alert[]) {
   if (!quest || quest.doneDate === s.lastDay) return;
   quest.doneDate = s.lastDay;
   const earnedXp = DIFF_XP[quest.diff];
+  const progress = attributeProgressForXp(earnedXp, s.level);
   gainXp(s, earnedXp, alerts);
-  const practice = attributePracticeFor(quest.baseDifficulty, quest.diff, s.level);
-  changeStats(s, quest.attrs, practice);
+  changeStats(s, quest.attrs, progress);
   log(s, `Daily quest complete: ${quest.name} (+${earnedXp} XP)`, "info");
   if (s.dailyQuests.length && s.dailyQuests.every((item) => item.doneDate === s.lastDay) && s.dailyQuestRewardDay !== s.lastDay) {
     s.dailyQuestRewardDay = s.lastDay;
     s.potions += 1;
     log(s, "All daily quests complete. +1 Healing Potion", "level");
-    alerts.push({ kind: "info", title: "[SYSTEM] All Daily Quests Complete!", body: `${quest.name} complete. +${earnedXp} XP and +${practice} attribute practice for ${quest.attrs.join(", ")}. You cleared all your added Daily quests and earned +1 Healing Potion.` });
+    alerts.push({ kind: "info", title: "[SYSTEM] All Daily Quests Complete!", body: `${quest.name} complete. +${earnedXp} XP and +${progress}% attribute progress for ${quest.attrs.join(", ")}. You cleared all your added Daily quests and earned +1 Healing Potion.` });
   } else {
-    alerts.push({ kind: "info", title: "[SYSTEM] Daily Quest Complete!", body: `${quest.name} complete. +${earnedXp} XP and +${practice} attribute practice for ${quest.attrs.join(", ")}.` });
+    alerts.push({ kind: "info", title: "[SYSTEM] Daily Quest Complete!", body: `${quest.name} complete. +${earnedXp} XP and +${progress}% attribute progress for ${quest.attrs.join(", ")}.` });
   }
 }
 
@@ -204,16 +207,16 @@ export function triggerBonusPenaltyHabit(s: GameState, id: string, alerts: Alert
     }
     habit.rewardCount = (habit.rewardCount ?? 0) + 1;
     const xp = DIFF_XP[habit.diff];
+    const progress = attributeProgressForXp(xp, s.level);
     gainXp(s, xp, alerts);
-    const practice = attributePracticeFor(habit.baseDifficulty, habit.diff, s.level);
     if (legacyRewardedToday) habit.lastPracticeDate = s.lastDay;
     const gainedPractice = habit.lastPracticeDate !== s.lastDay;
     if (gainedPractice) {
       habit.lastPracticeDate = s.lastDay;
-      changeStats(s, habit.attrs, practice);
+      changeStats(s, habit.attrs, progress);
     }
-    log(s, `Bonus habit: ${habit.name} (×${occurrence}). +${xp} XP${gainedPractice ? `, +${practice} attribute practice` : ""}`, "info");
-    const practiceMessage = gainedPractice ? ` +${practice} attribute practice for ${habit.attrs.join(", ")}.` : " Daily attribute practice was already earned.";
+    log(s, `Bonus habit: ${habit.name} (×${occurrence}). +${xp} XP${gainedPractice ? `, +${progress}% attribute progress` : ""}`, "info");
+    const practiceMessage = gainedPractice ? ` +${progress}% attribute progress for ${habit.attrs.join(", ")}.` : " Daily attribute progress was already earned.";
     alerts.push({ kind: "info", title: "[SYSTEM] Good Habit Complete!", body: `${habit.name} complete. +${xp} XP.${practiceMessage} Keep your streak of good choices going.` });
   } else {
     const dailyOccurrence = habit.penaltyDate === s.lastDay ? (habit.penaltyCount ?? 0) + 1 : 1;
@@ -233,25 +236,25 @@ export function completeTodo(s: GameState, id: string, alerts: Alert[]) {
   if (!task || task.done) return;
   task.done = true;
   const earnedXp = DIFF_XP[task.diff];
+  const progress = attributeProgressForXp(earnedXp, s.level);
   gainXp(s, earnedXp, alerts);
-  const practice = attributePracticeFor(task.baseDifficulty, task.diff, s.level);
-  changeStats(s, task.attrs, practice);
+  changeStats(s, task.attrs, progress);
   log(s, `Quest cleared: ${task.name} (+${earnedXp} XP)`, "info");
   if (task.reward?.type === "potion") {
     if (task.baseDifficulty === "Hard" || task.baseDifficulty === "Very Hard") {
       s.potions += 1;
       log(s, `Task reward received: Healing Potion (${task.name})`, "level");
-      alerts.push({ kind: "info", title: "[SYSTEM] Task Complete!", body: `${task.name} complete. +${earnedXp} XP, +${practice} attribute practice for ${task.attrs.join(", ")}, and +1 Healing Potion.` });
+      alerts.push({ kind: "info", title: "[SYSTEM] Task Complete!", body: `${task.name} complete. +${earnedXp} XP, +${progress}% attribute progress for ${task.attrs.join(", ")}, and +1 Healing Potion.` });
     } else {
       log(s, `Healing Potion reward not earned: ${task.name} is not Hard or Very Hard`, "info");
-      alerts.push({ kind: "info", title: "[SYSTEM] Task Complete!", body: `${task.name} complete. +${earnedXp} XP and +${practice} attribute practice for ${task.attrs.join(", ")}. Potion rewards require a Hard or Very Hard task.` });
+      alerts.push({ kind: "info", title: "[SYSTEM] Task Complete!", body: `${task.name} complete. +${earnedXp} XP and +${progress}% attribute progress for ${task.attrs.join(", ")}. Potion rewards require a Hard or Very Hard task.` });
     }
   } else if (task.reward?.type === "gift") {
     s.inventoryGifts.unshift({ id: uid(), name: task.reward.name, ...(task.reward.description ? { description: task.reward.description } : {}), rank: task.diff, sourceTask: task.name, earnedAt: s.lastDay });
     log(s, `Task reward received: ${task.reward.name} (${task.diff}-Rank Gift)`, "level");
-    alerts.push({ kind: "info", title: "[SYSTEM] Task Complete!", body: `${task.name} complete. +${earnedXp} XP, +${practice} attribute practice for ${task.attrs.join(", ")}, and ${task.reward.name} (${task.diff}-Rank) was added to your inventory.` });
+    alerts.push({ kind: "info", title: "[SYSTEM] Task Complete!", body: `${task.name} complete. +${earnedXp} XP, +${progress}% attribute progress for ${task.attrs.join(", ")}, and ${task.reward.name} (${task.diff}-Rank) was added to your inventory.` });
   } else {
-    alerts.push({ kind: "info", title: "[SYSTEM] Task Complete!", body: `${task.name} complete. +${earnedXp} XP and +${practice} attribute practice for ${task.attrs.join(", ")}.` });
+    alerts.push({ kind: "info", title: "[SYSTEM] Task Complete!", body: `${task.name} complete. +${earnedXp} XP and +${progress}% attribute progress for ${task.attrs.join(", ")}.` });
   }
 }
 
@@ -259,11 +262,11 @@ export function completeFocusRegain(s: GameState, alerts: Alert[]) {
   if (s.focusRegainDeadline === null || s.focusRegainDeadline > Date.now()) return;
   s.focusRegainDeadline = null;
   const earnedXp = DIFF_XP[resolveDifficulty("Very Hard", s.level)];
+  const progress = attributeProgressForXp(earnedXp, s.level);
   gainXp(s, earnedXp, alerts);
-  const practice = scaleAttributePractice(24, s.level);
-  changeStats(s, ["discipline"], practice);
-  log(s, `Focus Regain complete (+${earnedXp} XP, +${practice} Discipline practice)`, "level");
-  alerts.push({ kind: "info", title: "[SYSTEM] Focus Regained!", body: `Nice work getting back on track. +${earnedXp} XP and +${practice} Discipline practice.` });
+  changeStats(s, ["discipline"], progress);
+  log(s, `Focus Regain complete (+${earnedXp} XP, +${progress}% Discipline progress)`, "level");
+  alerts.push({ kind: "info", title: "[SYSTEM] Focus Regained!", body: `Nice work getting back on track. +${earnedXp} XP and +${progress}% Discipline progress.` });
 }
 
 export function failFocusRegain(s: GameState, alerts: Alert[]) {
@@ -277,12 +280,12 @@ export function failFocusRegain(s: GameState, alerts: Alert[]) {
   takeDamage(s, damage, alerts);
 }
 
-export function completeDailyGateQuest(s: GameState) {
+export function completeDailyGateQuest(s: GameState, earnedXp: number, levelAtStart: number) {
   if (s.dailyGateQuestDoneDate === s.lastDay) return;
   s.dailyGateQuestDoneDate = s.lastDay;
-  const practice = scaleAttributePractice(6, s.level);
-  changeStats(s, ["discipline", "perception"], practice);
-  log(s, `Daily Quest complete: Close todays gate (+${practice} Discipline and Perception practice)`, "level");
+  const progress = attributeProgressForXp(earnedXp, levelAtStart);
+  changeStats(s, ["discipline", "perception"], progress);
+  log(s, `Daily Quest complete: Close todays gate (+${progress}% Discipline and Perception progress)`, "level");
 }
 
 export function usePotion(s: GameState) {
@@ -339,7 +342,7 @@ export function takeDamage(s: GameState, amount: number, alerts: Alert[]) {
 
 export function changeStats(s: GameState, attrs: Attr[], practice: number) {
   attrs.forEach((a) => {
-    let progress = s.statProgress[a] + practice;
+    let progress = Math.round((s.statProgress[a] + practice) * 10) / 10;
     while (progress >= ATTRIBUTE_GAIN_THRESHOLD) {
       s.stats[a] += 1;
       progress -= ATTRIBUTE_GAIN_THRESHOLD;
@@ -404,7 +407,7 @@ export function hydrateState(raw: string): GameState {
   const adjustLegacyStartingStats = saved.startingStatsAdjusted !== true && Boolean(saved.stats);
   ATTRS.forEach(({ key }) => {
     stats[key] = Math.max(1, Math.round(stats[key] - (adjustLegacyStartingStats ? 10 : 0)));
-    let progress = Math.round(statProgress[key] ?? 0);
+    let progress = Math.round((statProgress[key] ?? 0) * 10) / 10;
     while (progress >= ATTRIBUTE_GAIN_THRESHOLD) {
       stats[key] += 1;
       progress -= ATTRIBUTE_GAIN_THRESHOLD;
