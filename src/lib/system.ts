@@ -41,8 +41,7 @@ export function scaleAttributePractice(practice: number, playerLevel: number) {
   return Math.round(practice * (1 + rankIndex(playerLevel) * 0.1));
 }
 export function attributeProgressForXp(xp: number, playerLevel: number) {
-  const multiplier = playerLevel <= 10 ? 5 : 3;
-  return Math.round((xp / xpToNext(playerLevel)) * ATTRIBUTE_GAIN_THRESHOLD * multiplier * 10) / 10;
+  return Math.round((xp / xpToNext(playerLevel)) * ATTRIBUTE_GAIN_THRESHOLD * 3 * 10) / 10;
 }
 export function attributePenaltyPracticeFor(base: BaseDifficulty | undefined, diff: Diff, playerLevel: number) {
   return ATTRIBUTE_PENALTY_PRACTICE[base ?? baseDifficultyForDiff(diff, playerLevel)];
