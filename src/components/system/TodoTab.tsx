@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { AlertTriangle, Check, Focus } from "lucide-react";
+import { AlertTriangle, Brain, Check } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
 import { playSound } from "@/lib/sound";
 import { baseDifficultyForDiff, completeTodo, DIFFS, FOCUS_BREATH_DAILY_LIMIT, moveItem, RANKS, resolveDifficulty, startFocusBreaths, startFocusRegain, today, uid, type Attr, type BaseDifficulty, type TodoReward } from "@/lib/system";
@@ -87,7 +87,7 @@ export function TodoTab() {
           <h2 className="font-mono text-xs uppercase tracking-[0.3em] text-primary sys-glow-text">Quests · {list.filter((t) => !t.done).length} active</h2>
           <div className="flex items-center gap-1.5">
             <SysButton variant="ghost" disabled={!canStartFocusBreaths} className="!min-h-0 !h-8 !w-8 rounded-sm p-0 flex items-center justify-center" title={`Start five-minute focus breathing · ${Math.max(0, FOCUS_BREATH_DAILY_LIMIT - focusBreathsUsedToday)} uses left today`} aria-label="Start five-minute focus breathing" onClick={() => act((s) => startFocusBreaths(s))}>
-              <Focus className="h-3.5 w-3.5" />
+              <Brain className="h-3.5 w-3.5" />
             </SysButton>
             <SysButton variant="danger" className="!min-h-0 !h-8 !w-8 rounded-sm p-0 flex items-center justify-center" title="Start a Focus Regain urgent quest" aria-label="Start Focus Regain urgent quest" onClick={startEmergency}>
               <AlertTriangle className="h-3.5 w-3.5" />
