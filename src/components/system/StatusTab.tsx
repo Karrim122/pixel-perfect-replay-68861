@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { useSystem } from "@/lib/store";
 import { ATTRS, RANKS, rankIndex, xpToNext, usePotion, POTION_HP, isLowHp, uid } from "@/lib/system";
 import { FlaskConical, Gift, Package, X } from "lucide-react";
-import { AddIconButton, AttributeIcon, Bar, DiffBadge, Panel, SysButton } from "./ui";
+import { AddIconButton, AttributeIcon, Bar, DiffBadge, ItemOptionsMenu, Panel, SysButton } from "./ui";
 import { cn } from "@/lib/utils";
 
 const ATTRIBUTE_TITLES: Record<(typeof ATTRS)[number]["key"], string> = {
@@ -124,7 +124,7 @@ export function StatusTab() {
           <div className="space-y-3">
             {state.skills.map((skill) => <div key={skill.id} className="flex items-center justify-between gap-3 border border-border/70 bg-background/30 p-3">
               <h3 className="min-w-0 truncate font-bold text-foreground">{skill.name}</h3>
-              <div className="flex shrink-0 items-center gap-2"><span className="font-mono text-sm font-bold text-primary">Lv {skill.level}</span><button aria-label={`Delete ${skill.name}`} className="text-xs text-muted-foreground" onClick={() => act((s) => { s.skills = s.skills.filter((item) => item.id !== skill.id); s.todos.forEach((task) => { if (task.skillId === skill.id) task.skillId = undefined; }); s.weeklyQuests.forEach((quest) => { if (quest.skillId === skill.id) quest.skillId = undefined; }); s.dailyQuests.forEach((quest) => { if (quest.skillId === skill.id) quest.skillId = undefined; }); })}>Delete</button></div>
+              <div className="flex shrink-0 items-center gap-2"><span className="font-mono text-sm font-bold text-primary">Lv {skill.level}</span><ItemOptionsMenu itemName={skill.name} info={`Level: ${skill.level}`} onDelete={() => act((s) => { s.skills = s.skills.filter((item) => item.id !== skill.id); s.todos.forEach((task) => { if (task.skillId === skill.id) task.skillId = undefined; }); s.weeklyQuests.forEach((quest) => { if (quest.skillId === skill.id) quest.skillId = undefined; }); s.dailyQuests.forEach((quest) => { if (quest.skillId === skill.id) quest.skillId = undefined; }); })} /></div>
             </div>)}
           </div>
         )}
