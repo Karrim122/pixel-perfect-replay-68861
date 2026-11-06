@@ -1,8 +1,10 @@
-import type { ReactNode } from "react";
-import { ArrowDown, ArrowUp, Brain, Dumbbell, Eye, HeartPulse, ShieldCheck } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { ArrowDown, ArrowUp, Brain, Dumbbell, Eye, HeartPulse, MoreHorizontal, Pencil, Trash2, Info, ShieldCheck } from "lucide-react";
 import { ATTRS, BASE_DIFFICULTIES, DIFFS, RANKS, rankIndex, resolveDifficulty, type Attr, type BaseDifficulty, type Diff } from "@/lib/system";
 import { cn } from "@/lib/utils";
 import { playSound } from "@/lib/sound";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export function Panel({ children, className, title }: { children: ReactNode; className?: string; title?: string }) {
   return (
@@ -64,6 +66,39 @@ export function ReorderButtons({ itemName, canMoveUp, canMoveDown, onMoveUp, onM
       <button type="button" disabled={!canMoveDown} aria-label={`Move ${itemName} down`} title="Move down" onClick={onMoveDown} className={buttonClass}><ArrowDown className="h-3 w-3" /></button>
     </div>
   );
+}
+
+export function ItemOptionsMenu({ itemName, info, onEdit, onMoveUp, onMoveDown, onDelete, canMoveUp = true, canMoveDown = true }: {
+  itemName: string;
+  info: string;
+  onEdit?: () => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
+  onDelete?: () => void;
+  canMoveUp?: boolean;
+  canMoveDown?: boolean;
+}) {
+  const [infoOpen, setInfoOpen] = useState(false);
+  return <>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild><button type="button" aria-label={`Options for ${itemName}`} className="flex h-8 w-8 shrink-0 items-center justify-center rounded border border-border text-muted-foreground hover:border-primary hover:text-primary"><MoreHorizontal className="h-4 w-4" /></button></DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="min-w-40">
+        {onEdit && <DropdownMenuItem onSelect={onEdit}><Pencil />Edit</DropdownMenuItem>}
+        {(onMoveUp || onMoveDown) && <>
+          {onMoveUp && <DropdownMenuItem disabled={!canMoveUp} onSelect={onMoveUp}><ArrowUp />Move up</DropdownMenuItem>}
+          {onMoveDown && <DropdownMenuItem disabled={!canMoveDown} onSelect={onMoveDown}><ArrowDown />Move down</DropdownMenuItem>}
+        </>}
+        {onDelete && <><DropdownMenuSeparator /><DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={onDelete}><Trash2 />Delete</DropdownMenuItem></>}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={() => setInfoOpen(true)}><Info />Info</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+    <Dialog open={infoOpen} onOpenChange={setInfoOpen}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader><DialogTitle>{itemName}</DialogTitle><DialogDescription className="whitespace-pre-wrap">{info || "No additional details."}</DialogDescription></DialogHeader>
+      </DialogContent>
+    </Dialog>
+  </>;
 }
 
 export const inputCls = "min-h-11 w-full border border-input bg-background/60 px-3 text-base text-foreground outline-none focus:border-primary focus:shadow-[0_0_10px_-3px_var(--primary)]";

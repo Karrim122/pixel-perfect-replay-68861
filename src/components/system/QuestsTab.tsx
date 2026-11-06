@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { Check, Pencil, Plus, Trash2 } from "lucide-react";
+import { Check, Plus } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
 import { baseDifficultyForDiff, completeDailyQuest, completeWeeklyQuest, difficultyForRankIndex, isWeeklyQuestScheduled, moveItem, rankIndex, resolveDifficulty, uid, type Attr, type BaseDifficulty } from "@/lib/system";
 import { playSound } from "@/lib/sound";
 import { BonusPenaltySection } from "./BonusPenaltySection";
-import { AttrPicker, BaseDifficultyPicker, DiffBadge, Panel, ReorderButtons, SysButton, inputCls } from "./ui";
+import { AttrPicker, BaseDifficultyPicker, DiffBadge, ItemOptionsMenu, Panel, SysButton, inputCls } from "./ui";
 import { cn } from "@/lib/utils";
 
 export function QuestsTab() {
@@ -15,6 +15,7 @@ export function QuestsTab() {
   const rankDiff = difficultyForRankIndex(rankIndex(state.level));
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingWeeklyId, setEditingWeeklyId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [baseDifficulty, setBaseDifficulty] = useState<BaseDifficulty>("Easy");
@@ -22,7 +23,7 @@ export function QuestsTab() {
   const [reminder, setReminder] = useState("");
 
   const closeEditor = () => {
-    setOpen(false); setEditingId(null); setName(""); setDescription("");
+    setOpen(false); setEditingId(null); setEditingWeeklyId(null); setName(""); setDescription("");
     setBaseDifficulty("Easy"); setAttrs(["discipline"]); setReminder("");
   };
 
@@ -33,7 +34,9 @@ export function QuestsTab() {
       const diff = resolveDifficulty(baseDifficulty, s.level);
       const quest = editingId ? s.dailyQuests.find((item) => item.id === editingId) : undefined;
       const values = { name: name.trim(), description: description.trim() || undefined, diff, baseDifficulty, attrs, reminder: reminder || undefined };
-      if (quest) Object.assign(quest, values);
+      const weeklyQuest = editingWeeklyId ? s.weeklyQuests.find((item) => item.id === editingWeeklyId) : undefined;
+      if (weeklyQuest) Object.assign(weeklyQuest, values);
+      else if (quest) Object.assign(quest, values);
       else s.dailyQuests.push({ id: uid(), ...values, doneDate: null });
     });
     if (reminder && typeof Notification !== "undefined" && Notification.permission === "default") Notification.requestPermission();
@@ -43,7 +46,15 @@ export function QuestsTab() {
   const edit = (id: string) => {
     const quest = state.dailyQuests.find((item) => item.id === id);
     if (!quest) return;
-    setEditingId(id); setName(quest.name); setDescription(quest.description ?? "");
+    setEditingWeeklyId(null); setEditingId(id); setName(quest.name); setDescription(quest.description ?? "");
+    setBaseDifficulty(quest.baseDifficulty ?? baseDifficultyForDiff(quest.diff, state.level));
+    setAttrs(quest.attrs); setReminder(quest.reminder ?? ""); setOpen(true);
+  };
+
+  const editWeekly = (id: string) => {
+    const quest = state.weeklyQuests.find((item) => item.id === id);
+    if (!quest) return;
+    setEditingId(null); setEditingWeeklyId(id); setName(quest.name); setDescription(quest.description ?? "");
     setBaseDifficulty(quest.baseDifficulty ?? baseDifficultyForDiff(quest.diff, state.level));
     setAttrs(quest.attrs); setReminder(quest.reminder ?? ""); setOpen(true);
   };
@@ -86,16 +97,15 @@ export function QuestsTab() {
                       className={cn("flex h-9 w-9 shrink-0 items-center justify-center border disabled:cursor-default", done ? "border-success bg-success/20 text-success" : "border-primary/60 text-primary")}>
                       {done && <Check className="h-4 w-4" />}
                     </button>
-                    <div className="min-w-0 flex-1">
+                    <div className="min-w-0 flex-1 pr-3">
                       <p className={cn("truncate text-base", done && "text-muted-foreground line-through")}>{quest.name}</p>
                       {quest.description && <p className="text-xs text-muted-foreground">{quest.description}</p>}
                     </div>
                     <DiffBadge d={quest.diff} />
-                    <ReorderButtons itemName={quest.name} canMoveUp={index > 0} canMoveDown={index < state.dailyQuests.length - 1}
+                    <ItemOptionsMenu itemName={quest.name} info={`${quest.description || "No description."}\nAttributes: ${quest.attrs.join(", ")}\nRank: ${quest.diff}${quest.reminder ? `\nReminder: ${quest.reminder}` : ""}`} onEdit={() => edit(quest.id)} canMoveUp={index > 0} canMoveDown={index < state.dailyQuests.length - 1}
                       onMoveUp={() => act((s) => moveItem(s.dailyQuests, quest.id, state.dailyQuests[index - 1]!.id))}
-                      onMoveDown={() => act((s) => moveItem(s.dailyQuests, quest.id, state.dailyQuests[index + 1]!.id))} />
-                    <button aria-label={`Edit ${quest.name}`} onClick={() => edit(quest.id)} className="p-2 text-muted-foreground"><Pencil className="h-4 w-4" /></button>
-                    <button aria-label={`Delete ${quest.name}`} onClick={() => act((s) => { s.dailyQuests = s.dailyQuests.filter((item) => item.id !== quest.id); })} className="p-2 text-muted-foreground"><Trash2 className="h-4 w-4" /></button>
+                      onMoveDown={() => act((s) => moveItem(s.dailyQuests, quest.id, state.dailyQuests[index + 1]!.id))}
+                      onDelete={() => act((s) => { s.dailyQuests = s.dailyQuests.filter((item) => item.id !== quest.id); })} />
                   </li>
                 );
               })}
@@ -117,14 +127,15 @@ export function QuestsTab() {
                     className={cn("flex h-10 w-10 shrink-0 items-center justify-center border disabled:cursor-default", done ? "border-success bg-success/20 text-success" : "border-primary/60 text-primary")}>
                     {done && <Check className="h-5 w-5" />}
                   </button>
-                  <div className="flex-1">
+                  <div className="min-w-0 flex-1 pr-3">
                     <p className={cn("text-lg leading-tight", done && "text-muted-foreground line-through")}>{quest.name}</p>
                     {quest.description && <p className="text-xs text-muted-foreground">{quest.description}</p>}
                   </div>
                   <DiffBadge d={quest.diff} />
-                  <ReorderButtons itemName={quest.name} canMoveUp={index > 0} canMoveDown={index < todayQuests.length - 1}
+                  <ItemOptionsMenu itemName={quest.name} info={`${quest.description || "No description."}\nAttributes: ${quest.attrs.join(", ")}\nRank: ${quest.diff}\nFocus time: ${quest.focusMinutes ? `${quest.focusMinutes} minutes` : "not assigned"}\nRepeat: ${quest.daysOfWeek.length} days per week`} onEdit={() => editWeekly(quest.id)} canMoveUp={index > 0} canMoveDown={index < todayQuests.length - 1}
                     onMoveUp={() => act((s) => moveItem(s.weeklyQuests, quest.id, todayQuests[index - 1]!.id))}
-                    onMoveDown={() => act((s) => moveItem(s.weeklyQuests, quest.id, todayQuests[index + 1]!.id))} />
+                    onMoveDown={() => act((s) => moveItem(s.weeklyQuests, quest.id, todayQuests[index + 1]!.id))}
+                    onDelete={() => act((s) => { s.weeklyQuests = s.weeklyQuests.filter((item) => item.id !== quest.id); })} />
                 </li>
               );
             })}
@@ -137,15 +148,15 @@ export function QuestsTab() {
 
       {open && createPortal(
         <div className="fixed inset-0 z-[100] flex items-end bg-background/80 backdrop-blur-md" onClick={closeEditor}>
-          <form role="dialog" aria-modal="true" aria-label={editingId ? "Edit daily quest" : "Create daily quest"} onClick={(event) => event.stopPropagation()} onSubmit={save}
+          <form role="dialog" aria-modal="true" aria-label={editingId || editingWeeklyId ? "Edit quest" : "Create daily quest"} onClick={(event) => event.stopPropagation()} onSubmit={save}
             className="sys-panel mx-auto max-h-[90dvh] w-full max-w-md space-y-3 overflow-y-auto p-5 animate-in slide-in-from-bottom">
-            <h3 className="font-mono text-xs uppercase tracking-[0.3em] text-primary">{editingId ? "Edit Daily Quest" : "New Daily Quest"}</h3>
+            <h3 className="font-mono text-xs uppercase tracking-[0.3em] text-primary">{editingWeeklyId ? "Edit Weekly Quest" : editingId ? "Edit Daily Quest" : "New Daily Quest"}</h3>
             <input autoFocus required className={inputCls} placeholder="Quest name" value={name} onChange={(event) => setName(event.target.value)} />
             <textarea className={`${inputCls} min-h-20 py-2`} placeholder="Description (optional)" value={description} onChange={(event) => setDescription(event.target.value)} />
             <BaseDifficultyPicker value={baseDifficulty} onChange={setBaseDifficulty} playerLevel={state.level} />
             <AttrPicker value={attrs} onChange={setAttrs} />
             <label className="block font-mono text-xs text-muted-foreground">Reminder (optional)<input type="time" className={inputCls} value={reminder} onChange={(event) => setReminder(event.target.value)} /></label>
-            <div className="flex gap-2"><SysButton type="submit" className="flex-1">{editingId ? "Save Changes" : "Create Daily Quest"}</SysButton><SysButton type="button" variant="ghost" onClick={closeEditor}>Cancel</SysButton></div>
+            <div className="flex gap-2"><SysButton type="submit" className="flex-1">{editingId || editingWeeklyId ? "Save Changes" : "Create Daily Quest"}</SysButton><SysButton type="button" variant="ghost" onClick={closeEditor}>Cancel</SysButton></div>
           </form>
         </div>,
         document.body,

@@ -18,15 +18,13 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
   const [focusMinutes, setFocusMinutes] = useState(0);
   const [gateActive, setGateActive] = useState(false);
   const [entering, setEntering] = useState(false);
-  const [editingAnalysis, setEditingAnalysis] = useState(false);
-  const [analysisValues, setAnalysisValues] = useState({ todayMinutes: "0", totalMinutes: "0", closedGates: "0", efficiency: "0" });
   const meta = useRef({ label: "", target: "", details: "" });
   const entryTimeout = useRef<number | null>(null);
 
-  const todoOptions = state.todos.filter((task) => !task.done).map((task) => ({ id: `t:${task.id}`, label: task.name }));
+  const todoOptions = state.todos.filter((task) => !task.done).map((task) => ({ id: `t:${task.id}`, label: task.name, focusMinutes: task.focusMinutes }));
   const weeklyOptions = state.weeklyQuests
     .filter((quest) => isWeeklyQuestScheduled(quest, state.lastDay) && !quest.doneDates.includes(state.lastDay))
-    .map((quest) => ({ id: `w:${quest.id}`, label: quest.name }));
+    .map((quest) => ({ id: `w:${quest.id}`, label: quest.name, focusMinutes: quest.focusMinutes }));
   const options = [...todoOptions, ...weeklyOptions];
 
   const fail = (reason: string) => {
@@ -95,13 +93,14 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
   const start = () => {
     const selected = options.find((option) => option.id === target);
     meta.current = { target: selected?.id ?? "", label: selected?.label ?? "Free focus", details: details.trim() };
+    const initialDuration = selected?.focusMinutes ?? minutes;
     setFocusMinutes(0); setGateActive(true); onLock(true); buzz(60);
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
-      setEntering(false); startTimer("focus", minutes); return;
+      setEntering(false); startTimer("focus", initialDuration); return;
     }
     setEntering(true);
     entryTimeout.current = window.setTimeout(() => {
-      entryTimeout.current = null; setEntering(false); startTimer("focus", minutes);
+      entryTimeout.current = null; setEntering(false); startTimer("focus", initialDuration);
     }, 1900);
   };
 
@@ -118,41 +117,6 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
     totalMinutes: Math.max(0, Math.round((total + correction.totalMinutes) * 10) / 10),
     closedGates: Math.max(0, Math.round(ok + correction.closedGates)),
     efficiency: Math.max(0, Math.min(100, Math.round(eff + correction.efficiency))),
-  };
-
-  const beginAnalysisEdit = () => {
-    setAnalysisValues({
-      todayMinutes: String(analysis.todayMinutes),
-      totalMinutes: String(analysis.totalMinutes),
-      closedGates: String(analysis.closedGates),
-      efficiency: String(analysis.efficiency),
-    });
-    setEditingAnalysis(true);
-  };
-  const saveAnalysisEdit = () => {
-    const parsed = {
-      todayMinutes: Number(analysisValues.todayMinutes),
-      totalMinutes: Number(analysisValues.totalMinutes),
-      closedGates: Number(analysisValues.closedGates),
-      efficiency: Number(analysisValues.efficiency),
-    };
-    if (Object.values(parsed).some((value) => !Number.isFinite(value) || value < 0) || parsed.efficiency > 100) return;
-    act((s) => {
-      const todayMinutes = s.sessions.filter((session) => session.date === s.lastDay).reduce((sum, session) => sum + session.minutes, 0);
-      const totalMinutes = s.sessions.reduce((sum, session) => sum + session.minutes, 0);
-      const closedGates = s.sessions.filter((session) => session.success && !session.paused).length;
-      const measurableGates = s.sessions.filter((session) => !session.paused).length;
-      const efficiency = measurableGates ? Math.round((closedGates / measurableGates) * 100) : 0;
-      s.focusAnalysisCorrection = {
-        used: true,
-        todayMinutes: Math.round(parsed.todayMinutes * 10) / 10 - todayMinutes,
-        todayDate: s.lastDay,
-        totalMinutes: Math.round(parsed.totalMinutes * 10) / 10 - totalMinutes,
-        closedGates: Math.round(parsed.closedGates) - closedGates,
-        efficiency: Math.round(parsed.efficiency) - efficiency,
-      };
-    });
-    setEditingAnalysis(false);
   };
 
   if (gateActive && entering) {
@@ -209,6 +173,7 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
           <p className="font-bold">{meta.current.label}</p>
           {meta.current.details && <p className="mt-1 text-sm text-muted-foreground">{meta.current.details}</p>}
           <p className="mt-1 font-mono text-xs text-muted-foreground">Completed focus: {focusMinutes} min · {focusMinutes} XP on gate close</p>
+          <p className="mt-2 font-mono text-xs text-primary">Timer complete. Continue with another focus or rest session, close the gate, or leave.</p>
           <p className="mt-4 font-mono text-xs uppercase tracking-wider text-primary">Choose your next step</p>
           <p className="mb-2 mt-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Another focus timer</p>
           <div className="mt-2 grid grid-cols-4 gap-2">
@@ -234,7 +199,7 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
     <div className="space-y-4">
       <Panel title="Open a Gate">
         <label className="mb-1 block font-mono text-xs text-muted-foreground">Assigned objective</label>
-        <select className={inputCls} value={target} onChange={(e) => setTarget(e.target.value)}>
+        <select className={inputCls} value={target} onChange={(e) => { const value = e.target.value; setTarget(value); const selected = options.find((option) => option.id === value); if (selected?.focusMinutes) setMinutes(selected.focusMinutes); }}>
           <option value="">Free focus</option>
           {todoOptions.length > 0 && <optgroup label="To-Do Tasks">{todoOptions.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</optgroup>}
           {weeklyOptions.length > 0 && <optgroup label="Weekly Quests">{weeklyOptions.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</optgroup>}
@@ -242,6 +207,7 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
         <label className="mb-1 mt-4 block font-mono text-xs text-muted-foreground" htmlFor="gate-details">Gate details</label>
         <textarea id="gate-details" className={`${inputCls} min-h-20 py-2`} maxLength={500} placeholder="What do you plan to focus on? (optional)" value={details} onChange={(event) => setDetails(event.target.value)} />
         <p className="mb-1 mt-4 font-mono text-xs text-muted-foreground">Duration</p>
+        {options.find((option) => option.id === target)?.focusMinutes && <p className="mb-2 font-mono text-[10px] text-primary">Assigned duration: {options.find((option) => option.id === target)?.focusMinutes} minutes</p>}
         <div className="grid grid-cols-4 gap-2">
           {[15, 25, 45, 60].map((m) => (
             <SysButton key={m} variant={minutes === m ? "primary" : "ghost"} onClick={() => setMinutes(m)}>{m}m</SysButton>
@@ -252,28 +218,22 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
       <Panel title="Focus Analysis">
         <div className="grid grid-cols-2 gap-3 text-center font-mono">
           <div>
-            {editingAnalysis ? <input className={`${inputCls} text-center font-bold`} type="number" min="0" step="0.1" aria-label="Minutes today" value={analysisValues.todayMinutes} onChange={(e) => setAnalysisValues((v) => ({ ...v, todayMinutes: e.target.value }))} /> : <p className="text-2xl font-bold text-primary">{analysis.todayMinutes}</p>}
+            <p className="text-2xl font-bold text-primary">{analysis.todayMinutes}</p>
             <p className="text-[10px] uppercase text-muted-foreground">Min today</p>
           </div>
           <div>
-            {editingAnalysis ? <input className={`${inputCls} text-center font-bold`} type="number" min="0" step="0.1" aria-label="Total focus minutes" value={analysisValues.totalMinutes} onChange={(e) => setAnalysisValues((v) => ({ ...v, totalMinutes: e.target.value }))} /> : <p className="text-2xl font-bold text-primary">{analysis.totalMinutes}</p>}
+            <p className="text-2xl font-bold text-primary">{analysis.totalMinutes}</p>
             <p className="text-[10px] uppercase text-muted-foreground">Min total</p>
           </div>
           <div>
-            {editingAnalysis ? <input className={`${inputCls} text-center font-bold`} type="number" min="0" step="1" aria-label="Gates closed" value={analysisValues.closedGates} onChange={(e) => setAnalysisValues((v) => ({ ...v, closedGates: e.target.value }))} /> : <p className="text-2xl font-bold text-primary">{analysis.closedGates}</p>}
+            <p className="text-2xl font-bold text-primary">{analysis.closedGates}</p>
             <p className="text-[10px] uppercase text-muted-foreground">Gates closed</p>
           </div>
           <div>
-            {editingAnalysis ? <input className={`${inputCls} text-center font-bold`} type="number" min="0" max="100" step="1" aria-label="Efficiency percentage" value={analysisValues.efficiency} onChange={(e) => setAnalysisValues((v) => ({ ...v, efficiency: e.target.value }))} /> : <p className="text-2xl font-bold text-primary">{analysis.efficiency}%</p>}
+            <p className="text-2xl font-bold text-primary">{analysis.efficiency}%</p>
             <p className="text-[10px] uppercase text-muted-foreground">Efficiency</p>
           </div>
         </div>
-        {!correction.used && <div className="mt-3 flex justify-end gap-2">
-          {editingAnalysis ? <>
-            <SysButton variant="ghost" onClick={() => setEditingAnalysis(false)}>Cancel</SysButton>
-            <SysButton onClick={saveAnalysisEdit}>Save once</SysButton>
-          </> : <SysButton variant="ghost" onClick={beginAnalysisEdit}>Adjust once</SysButton>}
-        </div>}
         <ul className="mt-4 space-y-1 font-mono text-xs">
           {state.sessions.slice(0, 8).map((s) => (
             <li key={s.id} className="flex justify-between">

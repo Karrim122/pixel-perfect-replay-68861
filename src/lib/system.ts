@@ -73,12 +73,12 @@ export const xpToNext = (level: number) => level < 60
   : Math.round(275 * Math.pow(1.04, level - 60));
 
 export interface Skill { id: string; name: string; description?: string | undefined; level: number; xp: number; }
-export interface WeeklyQuest { id: string; name: string; description?: string | undefined; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; skillId?: string | undefined; daysOfWeek: number[]; doneDates: string[]; rewardedDates: string[]; reminder?: string | undefined; masteryLevel?: number; masteryXp?: number; }
+export interface WeeklyQuest { id: string; name: string; description?: string | undefined; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; skillId?: string | undefined; focusMinutes?: number | undefined; daysOfWeek: number[]; doneDates: string[]; rewardedDates: string[]; reminder?: string | undefined; masteryLevel?: number; masteryXp?: number; }
 export interface DailyQuest { id: string; name: string; description?: string | undefined; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; skillId?: string | undefined; doneDate: string | null; reminder?: string | undefined; }
 export interface BonusPenaltyHabit { id: string; name: string; description?: string | undefined; kind: "bonus" | "penalty"; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; count: number; penaltyCount?: number; penaltyDate?: string; lastRewardDate?: string; rewardCount?: number; lastPracticeDate?: string; }
 export type TodoReward = { type: "potion" } | { type: "gift"; name: string; description?: string | undefined };
 export interface InventoryGift { id: string; name: string; description?: string | undefined; rank: Diff; sourceTask: string; earnedAt: string; }
-export interface Todo { id: string; name: string; description?: string | undefined; due?: string; time?: string | undefined; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; skillId?: string | undefined; done: boolean; notified?: boolean; reward?: TodoReward | undefined; emergency?: boolean; emergencyDeadline?: number; emergencyFailed?: boolean; }
+export interface Todo { id: string; name: string; description?: string | undefined; due?: string; time?: string | undefined; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; skillId?: string | undefined; focusMinutes?: number | undefined; done: boolean; notified?: boolean; reward?: TodoReward | undefined; emergency?: boolean; emergencyDeadline?: number; emergencyFailed?: boolean; }
 export interface Session { id: string; date: string; minutes: number; success: boolean; label: string; details?: string; paused?: boolean; }
 export interface FocusAnalysisCorrection {
   used: boolean; todayMinutes: number; todayDate: string; totalMinutes: number; closedGates: number; efficiency: number;

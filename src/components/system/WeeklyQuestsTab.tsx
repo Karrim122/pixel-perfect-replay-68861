@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { Check, Pencil, Trash2 } from "lucide-react";
+import { Check } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
 import { baseDifficultyForDiff, completeWeeklyQuest, isWeeklyQuestScheduled, moveItem, resolveDifficulty, uid, uncompleteWeeklyQuest, type Attr, type BaseDifficulty } from "@/lib/system";
 import { playSound } from "@/lib/sound";
-import { AttrPicker, BaseDifficultyPicker, DiffBadge, Panel, ReorderButtons, SkillPicker, SysButton, inputCls } from "./ui";
+import { AttrPicker, BaseDifficultyPicker, DiffBadge, ItemOptionsMenu, Panel, SkillPicker, SysButton, inputCls } from "./ui";
 import { cn } from "@/lib/utils";
 
 const WEEKDAYS = [
@@ -29,10 +29,11 @@ export function WeeklyQuestsTab() {
   const [daysOfWeek, setDaysOfWeek] = useState<number[]>([new Date(`${state.lastDay}T00:00:00`).getDay()]);
   const [reminder, setReminder] = useState("");
   const [skillId, setSkillId] = useState<string>();
+  const [focusMinutes, setFocusMinutes] = useState("");
 
   const closeEditor = () => {
     setOpen(false); setEditingId(null); setName(""); setDescription(""); setBaseDifficulty("Easy");
-    setAttrs(["discipline"]); setDaysOfWeek([new Date(`${state.lastDay}T00:00:00`).getDay()]); setReminder(""); setSkillId(undefined);
+    setAttrs(["discipline"]); setDaysOfWeek([new Date(`${state.lastDay}T00:00:00`).getDay()]); setReminder(""); setSkillId(undefined); setFocusMinutes("");
   };
 
   const save = (event: React.FormEvent) => {
@@ -41,7 +42,7 @@ export function WeeklyQuestsTab() {
     act((s) => {
       const diff = resolveDifficulty(baseDifficulty, s.level);
       const quest = editingId ? s.weeklyQuests.find((item) => item.id === editingId) : undefined;
-      const values = { name: name.trim(), description: description.trim() || undefined, diff, baseDifficulty, attrs, daysOfWeek, skillId, reminder: reminder || undefined };
+      const values = { name: name.trim(), description: description.trim() || undefined, diff, baseDifficulty, attrs, daysOfWeek, skillId, focusMinutes: focusMinutes ? Number(focusMinutes) : undefined, reminder: reminder || undefined };
       if (quest) Object.assign(quest, values);
       else s.weeklyQuests.push({ id: uid(), ...values, doneDates: [], rewardedDates: [] });
     });
@@ -54,7 +55,7 @@ export function WeeklyQuestsTab() {
     if (!quest) return;
     setEditingId(id); setName(quest.name); setDescription(quest.description ?? "");
     setBaseDifficulty(quest.baseDifficulty ?? baseDifficultyForDiff(quest.diff, state.level));
-    setAttrs(quest.attrs); setDaysOfWeek(quest.daysOfWeek); setReminder(quest.reminder ?? ""); setSkillId(quest.skillId); setOpen(true);
+    setAttrs(quest.attrs); setDaysOfWeek(quest.daysOfWeek); setReminder(quest.reminder ?? ""); setSkillId(quest.skillId); setFocusMinutes(quest.focusMinutes ? String(quest.focusMinutes) : ""); setOpen(true);
   };
 
   const toggleComplete = (id: string, done: boolean, date: string) => {
@@ -86,7 +87,7 @@ export function WeeklyQuestsTab() {
                         className={cn("flex h-9 w-9 shrink-0 items-center justify-center border disabled:cursor-default", done ? "border-success bg-success/20 text-success" : "border-primary/60 text-primary")}>
                         {done && <Check className="h-4 w-4" />}
                       </button>
-                      <div className="min-w-0 flex-1">
+                      <div className="min-w-0 flex-1 pr-3">
                         <p className={cn("truncate text-base", done && "text-muted-foreground line-through")}>{quest.name}</p>
                         {quest.description && <p className="text-xs text-muted-foreground">{quest.description}</p>}
                       </div>
@@ -94,8 +95,10 @@ export function WeeklyQuestsTab() {
                       <ReorderButtons itemName={quest.name} canMoveUp={index > 0} canMoveDown={index < quests.length - 1}
                         onMoveUp={() => act((s) => moveItem(s.weeklyQuests, quest.id, quests[index - 1]!.id))}
                         onMoveDown={() => act((s) => moveItem(s.weeklyQuests, quest.id, quests[index + 1]!.id))} />
-                      <button aria-label={`Edit ${quest.name}`} onClick={() => edit(quest.id)} className="p-2 text-muted-foreground"><Pencil className="h-4 w-4" /></button>
-                      <button aria-label={`Delete ${quest.name}`} onClick={() => act((s) => { s.weeklyQuests = s.weeklyQuests.filter((item) => item.id !== quest.id); })} className="p-2 text-muted-foreground"><Trash2 className="h-4 w-4" /></button>
+                      <ItemOptionsMenu itemName={quest.name} info={`${quest.description || "No description."}\nRank: ${quest.diff}\nFocus time: ${quest.focusMinutes ? `${quest.focusMinutes} minutes` : "not assigned"}\nRepeat: ${quest.daysOfWeek.length} days per week`} onEdit={() => edit(quest.id)} canMoveUp={index > 0} canMoveDown={index < quests.length - 1}
+                        onMoveUp={() => act((s) => moveItem(s.weeklyQuests, quest.id, quests[index - 1]!.id))}
+                        onMoveDown={() => act((s) => moveItem(s.weeklyQuests, quest.id, quests[index + 1]!.id))}
+                        onDelete={() => act((s) => { s.weeklyQuests = s.weeklyQuests.filter((item) => item.id !== quest.id); })} />
                     </li>
                   );
                 })}
@@ -124,6 +127,9 @@ export function WeeklyQuestsTab() {
             <BaseDifficultyPicker value={baseDifficulty} onChange={setBaseDifficulty} playerLevel={state.level} />
             <AttrPicker value={attrs} onChange={setAttrs} />
             <SkillPicker skills={state.skills} value={skillId} onChange={setSkillId} />
+            <label className="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Assigned gate focus time
+              <select className={`${inputCls} mt-1`} value={focusMinutes} onChange={(event) => setFocusMinutes(event.target.value)}><option value="">No assigned time</option>{[15, 25, 45, 60].map((minutes) => <option key={minutes} value={minutes}>{minutes} minutes</option>)}</select>
+            </label>
             <label className="block font-mono text-xs text-muted-foreground">Reminder (optional)<input type="time" className={inputCls} value={reminder} onChange={(event) => setReminder(event.target.value)} /></label>
             <div className="flex gap-2"><SysButton type="submit" className="flex-1" disabled={!daysOfWeek.length}>{editingId ? "Save Changes" : "Create Quest"}</SysButton><SysButton type="button" variant="ghost" onClick={closeEditor}>Cancel</SysButton></div>
           </form>

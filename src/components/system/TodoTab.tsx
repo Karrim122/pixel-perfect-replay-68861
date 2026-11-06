@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { AlertTriangle, Check, Pencil, Trash2 } from "lucide-react";
+import { AlertTriangle, Check } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
 import { playSound } from "@/lib/sound";
 import { baseDifficultyForDiff, completeTodo, DIFFS, moveItem, RANKS, resolveDifficulty, today, uid, type Attr, type BaseDifficulty, type TodoReward } from "@/lib/system";
-import { AttrPicker, BaseDifficultyPicker, DiffBadge, Panel, ReorderButtons, SkillPicker, SysButton, inputCls } from "./ui";
+import { AttrPicker, BaseDifficultyPicker, DiffBadge, ItemOptionsMenu, Panel, SkillPicker, SysButton, inputCls } from "./ui";
 import { cn } from "@/lib/utils";
 
 export function TodoTab() {
@@ -17,6 +17,7 @@ export function TodoTab() {
   const [baseDifficulty, setBaseDifficulty] = useState<BaseDifficulty>("Easy");
   const [attrs, setAttrs] = useState<Attr[]>(["intelligence"]);
   const [skillId, setSkillId] = useState<string>();
+  const [focusMinutes, setFocusMinutes] = useState("");
   const [rewardType, setRewardType] = useState<"none" | "potion" | "gift">("none");
   const [rewardName, setRewardName] = useState("");
   const [rewardDescription, setRewardDescription] = useState("");
@@ -42,12 +43,12 @@ export function TodoTab() {
         : rewardType === "gift"
           ? { type: "gift", name: rewardName.trim(), description: rewardDescription.trim() || undefined }
           : undefined;
-      const values = { name: name.trim(), description: description.trim() || undefined, due: due || undefined, time: time || undefined, diff, baseDifficulty, attrs, skillId, reward };
+      const values = { name: name.trim(), description: description.trim() || undefined, due: due || undefined, time: time || undefined, diff, baseDifficulty, attrs, skillId, focusMinutes: focusMinutes ? Number(focusMinutes) : undefined, reward };
       if (todo) Object.assign(todo, values);
       else s.todos.push({ id: uid(), ...values, done: false });
     });
     if (time && typeof Notification !== "undefined" && Notification.permission === "default") Notification.requestPermission();
-    setName(""); setDescription(""); setDue(""); setTime(""); setAttrs(["intelligence"]); setSkillId(undefined); setBaseDifficulty("Easy"); setRewardType("none"); setRewardName(""); setRewardDescription(""); setEditingId(null); setOpen(false);
+    setName(""); setDescription(""); setDue(""); setTime(""); setAttrs(["intelligence"]); setSkillId(undefined); setFocusMinutes(""); setBaseDifficulty("Easy"); setRewardType("none"); setRewardName(""); setRewardDescription(""); setEditingId(null); setOpen(false);
   };
 
   const edit = (id: string) => {
@@ -55,7 +56,7 @@ export function TodoTab() {
     if (!task) return;
     setEditingId(id); setName(task.name); setDescription(task.description ?? ""); setDue(task.due ?? ""); setTime(task.time ?? "");
     const taskBaseDifficulty = task.baseDifficulty ?? baseDifficultyForDiff(task.diff, state.level);
-    setBaseDifficulty(taskBaseDifficulty); setAttrs(task.attrs); setSkillId(task.skillId);
+    setBaseDifficulty(taskBaseDifficulty); setAttrs(task.attrs); setSkillId(task.skillId); setFocusMinutes(task.focusMinutes ? String(task.focusMinutes) : "");
     setRewardType(task.reward?.type === "potion" && taskBaseDifficulty !== "Hard" && taskBaseDifficulty !== "Very Hard" ? "none" : task.reward?.type ?? "none"); setRewardName(task.reward?.type === "gift" ? task.reward.name : "");
     setRewardDescription(task.reward?.type === "gift" ? task.reward.description ?? "" : ""); setOpen(true);
   };
@@ -92,23 +93,22 @@ export function TodoTab() {
                   className={cn("flex h-10 w-10 shrink-0 items-center justify-center border", t.done ? "border-success bg-success/20 text-success" : "border-primary/60")}>
                   {t.done && <Check className="h-5 w-5" />}
                 </button>
-                <div className="flex-1">
+                <div className="min-w-0 flex-1 pr-3">
                   <p className={cn("flex items-center gap-1 text-lg leading-tight", t.done && "text-muted-foreground line-through")}>
                     {t.name}
                   </p>
                   {t.description && <p className="text-xs text-muted-foreground">{t.description}</p>}
                 </div>
                 <DiffBadge d={t.diff} />
-                <ReorderButtons itemName={t.name} canMoveUp={index > 0 && list[index - 1]!.done === t.done} canMoveDown={index < list.length - 1 && list[index + 1]!.done === t.done}
-                  onMoveUp={() => act((s) => moveItem(s.todos, t.id, list[index - 1]!.id))}
-                  onMoveDown={() => act((s) => moveItem(s.todos, t.id, list[index + 1]!.id))} />
-                {!t.emergency && <button aria-label={`Edit ${t.name}`} onClick={() => edit(t.id)} className="p-2 text-muted-foreground"><Pencil className="h-4 w-4" /></button>}
-                {!(t.emergency && !t.done && !t.emergencyFailed) && <button aria-label="Delete" onClick={() => act((s) => { s.todos = s.todos.filter((x) => x.id !== t.id); })} className="p-2 text-muted-foreground"><Trash2 className="h-4 w-4" /></button>}
+                <ItemOptionsMenu itemName={t.name} info={`${t.description || "No description."}\nDue: ${t.due || "not set"}\nAttributes: ${t.attrs.join(", ")}\nFocus time: ${t.focusMinutes ? `${t.focusMinutes} minutes` : "not assigned"}`} onEdit={!t.emergency ? () => edit(t.id) : undefined}
+                  canMoveUp={index > 0 && list[index - 1]!.done === t.done} canMoveDown={index < list.length - 1 && list[index + 1]!.done === t.done}
+                  onMoveUp={() => act((s) => moveItem(s.todos, t.id, list[index - 1]!.id))} onMoveDown={() => act((s) => moveItem(s.todos, t.id, list[index + 1]!.id))}
+                  onDelete={!(t.emergency && !t.done && !t.emergencyFailed) ? () => act((s) => { s.todos = s.todos.filter((x) => x.id !== t.id); }) : undefined} />
               </li>
             );
           })}
         </ul>
-        <SysButton className="mt-3 w-full" onClick={() => { setEditingId(null); setName(""); setDescription(""); setDue(""); setTime(""); setBaseDifficulty("Easy"); setAttrs(["intelligence"]); setSkillId(undefined); setRewardType("none"); setRewardName(""); setRewardDescription(""); setOpen(true); }}>+ New Task</SysButton>
+        <SysButton className="mt-3 w-full" onClick={() => { setEditingId(null); setName(""); setDescription(""); setDue(""); setTime(""); setBaseDifficulty("Easy"); setAttrs(["intelligence"]); setSkillId(undefined); setFocusMinutes(""); setRewardType("none"); setRewardName(""); setRewardDescription(""); setOpen(true); }}>+ New Task</SysButton>
       </Panel>
 
       {open && createPortal(
@@ -127,6 +127,9 @@ export function TodoTab() {
             }} playerLevel={state.level} />
             <AttrPicker value={attrs} onChange={setAttrs} />
             <SkillPicker skills={state.skills} value={skillId} onChange={setSkillId} />
+            <label className="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Assigned gate focus time
+              <select className={`${inputCls} mt-1`} value={focusMinutes} onChange={(event) => setFocusMinutes(event.target.value)}><option value="">No assigned time</option>{[15, 25, 45, 60].map((minutes) => <option key={minutes} value={minutes}>{minutes} minutes</option>)}</select>
+            </label>
             <div className="space-y-2 border-t border-border/60 pt-3">
               <label className="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Completion reward</label>
               <select className={inputCls} value={rewardType} onChange={(e) => setRewardType(e.target.value as "none" | "potion" | "gift")}>
