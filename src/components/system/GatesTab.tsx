@@ -177,7 +177,8 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
     const mm = String(Math.floor(left / 60000)).padStart(2, "0");
     const ss = String(Math.floor((left % 60000) / 1000)).padStart(2, "0");
     return (
-      <div className="flex min-h-[70vh] flex-col items-center justify-center gap-8 text-center">
+      <div className="gate-timer-screen">
+        <div className="gate-timer-visual">
         <p className="font-mono text-xs uppercase tracking-[0.4em] text-primary animate-sys-pulse">{timerKind === "rest" ? "Rest Timer" : "Gate Lockdown Active"}</p>
         <div className="relative flex h-64 w-64 items-center justify-center">
           <div className={timerKind === "rest" ? "gate-animation gate-animation-rest" : "gate-animation"} aria-hidden="true">
@@ -188,21 +189,24 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
             <circle cx="50" cy="50" r="46" fill="none" stroke="var(--secondary)" strokeWidth="3" />
             <circle cx="50" cy="50" r="46" fill="none" stroke="var(--primary)" strokeWidth="3" strokeDasharray={289} strokeDashoffset={289 * (1 - pct)} style={{ filter: "drop-shadow(0 0 6px var(--primary))" }} />
           </svg>
-          <span className="relative z-10 font-mono text-6xl font-bold text-primary sys-glow-text">{mm}:{ss}</span>
+          <span className="gate-timer-clock relative z-10 font-mono text-6xl font-bold text-primary sys-glow-text">{mm}:{ss}</span>
         </div>
-        <p className="text-lg">{timerKind === "rest" ? "Rest and recover" : meta.current.label}</p>
-        {meta.current.details && <p className="max-w-sm text-sm text-muted-foreground">{meta.current.details}</p>}
+        </div>
+        <div className="gate-timer-content">
+        <p className="gate-timer-task text-lg">{timerKind === "rest" ? "Rest and recover" : meta.current.label}</p>
+        {meta.current.details && <p className="gate-timer-details max-w-sm text-sm text-muted-foreground">{meta.current.details}</p>}
         {focusMinutes > 0 && <p className="font-mono text-xs text-muted-foreground">Completed focus: {focusMinutes} min · {focusMinutes} XP on gate close</p>}
         {timerKind === "rest" && resumeFocusMinutes !== null && <p className="font-mono text-xs text-primary">Rest ends, then your remaining {Math.ceil(resumeFocusMinutes)} focus minutes resume automatically.</p>}
-        {timerKind === "focus" && <div className="space-y-2 text-center">
+        {timerKind === "focus" && <div className="gate-timer-rest-controls space-y-2 text-center">
           <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Take a rest · focus time will pause and resume afterward</p>
           <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Rests used: {restsUsed}/{restLimit} · one rest per 25 minutes assigned</p>
           {restsUsed < restLimit && <div className="flex justify-center gap-2">{[5, 10, 15].map((duration) => <SysButton key={duration} variant="ghost" onClick={() => takeRest(duration)}>Rest {duration}m</SysButton>)}</div>}
         </div>}
-        <div className="flex gap-2">
+        <div className="gate-timer-exit flex gap-2">
           <SysButton variant="danger" onClick={() => fail("You abandoned the Gate.")}>Exit Gate (−{BREAK_DMG} HP)</SysButton>
         </div>
-        <p className="max-w-xs font-mono text-[10px] text-muted-foreground">Leaving this screen or switching apps counts as fleeing the gate.</p>
+        <p className="gate-timer-warning max-w-xs font-mono text-[10px] text-muted-foreground">Leaving this screen or switching apps counts as fleeing the gate.</p>
+        </div>
       </div>
     );
   }
