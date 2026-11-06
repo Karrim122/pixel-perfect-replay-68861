@@ -97,10 +97,11 @@ export function TodoTab() {
                   {t.done && <Check className="h-5 w-5" />}
                 </button>
                 <div className="min-w-0 flex-1 pr-3">
-                  <p className={cn("flex items-center gap-1 text-lg leading-tight", t.done && "text-muted-foreground line-through")}>
+                  <p className={cn("flex items-center gap-1 text-sm leading-tight", t.done && "text-muted-foreground line-through")}>
                     {t.name}
                   </p>
                   {t.description && <p className="text-xs text-muted-foreground">{t.description}</p>}
+                  {t.focusMinutes && <p className="font-mono text-[9px] leading-tight text-muted-foreground">Focus: {t.focusMinutes} min</p>}
                 </div>
                 <DiffBadge d={t.diff} />
                 <ItemOptionsMenu itemName={t.name} info={`${t.description || "No description."}\nDue: ${t.due || "not set"}\nAttributes: ${t.attrs.join(", ")}\nFocus time: ${t.focusMinutes ? `${t.focusMinutes} minutes` : "not assigned"}`} onEdit={!t.emergency ? () => edit(t.id) : undefined}
