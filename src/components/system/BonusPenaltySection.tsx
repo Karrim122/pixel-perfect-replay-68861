@@ -4,7 +4,7 @@ import { Minus, Plus } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
 import { baseDifficultyForDiff, moveItem, resolveDifficulty, triggerBonusPenaltyHabit, uid, type Attr, type BaseDifficulty } from "@/lib/system";
 import { playSound } from "@/lib/sound";
-import { AttrPicker, BaseDifficultyPicker, DiffBadge, ItemOptionsMenu, Panel, SysButton, inputCls } from "./ui";
+import { AddIconButton, AttrPicker, BaseDifficultyPicker, DiffBadge, ItemOptionsMenu, Panel, SysButton, inputCls } from "./ui";
 
 export function BonusPenaltySection() {
   const { state, act } = useSystem();
@@ -58,7 +58,7 @@ export function BonusPenaltySection() {
 
   return (
     <>
-      <Panel title="Bonus-Penalty">
+      <Panel title="Bonus-Penalty" actions={<AddIconButton label="Add habit" onClick={() => { setEditingId(null); setName(""); setDescription(""); setKind("bonus"); setBaseDifficulty("Easy"); setAttrs(["discipline"]); setOpen(true); }} />}>
         <p className="mb-3 font-mono text-[11px] text-muted-foreground">Good habits earn XP on up to 2 logs per day and attribute progress once per day at 3× the XP fraction, scaled to your level. Bad habits cost 15–60 HP per log at base, escalating with each log that day; penalties reset the next day.</p>
         {state.bonusPenaltyHabits.length === 0 ? (
           <p className="mb-3 font-mono text-xs text-muted-foreground">No bonus or penalty habits registered.</p>
@@ -86,7 +86,6 @@ export function BonusPenaltySection() {
             })}
           </ul>
         )}
-        <SysButton className="w-full" onClick={() => setOpen(true)}>+ Add Good or Bad Habit</SysButton>
       </Panel>
 
       {open && createPortal(

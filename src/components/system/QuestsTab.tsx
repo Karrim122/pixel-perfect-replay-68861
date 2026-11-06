@@ -70,47 +70,36 @@ export function QuestsTab() {
   return (
     <div className="space-y-4">
       <Panel title="Daily" actions={<AddIconButton label="Add daily quest" onClick={() => { setEditingId(null); setEditingWeeklyId(null); setName(""); setDescription(""); setBaseDifficulty("Easy"); setAttrs(["discipline"]); setReminder(""); setOpen(true); }} />}>
-        <div className="flex items-center gap-3 border-b border-border/40 pb-3">
-          <button type="button" role="checkbox" aria-checked={dailyDone} aria-label="Close todays gate" disabled
-            className={cn("flex h-10 w-10 shrink-0 cursor-not-allowed items-center justify-center rounded-md border", dailyDone ? "border-success bg-success/20 text-success" : "border-primary/60 text-primary")}>
-            {dailyDone && <Check className="h-5 w-5" />}
-          </button>
-          <div className="flex-1">
-            <p className={cn("text-lg", dailyDone && "text-muted-foreground line-through")}>Close todays gate</p>
-          </div>
-          <DiffBadge d={rankDiff} />
-        </div>
-        <div className="mt-3 space-y-2">
-          <p className="font-mono text-[10px] text-primary">Reward: +1 Healing Potion after completing the Gate, all Daily quests, and all Weekly quests scheduled for today.</p>
-        </div>
-
-        <div className="mt-4 border-t border-border/40 pt-3">
-          <p className="mb-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Your daily quests · repeat every day</p>
-          {state.dailyQuests.length === 0 ? <p className="mb-3 font-mono text-xs text-muted-foreground">Add daily quests to build your routine.</p> : (
-            <ul className="space-y-3">
-              {state.dailyQuests.map((quest, index) => {
-                const done = quest.doneDate === state.lastDay;
-                return (
-                  <li key={quest.id} className="flex items-center gap-2 border-b border-border/40 pb-3">
-                    <button disabled={done} onClick={() => completeDaily(quest.id)} aria-label={done ? `Completed ${quest.name}` : `Complete ${quest.name}`}
-                      className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-md border disabled:cursor-default", done ? "border-success bg-success/20 text-success" : "border-primary/60 text-primary")}>
-                      {done && <Check className="h-4 w-4" />}
-                    </button>
-                    <div className="min-w-0 flex-1 pr-3">
-                      <p className={cn("truncate text-base", done && "text-muted-foreground line-through")}>{quest.name}</p>
-                      {quest.description && <p className="text-xs text-muted-foreground">{quest.description}</p>}
-                    </div>
-                    <DiffBadge d={quest.diff} />
-                    <ItemOptionsMenu itemName={quest.name} info={`${quest.description || "No description."}\nAttributes: ${quest.attrs.join(", ")}\nRank: ${quest.diff}${quest.reminder ? `\nReminder: ${quest.reminder}` : ""}`} onEdit={() => edit(quest.id)} canMoveUp={index > 0} canMoveDown={index < state.dailyQuests.length - 1}
-                      onMoveUp={() => act((s) => moveItem(s.dailyQuests, quest.id, state.dailyQuests[index - 1]!.id))}
-                      onMoveDown={() => act((s) => moveItem(s.dailyQuests, quest.id, state.dailyQuests[index + 1]!.id))}
-                      onDelete={() => act((s) => { s.dailyQuests = s.dailyQuests.filter((item) => item.id !== quest.id); })} />
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </div>
+        <ul className="space-y-3">
+          <li className="flex items-center gap-3 border-b border-border/40 pb-3">
+            <button type="button" role="checkbox" aria-checked={dailyDone} aria-label="Close todays gate" disabled
+              className={cn("flex h-10 w-10 shrink-0 cursor-not-allowed items-center justify-center rounded-md border", dailyDone ? "border-success bg-success/20 text-success" : "border-primary/60 text-primary")}>
+              {dailyDone && <Check className="h-5 w-5" />}
+            </button>
+            <p className={cn("min-w-0 flex-1 pr-3 text-lg", dailyDone && "text-muted-foreground line-through")}>Close todays gate</p>
+            <DiffBadge d={rankDiff} />
+          </li>
+          {state.dailyQuests.map((quest, index) => {
+            const done = quest.doneDate === state.lastDay;
+            return (
+              <li key={quest.id} className="flex items-center gap-2 border-b border-border/40 pb-3">
+                <button disabled={done} onClick={() => completeDaily(quest.id)} aria-label={done ? `Completed ${quest.name}` : `Complete ${quest.name}`}
+                  className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-md border disabled:cursor-default", done ? "border-success bg-success/20 text-success" : "border-primary/60 text-primary")}>
+                  {done && <Check className="h-4 w-4" />}
+                </button>
+                <div className="min-w-0 flex-1 pr-3">
+                  <p className={cn("truncate text-base", done && "text-muted-foreground line-through")}>{quest.name}</p>
+                  {quest.description && <p className="text-xs text-muted-foreground">{quest.description}</p>}
+                </div>
+                <DiffBadge d={quest.diff} />
+                <ItemOptionsMenu itemName={quest.name} info={`${quest.description || "No description."}\nAttributes: ${quest.attrs.join(", ")}\nRank: ${quest.diff}${quest.reminder ? `\nReminder: ${quest.reminder}` : ""}`} onEdit={() => edit(quest.id)} canMoveUp={index > 0} canMoveDown={index < state.dailyQuests.length - 1}
+                  onMoveUp={() => act((s) => moveItem(s.dailyQuests, quest.id, state.dailyQuests[index - 1]!.id))}
+                  onMoveDown={() => act((s) => moveItem(s.dailyQuests, quest.id, state.dailyQuests[index + 1]!.id))}
+                  onDelete={() => act((s) => { s.dailyQuests = s.dailyQuests.filter((item) => item.id !== quest.id); })} />
+              </li>
+            );
+          })}
+        </ul>
       </Panel>
 
       <Panel title="Today's Weekly Quests">
