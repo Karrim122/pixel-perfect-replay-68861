@@ -5,7 +5,7 @@ import { buzz, useSystem } from "@/lib/store";
 import { baseDifficultyForDiff, completeDailyQuest, completeWeeklyQuest, difficultyForRankIndex, isWeeklyQuestScheduled, rankIndex, resolveDifficulty, uid, type Attr, type BaseDifficulty } from "@/lib/system";
 import { playSound } from "@/lib/sound";
 import { BonusPenaltySection } from "./BonusPenaltySection";
-import { AttrPicker, BaseDifficultyPicker, DiffBadge, Panel, SysButton, inputCls } from "./ui";
+import { AttrPicker, BaseDifficultyPicker, DiffBadge, Panel, SkillPicker, SysButton, inputCls } from "./ui";
 import { cn } from "@/lib/utils";
 
 export function QuestsTab() {
@@ -20,10 +20,12 @@ export function QuestsTab() {
   const [baseDifficulty, setBaseDifficulty] = useState<BaseDifficulty>("Easy");
   const [attrs, setAttrs] = useState<Attr[]>(["discipline"]);
   const [reminder, setReminder] = useState("");
+  const [skillId, setSkillId] = useState<string>();
+  const [urgent, setUrgent] = useState(false);
 
   const closeEditor = () => {
     setOpen(false); setEditingId(null); setName(""); setDescription("");
-    setBaseDifficulty("Easy"); setAttrs(["discipline"]); setReminder("");
+    setBaseDifficulty("Easy"); setAttrs(["discipline"]); setReminder(""); setSkillId(undefined); setUrgent(false);
   };
 
   const save = (event: React.FormEvent) => {
@@ -32,7 +34,7 @@ export function QuestsTab() {
     act((s) => {
       const diff = resolveDifficulty(baseDifficulty, s.level);
       const quest = editingId ? s.dailyQuests.find((item) => item.id === editingId) : undefined;
-      const values = { name: name.trim(), description: description.trim() || undefined, diff, baseDifficulty, attrs, reminder: reminder || undefined };
+      const values = { name: name.trim(), description: description.trim() || undefined, diff, baseDifficulty, attrs, skillId, urgent, reminder: reminder || undefined };
       if (quest) Object.assign(quest, values);
       else s.dailyQuests.push({ id: uid(), ...values, doneDate: null });
     });
@@ -45,7 +47,7 @@ export function QuestsTab() {
     if (!quest) return;
     setEditingId(id); setName(quest.name); setDescription(quest.description ?? "");
     setBaseDifficulty(quest.baseDifficulty ?? baseDifficultyForDiff(quest.diff, state.level));
-    setAttrs(quest.attrs); setReminder(quest.reminder ?? ""); setOpen(true);
+    setAttrs(quest.attrs); setReminder(quest.reminder ?? ""); setSkillId(quest.skillId); setUrgent(!!quest.urgent); setOpen(true);
   };
 
   const completeDaily = (id: string) => {
@@ -141,6 +143,8 @@ export function QuestsTab() {
             <textarea className={`${inputCls} min-h-20 py-2`} placeholder="Description (optional)" value={description} onChange={(event) => setDescription(event.target.value)} />
             <BaseDifficultyPicker value={baseDifficulty} onChange={setBaseDifficulty} playerLevel={state.level} />
             <AttrPicker value={attrs} onChange={setAttrs} />
+            <SkillPicker skills={state.skills} value={skillId} onChange={setSkillId} />
+            <label className="flex items-center gap-2 font-mono text-xs text-muted-foreground"><input type="checkbox" checked={urgent} onChange={(event) => setUrgent(event.target.checked)} />Urgent quest (missed quests reduce each assigned attribute by 50%)</label>
             <label className="block font-mono text-xs text-muted-foreground">Reminder (optional)<input type="time" className={inputCls} value={reminder} onChange={(event) => setReminder(event.target.value)} /></label>
             <div className="flex gap-2"><SysButton type="submit" className="flex-1">{editingId ? "Save Changes" : "Create Daily Quest"}</SysButton><SysButton type="button" variant="ghost" onClick={closeEditor}>Cancel</SysButton></div>
           </form>

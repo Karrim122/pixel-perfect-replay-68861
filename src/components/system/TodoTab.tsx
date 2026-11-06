@@ -4,7 +4,7 @@ import { Bell, Check, FlaskConical, Gift, Pencil, Trash2 } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
 import { playSound } from "@/lib/sound";
 import { baseDifficultyForDiff, completeTodo, DIFFS, resolveDifficulty, RANKS, today, uid, type Attr, type BaseDifficulty, type TodoReward } from "@/lib/system";
-import { AttrPicker, BaseDifficultyPicker, DiffBadge, Panel, SysButton, inputCls } from "./ui";
+import { AttrPicker, BaseDifficultyPicker, DiffBadge, Panel, SkillPicker, SysButton, inputCls } from "./ui";
 import { cn } from "@/lib/utils";
 
 export function TodoTab() {
@@ -16,6 +16,7 @@ export function TodoTab() {
   const [time, setTime] = useState("");
   const [baseDifficulty, setBaseDifficulty] = useState<BaseDifficulty>("Easy");
   const [attrs, setAttrs] = useState<Attr[]>(["intelligence"]);
+  const [skillId, setSkillId] = useState<string>();
   const [rewardType, setRewardType] = useState<"none" | "potion" | "gift">("none");
   const [rewardName, setRewardName] = useState("");
   const [rewardDescription, setRewardDescription] = useState("");
@@ -38,12 +39,12 @@ export function TodoTab() {
         : rewardType === "gift"
           ? { type: "gift", name: rewardName.trim(), description: rewardDescription.trim() || undefined }
           : undefined;
-      const values = { name: name.trim(), description: description.trim() || undefined, due, time: time || undefined, diff, baseDifficulty, attrs, reward };
+      const values = { name: name.trim(), description: description.trim() || undefined, due, time: time || undefined, diff, baseDifficulty, attrs, skillId, reward };
       if (todo) Object.assign(todo, values);
       else s.todos.push({ id: uid(), ...values, done: false });
     });
     if (time && typeof Notification !== "undefined" && Notification.permission === "default") Notification.requestPermission();
-    setName(""); setDescription(""); setTime(""); setAttrs(["intelligence"]); setBaseDifficulty("Easy"); setRewardType("none"); setRewardName(""); setRewardDescription(""); setEditingId(null); setOpen(false);
+    setName(""); setDescription(""); setDue(today()); setTime(""); setAttrs(["intelligence"]); setSkillId(undefined); setBaseDifficulty("Easy"); setRewardType("none"); setRewardName(""); setRewardDescription(""); setEditingId(null); setOpen(false);
   };
 
   const edit = (id: string) => {
@@ -51,7 +52,7 @@ export function TodoTab() {
     if (!task) return;
     setEditingId(id); setName(task.name); setDescription(task.description ?? ""); setDue(task.due); setTime(task.time ?? "");
     const taskBaseDifficulty = task.baseDifficulty ?? baseDifficultyForDiff(task.diff, state.level);
-    setBaseDifficulty(taskBaseDifficulty); setAttrs(task.attrs);
+    setBaseDifficulty(taskBaseDifficulty); setAttrs(task.attrs); setSkillId(task.skillId);
     setRewardType(task.reward?.type === "potion" && taskBaseDifficulty !== "Hard" && taskBaseDifficulty !== "Very Hard" ? "none" : task.reward?.type ?? "none"); setRewardName(task.reward?.type === "gift" ? task.reward.name : "");
     setRewardDescription(task.reward?.type === "gift" ? task.reward.description ?? "" : ""); setOpen(true);
   };
@@ -68,12 +69,12 @@ export function TodoTab() {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-2">
-        <SysButton variant={filter === "today" ? "primary" : "ghost"} onClick={() => setFilter("today")}>Today's Tasks</SysButton>
-        <SysButton variant={filter === "all" ? "primary" : "ghost"} onClick={() => setFilter("all")}>All Tasks</SysButton>
+      <div className="flex items-center justify-between gap-2">
+        <p className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Task list</p>
+        <SysButton className="min-h-9 px-3" variant={filter === "today" ? "primary" : "ghost"} onClick={() => setFilter(filter === "today" ? "all" : "today")}>{filter === "today" ? "Today · On" : "Filter: Today"}</SysButton>
       </div>
-      <Panel title={`Quests · ${list.filter((t) => !t.done).length} active`}>
-        {list.length === 0 && <p className="font-mono text-xs text-muted-foreground">No quests registered.</p>}
+      <Panel title={`Tasks · ${list.filter((t) => !t.done).length} active`}>
+        {list.length === 0 && <p className="font-mono text-xs text-muted-foreground">No tasks registered.</p>}
         <ul className="space-y-2">
           {list.map((t) => {
             const overdue = !t.done && t.due < state.lastDay;
@@ -89,7 +90,7 @@ export function TodoTab() {
                   </p>
                   {t.description && <p className="text-xs text-muted-foreground">{t.description}</p>}
                   <p className={cn("flex items-center gap-1 font-mono text-[10px] uppercase", overdue ? "text-destructive" : "text-muted-foreground")}>
-                    {t.due}{t.time && <><Bell className="ml-1 h-3 w-3" />{t.time}</>} · {t.attrs.join(" · ")}
+                    {t.due}{t.time && <><Bell className="ml-1 h-3 w-3" />{t.time}</>} · {t.attrs.join(" · ")}{t.skillId && state.skills.find((skill) => skill.id === t.skillId) ? ` · ${state.skills.find((skill) => skill.id === t.skillId)?.name}` : ""}
                   </p>
                 </div>
                 <DiffBadge d={t.diff} />
@@ -99,7 +100,7 @@ export function TodoTab() {
             );
           })}
         </ul>
-        <SysButton className="mt-3 w-full" onClick={() => { setEditingId(null); setName(""); setDescription(""); setDue(today()); setTime(""); setBaseDifficulty("Easy"); setAttrs(["intelligence"]); setRewardType("none"); setRewardName(""); setRewardDescription(""); setOpen(true); }}>+ New Task</SysButton>
+        <SysButton className="mt-3 w-full" onClick={() => { setEditingId(null); setName(""); setDescription(""); setDue(today()); setTime(""); setBaseDifficulty("Easy"); setAttrs(["intelligence"]); setSkillId(undefined); setRewardType("none"); setRewardName(""); setRewardDescription(""); setOpen(true); }}>+ New Task</SysButton>
       </Panel>
 
       {open && createPortal(
@@ -109,7 +110,7 @@ export function TodoTab() {
             <input autoFocus required className={inputCls} placeholder="Task name" value={name} onChange={(e) => setName(e.target.value)} />
             <textarea className={`${inputCls} min-h-20 py-2`} placeholder="Description (optional)" value={description} onChange={(e) => setDescription(e.target.value)} />
             <div className="grid grid-cols-2 gap-2">
-              <input type="date" className={inputCls} value={due} onChange={(e) => setDue(e.target.value)} />
+              <div className="flex gap-1"><input aria-label="Task date" type="date" className={inputCls} value={due} onChange={(e) => setDue(e.target.value)} /><button type="button" onClick={() => setDue(today())} className="shrink-0 border border-primary/60 px-2 font-mono text-[9px] uppercase text-primary">Today</button></div>
               <input type="time" className={inputCls} value={time} onChange={(e) => setTime(e.target.value)} aria-label="Reminder time" />
             </div>
             <BaseDifficultyPicker value={baseDifficulty} onChange={(value) => {
@@ -117,6 +118,7 @@ export function TodoTab() {
               if (value !== "Hard" && value !== "Very Hard") setRewardType((current) => current === "potion" ? "none" : current);
             }} playerLevel={state.level} />
             <AttrPicker value={attrs} onChange={setAttrs} />
+            <SkillPicker skills={state.skills} value={skillId} onChange={setSkillId} />
             <div className="space-y-2 border-t border-border/60 pt-3">
               <label className="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Completion reward</label>
               <select className={inputCls} value={rewardType} onChange={(e) => setRewardType(e.target.value as "none" | "potion" | "gift")}>

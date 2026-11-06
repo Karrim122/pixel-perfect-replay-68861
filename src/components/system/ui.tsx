@@ -99,6 +99,15 @@ export function AttrPicker({ value, onChange }: { value: Attr[]; onChange: (a: A
   );
 }
 
+export function SkillPicker({ skills, value, onChange }: { skills: { id: string; name: string }[]; value?: string; onChange: (id: string | undefined) => void }) {
+  return <label className="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Assign to skill
+    <select className={`${inputCls} mt-1`} value={value ?? ""} onChange={(event) => onChange(event.target.value || undefined)}>
+      <option value="">No skill</option>
+      {skills.map((skill) => <option key={skill.id} value={skill.id}>{skill.name}</option>)}
+    </select>
+  </label>;
+}
+
 export function DiffBadge({ d }: { d: Diff }) {
   const label = d === "N" ? "NL" : d === "M" ? "SM" : d;
   const rank = RANKS[DIFFS.indexOf(d)]!;

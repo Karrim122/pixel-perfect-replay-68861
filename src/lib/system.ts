@@ -50,19 +50,20 @@ export function rankIndex(level: number) {
 export const rankOf = (level: number) => RANKS[rankIndex(level)]!;
 export const xpToNext = (level: number) => Math.round(100 * Math.pow(level, 1.35));
 
-export interface WeeklyQuest { id: string; name: string; description?: string | undefined; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; daysOfWeek: number[]; doneDates: string[]; reminder?: string | undefined; masteryLevel: number; masteryXp: number; }
-export interface DailyQuest { id: string; name: string; description?: string | undefined; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; doneDate: string | null; reminder?: string | undefined; }
+export interface Skill { id: string; name: string; description?: string | undefined; level: number; xp: number; }
+export interface WeeklyQuest { id: string; name: string; description?: string | undefined; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; skillId?: string | undefined; daysOfWeek: number[]; doneDates: string[]; reminder?: string | undefined; masteryLevel?: number; masteryXp?: number; }
+export interface DailyQuest { id: string; name: string; description?: string | undefined; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; skillId?: string | undefined; urgent?: boolean; doneDate: string | null; reminder?: string | undefined; }
 export interface BonusPenaltyHabit { id: string; name: string; description?: string | undefined; kind: "bonus" | "penalty"; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; count: number; }
 export type TodoReward = { type: "potion" } | { type: "gift"; name: string; description?: string | undefined };
 export interface InventoryGift { id: string; name: string; description?: string | undefined; rank: Diff; sourceTask: string; earnedAt: string; }
-export interface Todo { id: string; name: string; description?: string | undefined; due: string; time?: string | undefined; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; done: boolean; notified?: boolean; reward?: TodoReward | undefined; }
+export interface Todo { id: string; name: string; description?: string | undefined; due: string; time?: string | undefined; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; skillId?: string | undefined; done: boolean; notified?: boolean; reward?: TodoReward | undefined; }
 export interface Session { id: string; date: string; minutes: number; success: boolean; label: string; }
 export interface LogEntry { id: string; ts: number; text: string; kind: "info" | "warn" | "level"; }
 
 export interface GameState {
   level: number; xp: number; hp: number; maxHp: number; points: number; potions: number;
   stats: Record<Attr, number>;
-  dailyQuests: DailyQuest[]; weeklyQuests: WeeklyQuest[]; bonusPenaltyHabits: BonusPenaltyHabit[]; todos: Todo[]; inventoryGifts: InventoryGift[]; sessions: Session[]; log: LogEntry[];
+  dailyQuests: DailyQuest[]; weeklyQuests: WeeklyQuest[]; skills: Skill[]; bonusPenaltyHabits: BonusPenaltyHabit[]; todos: Todo[]; inventoryGifts: InventoryGift[]; sessions: Session[]; log: LogEntry[];
   lastDay: string; dailyGateQuestDoneDate: string | null; dailyQuestRewardDay: string | null;
   playerName: string;
 }
@@ -76,7 +77,7 @@ export const uid = () => Math.random().toString(36).slice(2, 10);
 export const initialState = (): GameState => ({
   level: 1, xp: 0, hp: 100, maxHp: 100, points: 0, potions: 0,
   stats: { strength: 10, discipline: 10, intelligence: 10, perception: 10, vitality: 10 },
-  dailyQuests: [], weeklyQuests: [], bonusPenaltyHabits: [], todos: [], inventoryGifts: [], sessions: [], log: [], lastDay: today(), dailyGateQuestDoneDate: null, dailyQuestRewardDay: null, playerName: "",
+  dailyQuests: [], weeklyQuests: [], skills: [], bonusPenaltyHabits: [], todos: [], inventoryGifts: [], sessions: [], log: [], lastDay: today(), dailyGateQuestDoneDate: null, dailyQuestRewardDay: null, playerName: "",
 });
 
 export type Alert = { kind: "info" | "penalty" | "level" | "awaken" | "death" | "monarch" | "lowHp"; title: string; body: string };
@@ -88,14 +89,8 @@ export function completeWeeklyQuest(s: GameState, id: string, alerts: Alert[]) {
   if (!quest || !isWeeklyQuestScheduled(quest, s.lastDay) || quest.doneDates.includes(s.lastDay)) return;
   quest.doneDates = [...quest.doneDates, s.lastDay].slice(-90);
   const earnedXp = DIFF_XP[quest.diff];
-  quest.masteryXp = (quest.masteryXp ?? 0) + earnedXp;
-  quest.masteryLevel = quest.masteryLevel ?? 1;
-  while (quest.masteryXp >= xpToNext(quest.masteryLevel)) {
-    quest.masteryXp -= xpToNext(quest.masteryLevel);
-    quest.masteryLevel += 1;
-    log(s, `Weekly quest mastered: ${quest.name} reached level ${quest.masteryLevel}`, "level");
-  }
   gainXp(s, earnedXp, alerts);
+  awardSkillXp(s, quest.skillId, earnedXp);
   changeStats(s, quest.attrs, 1);
   log(s, `Weekly quest complete: ${quest.name} (+${earnedXp} XP)`, "info");
 }
@@ -105,6 +100,7 @@ export function completeDailyQuest(s: GameState, id: string, alerts: Alert[]) {
   if (!quest || quest.doneDate === s.lastDay) return;
   quest.doneDate = s.lastDay;
   gainXp(s, DIFF_XP[quest.diff], alerts);
+  awardSkillXp(s, quest.skillId, DIFF_XP[quest.diff]);
   changeStats(s, quest.attrs, 1);
   log(s, `Daily quest complete: ${quest.name} (+${DIFF_XP[quest.diff]} XP)`, "info");
   if (s.dailyQuests.length && s.dailyQuests.every((item) => item.doneDate === s.lastDay) && s.dailyQuestRewardDay !== s.lastDay) {
@@ -138,6 +134,7 @@ export function completeTodo(s: GameState, id: string, alerts: Alert[]) {
   if (!task || task.done) return;
   task.done = true;
   gainXp(s, DIFF_XP[task.diff], alerts);
+  awardSkillXp(s, task.skillId, DIFF_XP[task.diff]);
   changeStats(s, task.attrs, 1);
   log(s, `Quest cleared: ${task.name} (+${DIFF_XP[task.diff]} XP)`, "info");
   if (task.reward?.type === "potion") {
@@ -173,6 +170,17 @@ export function usePotion(s: GameState) {
 const log = (s: GameState, text: string, kind: LogEntry["kind"] = "info") => {
   s.log = [{ id: uid(), ts: Date.now(), text, kind }, ...s.log].slice(0, 60);
 };
+
+export function awardSkillXp(s: GameState, skillId: string | undefined, amount: number) {
+  const skill = s.skills.find((item) => item.id === skillId);
+  if (!skill) return;
+  skill.xp += amount;
+  while (skill.xp >= xpToNext(skill.level)) {
+    skill.xp -= xpToNext(skill.level);
+    skill.level += 1;
+    log(s, `Skill improved: ${skill.name} reached level ${skill.level}`, "level");
+  }
+}
 
 /** Pure-ish mutation helpers operating on a cloned state; push alerts to list. */
 export function gainXp(s: GameState, amount: number, alerts: Alert[]) {
@@ -228,6 +236,14 @@ export function rollover(s: GameState, alerts: Alert[]) {
     log(s, `Daily quests failed (${missedDailyQuests.length} missed). -${damage} HP`, "warn");
     alerts.push({ kind: "penalty", title: "[System Alert] Daily Quests Failed", body: `${missedDailyQuests.map((quest) => quest.name).join(", ")} were not completed. -${damage} HP.` });
     takeDamage(s, damage, alerts);
+    for (const quest of missedDailyQuests.filter((item) => item.urgent)) {
+      for (const attr of quest.attrs) {
+        const loss = Math.ceil(s.stats[attr] * 0.5);
+        s.stats[attr] = Math.max(1, s.stats[attr] - loss);
+      }
+      log(s, `Urgent quest failed: ${quest.name}. Lost 50% of assigned attributes (${quest.attrs.join(", ")})`, "warn");
+      alerts.push({ kind: "penalty", title: "[System Alert] Urgent Quest Failed", body: `${quest.name} was missed. Lost 50% of each assigned attribute: ${quest.attrs.join(", ")}.` });
+    }
   }
   s.todos = s.todos.filter((task) => !task.done);
   s.lastDay = t;
@@ -257,5 +273,5 @@ export function hydrateState(raw: string): GameState {
     ? saved.penaltyHabits.map((habit) => ({ ...habit, kind: "penalty" as const }))
     : (saved.habits ?? []).map(({ kind, ...habit }) => ({ ...habit, kind: kind === "+" ? "bonus" as const : "penalty" as const })));
   const { dailies: _dailies, habits: _habits, penaltyHabits: _penaltyHabits, ...current } = saved;
-  return { ...base, ...current, dailyQuests: saved.dailyQuests ?? [], weeklyQuests: weeklyQuests.map((quest) => ({ ...quest, masteryLevel: Math.max(1, quest.masteryLevel ?? 1), masteryXp: Math.max(0, quest.masteryXp ?? 0) })), bonusPenaltyHabits, inventoryGifts: saved.inventoryGifts ?? [], dailyGateQuestDoneDate: saved.dailyGateQuestDoneDate ?? null } as GameState;
+  return { ...base, ...current, dailyQuests: saved.dailyQuests ?? [], weeklyQuests: weeklyQuests.map((quest) => ({ ...quest, masteryLevel: Math.max(1, quest.masteryLevel ?? 1), masteryXp: Math.max(0, quest.masteryXp ?? 0) })), skills: saved.skills ?? [], bonusPenaltyHabits, inventoryGifts: saved.inventoryGifts ?? [], dailyGateQuestDoneDate: saved.dailyGateQuestDoneDate ?? null } as GameState;
 }

@@ -4,7 +4,7 @@ import { Check, Pencil, Trash2 } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
 import { baseDifficultyForDiff, completeWeeklyQuest, isWeeklyQuestScheduled, resolveDifficulty, uid, type Attr, type BaseDifficulty } from "@/lib/system";
 import { playSound } from "@/lib/sound";
-import { AttrPicker, BaseDifficultyPicker, DiffBadge, Panel, SysButton, inputCls } from "./ui";
+import { AttrPicker, BaseDifficultyPicker, DiffBadge, Panel, SkillPicker, SysButton, inputCls } from "./ui";
 import { cn } from "@/lib/utils";
 
 const WEEKDAYS = [
@@ -28,10 +28,11 @@ export function WeeklyQuestsTab() {
   const [attrs, setAttrs] = useState<Attr[]>(["discipline"]);
   const [daysOfWeek, setDaysOfWeek] = useState<number[]>([new Date(`${state.lastDay}T00:00:00`).getDay()]);
   const [reminder, setReminder] = useState("");
+  const [skillId, setSkillId] = useState<string>();
 
   const closeEditor = () => {
     setOpen(false); setEditingId(null); setName(""); setDescription(""); setBaseDifficulty("Easy");
-    setAttrs(["discipline"]); setDaysOfWeek([new Date(`${state.lastDay}T00:00:00`).getDay()]); setReminder("");
+    setAttrs(["discipline"]); setDaysOfWeek([new Date(`${state.lastDay}T00:00:00`).getDay()]); setReminder(""); setSkillId(undefined);
   };
 
   const save = (event: React.FormEvent) => {
@@ -40,9 +41,9 @@ export function WeeklyQuestsTab() {
     act((s) => {
       const diff = resolveDifficulty(baseDifficulty, s.level);
       const quest = editingId ? s.weeklyQuests.find((item) => item.id === editingId) : undefined;
-      const values = { name: name.trim(), description: description.trim() || undefined, diff, baseDifficulty, attrs, daysOfWeek, reminder: reminder || undefined };
+      const values = { name: name.trim(), description: description.trim() || undefined, diff, baseDifficulty, attrs, daysOfWeek, skillId, reminder: reminder || undefined };
       if (quest) Object.assign(quest, values);
-      else s.weeklyQuests.push({ id: uid(), ...values, doneDates: [], masteryLevel: 1, masteryXp: 0 });
+      else s.weeklyQuests.push({ id: uid(), ...values, doneDates: [] });
     });
     if (reminder && typeof Notification !== "undefined" && Notification.permission === "default") Notification.requestPermission();
     closeEditor();
@@ -53,7 +54,7 @@ export function WeeklyQuestsTab() {
     if (!quest) return;
     setEditingId(id); setName(quest.name); setDescription(quest.description ?? "");
     setBaseDifficulty(quest.baseDifficulty ?? baseDifficultyForDiff(quest.diff, state.level));
-    setAttrs(quest.attrs); setDaysOfWeek(quest.daysOfWeek); setReminder(quest.reminder ?? ""); setOpen(true);
+    setAttrs(quest.attrs); setDaysOfWeek(quest.daysOfWeek); setReminder(quest.reminder ?? ""); setSkillId(quest.skillId); setOpen(true);
   };
 
   const complete = (id: string) => {
@@ -120,6 +121,7 @@ export function WeeklyQuestsTab() {
             </div>
             <BaseDifficultyPicker value={baseDifficulty} onChange={setBaseDifficulty} playerLevel={state.level} />
             <AttrPicker value={attrs} onChange={setAttrs} />
+            <SkillPicker skills={state.skills} value={skillId} onChange={setSkillId} />
             <label className="block font-mono text-xs text-muted-foreground">Reminder (optional)<input type="time" className={inputCls} value={reminder} onChange={(event) => setReminder(event.target.value)} /></label>
             <div className="flex gap-2"><SysButton type="submit" className="flex-1" disabled={!daysOfWeek.length}>{editingId ? "Save Changes" : "Create Quest"}</SysButton><SysButton type="button" variant="ghost" onClick={closeEditor}>Cancel</SysButton></div>
           </form>

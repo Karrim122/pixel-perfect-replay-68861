@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useSystem } from "@/lib/store";
-import { ATTRS, RANKS, rankIndex, xpToNext, usePotion, POTION_HP, isLowHp, DIFFS, uid, type WeeklyQuest } from "@/lib/system";
+import { ATTRS, RANKS, rankIndex, xpToNext, usePotion, POTION_HP, isLowHp, uid } from "@/lib/system";
 import { FlaskConical, Gift, Package, X } from "lucide-react";
 import { AttributeIcon, Bar, DiffBadge, Panel, SysButton } from "./ui";
 import { cn } from "@/lib/utils";
@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 export function StatusTab() {
   const { state, act } = useSystem();
   const [inventoryOpen, setInventoryOpen] = useState(false);
+  const [skillName, setSkillName] = useState("");
   const [hpHealing, setHpHealing] = useState(false);
   const hpHealTimeout = useRef<number | null>(null);
   const [itemEffect, setItemEffect] = useState<{ type: "potion" | "gift"; label: string; id: number } | null>(null);
@@ -99,28 +100,27 @@ export function StatusTab() {
       </Panel>
 
       <Panel title="Skills">
-        <p className="mb-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-          Weekly quest mastery · XP from completed weekly quests only
-        </p>
-        {state.weeklyQuests.length === 0 ? (
-          <p className="font-mono text-xs text-muted-foreground">Create a weekly quest to start tracking its mastery.</p>
+        <p className="mb-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Create skills, then assign tasks and weekly quests to build mastery.</p>
+        <form className="mb-3 flex gap-2" onSubmit={(event) => { event.preventDefault(); const name = skillName.trim(); if (!name) return; act((s) => s.skills.push({ id: uid(), name, level: 1, xp: 0 })); setSkillName(""); }}>
+          <input className="min-h-11 min-w-0 flex-1 border border-input bg-background/60 px-3 text-base text-foreground outline-none focus:border-primary" placeholder="New skill name" value={skillName} onChange={(event) => setSkillName(event.target.value)} />
+          <SysButton type="submit" disabled={!skillName.trim()}>Create</SysButton>
+        </form>
+        {state.skills.length === 0 ? (
+          <p className="font-mono text-xs text-muted-foreground">No skills yet. Create one above.</p>
         ) : (
           <div className="space-y-3">
-            {state.weeklyQuests.map((quest: WeeklyQuest) => {
-              const level = Math.max(1, quest.masteryLevel ?? 1);
-              const xp = Math.max(0, quest.masteryXp ?? 0);
+            {state.skills.map((skill) => {
+              const level = Math.max(1, skill.level ?? 1);
+              const xp = Math.max(0, skill.xp ?? 0);
               const required = xpToNext(level);
-              const rank = RANKS[DIFFS.indexOf(quest.diff)];
               return (
-                <div key={quest.id} className="border border-border/70 bg-background/30 p-3">
+                <div key={skill.id} className="border border-border/70 bg-background/30 p-3">
                   <div className="mb-2 flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <h3 className="truncate font-bold text-foreground">{quest.name}</h3>
-                      <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                        {rank?.name ?? "Weekly quest"} · {quest.daysOfWeek.length} scheduled {quest.daysOfWeek.length === 1 ? "day" : "days"}
-                      </p>
+                      <h3 className="truncate font-bold text-foreground">{skill.name}</h3>
+                      <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Skill mastery</p>
                     </div>
-                    <span className="shrink-0 font-mono text-sm font-bold text-primary">Lv {level}</span>
+                    <div className="flex items-center gap-2"><span className="shrink-0 font-mono text-sm font-bold text-primary">Lv {level}</span><button aria-label={`Delete ${skill.name}`} onClick={() => act((s) => { s.skills = s.skills.filter((item) => item.id !== skill.id); s.todos.forEach((task) => { if (task.skillId === skill.id) task.skillId = undefined; }); s.weeklyQuests.forEach((quest) => { if (quest.skillId === skill.id) quest.skillId = undefined; }); })} className="text-xs text-muted-foreground">Delete</button></div>
                   </div>
                   <div className="mb-1 flex justify-between font-mono text-[10px]">
                     <span className="text-muted-foreground">Progress to Lv {level + 1}</span>
