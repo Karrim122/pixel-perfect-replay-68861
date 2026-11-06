@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { Timer, CalendarDays, Hexagon, ListChecks, Settings, Swords, User, Volume2, VolumeX } from "lucide-react";
+import { Focus, Timer, CalendarDays, Hexagon, ListChecks, Settings, Swords, User, Volume2, VolumeX } from "lucide-react";
 import { SystemProvider, buzz, useSystem } from "@/lib/store";
-import { completeFocusRegain, failFocusRegain, FOCUS_REGAIN_STEPS, isWeeklyQuestScheduled, rankOf } from "@/lib/system";
+import { completeFocusBreaths, completeFocusRegain, failFocusBreaths, failFocusRegain, FOCUS_BREATH_DAILY_LIMIT, FOCUS_REGAIN_STEPS, isWeeklyQuestScheduled, rankOf } from "@/lib/system";
 import { StatusTab } from "./StatusTab";
 import { playSound, setSoundEnabled } from "@/lib/sound";
 import { QuestsTab } from "./QuestsTab";
@@ -118,6 +118,51 @@ function EmergencyOverlay() {
   );
 }
 
+function FocusBreathOverlay() {
+  const { state, act } = useSystem();
+  const [now, setNow] = useState(Date.now());
+  const deadline = state.focusBreathDeadline;
+
+  useEffect(() => {
+    if (deadline === null) return;
+    setNow(Date.now());
+    const timer = window.setInterval(() => setNow(Date.now()), 250);
+    return () => window.clearInterval(timer);
+  }, [deadline]);
+
+  const secondsLeft = deadline === null ? 0 : Math.max(0, Math.ceil((deadline - now) / 1000));
+  useEffect(() => {
+    if (deadline !== null && secondsLeft === 0) playSound("done");
+  }, [deadline, secondsLeft]);
+
+  if (deadline === null) return null;
+  const minutes = String(Math.floor(secondsLeft / 60)).padStart(2, "0");
+  const seconds = String(secondsLeft % 60).padStart(2, "0");
+  const usesToday = state.focusBreathUsesDate === state.lastDay ? state.focusBreathUses : 0;
+
+  return (
+    <div className="focus-breath-overlay fixed inset-0 z-[60] flex items-center justify-center bg-background/80 p-4 text-foreground backdrop-blur-lg" role="dialog" aria-modal="true" aria-label="Five-minute focus breathing">
+      <div className="focus-breath-panel sys-panel w-full max-w-sm p-5 text-center sm:p-6">
+        <div className="mx-auto flex w-fit items-center gap-2 border border-primary/35 bg-primary/5 px-3 py-1.5 text-primary">
+          <Focus className="h-4 w-4" />
+          <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em]">Focus Reset · {usesToday} / {FOCUS_BREATH_DAILY_LIMIT} today</span>
+        </div>
+        <h2 className="mt-4 text-2xl font-bold text-primary">Deep Breaths</h2>
+        <p className="mt-2 text-sm text-muted-foreground">Sit comfortably and breathe slowly for five minutes.</p>
+        <div role="timer" className="relative mx-auto my-6 flex h-40 w-40 items-center justify-center" aria-label={`Focus breathing timer: ${minutes}:${seconds}`}>
+          <span aria-hidden="true" className="urgent-breath-ring absolute inset-0" />
+          <span aria-hidden="true" className="urgent-breath-ring urgent-breath-ring-delayed absolute inset-4" />
+          <p className="focus-breath-clock-face relative z-10 border border-primary/35 bg-background/85 px-4 py-3 font-mono text-5xl font-bold tabular-nums text-primary" aria-live="off">{minutes}:{seconds}</p>
+        </div>
+        <p className="font-mono text-xs text-primary">{secondsLeft === 0 ? "Timer complete · choose Done to receive the reward" : "Breathe in gently, then breathe out slowly"}</p>
+        <SysButton disabled={secondsLeft > 0} className="mt-4 w-full rounded-lg" onClick={() => act((s, alerts) => completeFocusBreaths(s, alerts))}>Done</SysButton>
+        <SysButton variant="ghost" className="mt-2 w-full rounded-lg" onClick={() => act((s) => failFocusBreaths(s))}>Failed</SysButton>
+        <p className="mt-3 text-xs text-muted-foreground">Finish the timer to earn Easy-task XP and Discipline and Perception practice. Two attempts per day.</p>
+      </div>
+    </div>
+  );
+}
+
 function Shell() {
   const { state, ready } = useSystem();
   const [tab, setTab] = useState<Tab>("status");
@@ -185,6 +230,7 @@ function Shell() {
       )}
       <AlertModal />
       <EmergencyOverlay />
+      <FocusBreathOverlay />
       {settings && <SettingsModal onClose={() => setSettings(false)} />}
       {ready && !state.playerName && <AwakeningModal />}
     </div>
