@@ -81,7 +81,7 @@ export function QuestsTab() {
           <DiffBadge d={rankDiff} />
         </div>
         <div className="mt-3 flex items-center justify-between gap-2">
-          <p className="font-mono text-[10px] text-primary">Reward: +1 Healing Potion when all added Daily quests are complete (Gate quest excluded).</p>
+          <p className="font-mono text-[10px] text-primary">Reward: +1 Healing Potion after completing the Gate, all Daily quests, and all Weekly quests scheduled for today.</p>
           <SysButton variant="ghost" onClick={() => setOpen(true)}><Plus className="mr-2 h-4 w-4" />Add Daily Quest</SysButton>
         </div>
 

@@ -124,6 +124,18 @@ export type Alert = { kind: "info" | "penalty" | "level" | "awaken" | "exhausted
 
 export const isWeeklyQuestScheduled = (quest: WeeklyQuest, date: string) => quest.daysOfWeek.includes(new Date(`${date}T00:00:00`).getDay());
 
+function awardDailyPotionIfComplete(s: GameState, alerts: Alert[]) {
+  if (s.dailyQuestRewardDay === s.lastDay || s.dailyGateQuestDoneDate !== s.lastDay) return;
+  if (!s.dailyQuests.every((quest) => quest.doneDate === s.lastDay)) return;
+  const todaysWeeklyQuests = s.weeklyQuests.filter((quest) => isWeeklyQuestScheduled(quest, s.lastDay));
+  if (!todaysWeeklyQuests.every((quest) => quest.doneDates.includes(s.lastDay))) return;
+
+  s.dailyQuestRewardDay = s.lastDay;
+  s.potions += 1;
+  log(s, "All daily and today's weekly quests complete. +1 Healing Potion", "level");
+  alerts.push({ kind: "info", title: "[SYSTEM] Daily Quests Complete!", body: "You completed Close today's gate, all Daily quests, and all Weekly quests scheduled for today. Reward: +1 Healing Potion." });
+}
+
 function awardWeeklyCompletionGift(s: GameState, quest: WeeklyQuest, date: string, alerts: Alert[]) {
   const scheduledWeeklyQuests = s.weeklyQuests.filter((item) => isWeeklyQuestScheduled(item, date));
   if (!scheduledWeeklyQuests.length || !scheduledWeeklyQuests.every((item) => item.doneDates.includes(date)) || s.weeklyQuestRewardDays.includes(date)) return;
@@ -141,6 +153,7 @@ export function completeWeeklyQuest(s: GameState, id: string, alerts: Alert[], d
   const rewardedDates = quest.rewardedDates ?? [];
   if (rewardedDates.includes(date)) {
     awardWeeklyCompletionGift(s, quest, date, alerts);
+    if (date === s.lastDay) awardDailyPotionIfComplete(s, alerts);
     return true;
   }
   quest.rewardedDates = [...rewardedDates, date].slice(-90);
@@ -152,6 +165,7 @@ export function completeWeeklyQuest(s: GameState, id: string, alerts: Alert[], d
   log(s, `Weekly quest complete: ${quest.name} (+${earnedXp} XP)`, "info");
   alerts.push({ kind: "info", title: "[SYSTEM] Weekly Quest Complete!", body: `${quest.name} complete. +${earnedXp} XP and +${progress}% attribute progress for ${quest.attrs.join(", ")}.${quest.skillId ? " Skill progress gained." : ""}` });
   awardWeeklyCompletionGift(s, quest, date, alerts);
+  if (date === s.lastDay) awardDailyPotionIfComplete(s, alerts);
   return true;
 }
 
@@ -173,14 +187,8 @@ export function completeDailyQuest(s: GameState, id: string, alerts: Alert[]) {
   awardSkillXp(s, quest.skillId, earnedXp);
   changeStats(s, quest.attrs, progress);
   log(s, `Daily quest complete: ${quest.name} (+${earnedXp} XP)`, "info");
-  if (s.dailyQuests.length && s.dailyQuests.every((item) => item.doneDate === s.lastDay) && s.dailyQuestRewardDay !== s.lastDay) {
-    s.dailyQuestRewardDay = s.lastDay;
-    s.potions += 1;
-    log(s, "All daily quests complete. +1 Healing Potion", "level");
-    alerts.push({ kind: "info", title: "[SYSTEM] All Daily Quests Complete!", body: `${quest.name} complete. +${earnedXp} XP and +${progress}% attribute progress for ${quest.attrs.join(", ")}. You cleared all your added Daily quests and earned +1 Healing Potion.` });
-  } else {
-    alerts.push({ kind: "info", title: "[SYSTEM] Daily Quest Complete!", body: `${quest.name} complete. +${earnedXp} XP and +${progress}% attribute progress for ${quest.attrs.join(", ")}.` });
-  }
+  alerts.push({ kind: "info", title: "[SYSTEM] Daily Quest Complete!", body: `${quest.name} complete. +${earnedXp} XP and +${progress}% attribute progress for ${quest.attrs.join(", ")}.` });
+  awardDailyPotionIfComplete(s, alerts);
 }
 
 export function triggerBonusPenaltyHabit(s: GameState, id: string, alerts: Alert[]) {
@@ -281,12 +289,13 @@ export function failFocusRegain(s: GameState, alerts: Alert[]) {
   takeDamage(s, damage, alerts);
 }
 
-export function completeDailyGateQuest(s: GameState, earnedXp: number, levelAtStart: number) {
+export function completeDailyGateQuest(s: GameState, earnedXp: number, levelAtStart: number, alerts: Alert[]) {
   if (s.dailyGateQuestDoneDate === s.lastDay) return;
   s.dailyGateQuestDoneDate = s.lastDay;
   const progress = attributeProgressForXp(earnedXp, levelAtStart);
   changeStats(s, ["discipline", "perception"], progress);
   log(s, `Daily Quest complete: Close todays gate (+${progress}% Discipline and Perception progress)`, "level");
+  awardDailyPotionIfComplete(s, alerts);
 }
 
 export function usePotion(s: GameState) {
