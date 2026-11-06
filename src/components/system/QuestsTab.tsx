@@ -72,7 +72,7 @@ export function QuestsTab() {
       <Panel title="Daily">
         <div className="flex items-center gap-3 border-b border-border/40 pb-3">
           <button type="button" role="checkbox" aria-checked={dailyDone} aria-label="Close todays gate" disabled
-            className={cn("flex h-10 w-10 shrink-0 cursor-not-allowed items-center justify-center border", dailyDone ? "border-success bg-success/20 text-success" : "border-primary/60 text-primary")}>
+            className={cn("flex h-10 w-10 shrink-0 cursor-not-allowed items-center justify-center rounded-sm border", dailyDone ? "border-success bg-success/20 text-success" : "border-primary/60 text-primary")}>
             {dailyDone && <Check className="h-5 w-5" />}
           </button>
           <div className="flex-1">
@@ -94,7 +94,7 @@ export function QuestsTab() {
                 return (
                   <li key={quest.id} className="flex items-center gap-2 border-b border-border/40 pb-3">
                     <button disabled={done} onClick={() => completeDaily(quest.id)} aria-label={done ? `Completed ${quest.name}` : `Complete ${quest.name}`}
-                      className={cn("flex h-9 w-9 shrink-0 items-center justify-center border disabled:cursor-default", done ? "border-success bg-success/20 text-success" : "border-primary/60 text-primary")}>
+                      className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border disabled:cursor-default", done ? "border-success bg-success/20 text-success" : "border-primary/60 text-primary")}>
                       {done && <Check className="h-4 w-4" />}
                     </button>
                     <div className="min-w-0 flex-1 pr-3">
@@ -124,7 +124,7 @@ export function QuestsTab() {
               return (
                 <li key={quest.id} className="flex items-center gap-3 border-b border-border/40 pb-3">
                   <button disabled={done} onClick={() => completeWeekly(quest.id)} aria-label={done ? `Completed ${quest.name}` : `Complete ${quest.name}`}
-                    className={cn("flex h-10 w-10 shrink-0 items-center justify-center border disabled:cursor-default", done ? "border-success bg-success/20 text-success" : "border-primary/60 text-primary")}>
+                    className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-sm border disabled:cursor-default", done ? "border-success bg-success/20 text-success" : "border-primary/60 text-primary")}>
                     {done && <Check className="h-5 w-5" />}
                   </button>
                   <div className="min-w-0 flex-1 pr-3">
