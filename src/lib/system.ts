@@ -13,7 +13,7 @@ export const DIFF_HP: Record<Diff, number> = { E: 1, D: 1, C: 2, B: 2, A: 3, S: 
 export const penaltyHabitDamage = (diff: Diff, occurrence: number) => Math.max(15, DIFF_HP[diff] * 10) * occurrence;
 export const ATTRIBUTE_PRACTICE_THRESHOLD = 100;
 export const ATTRIBUTE_GAIN_THRESHOLD = 100;
-export const GATE_ATTRIBUTE_PRACTICE = 1;
+export const GATE_ATTRIBUTE_PRACTICE = 3;
 export type BaseDifficulty = "Very Easy" | "Easy" | "Medium" | "Hard" | "Very Hard";
 export const BASE_DIFFICULTIES: BaseDifficulty[] = ["Very Easy", "Easy", "Medium", "Hard", "Very Hard"];
 export const ATTRIBUTE_PRACTICE: Record<BaseDifficulty, number> = { "Very Easy": 6, Easy: 8, Medium: 12, Hard: 18, "Very Hard": 24 };
