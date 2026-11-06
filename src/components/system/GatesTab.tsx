@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { buzz, useSystem } from "@/lib/store";
 import { playSound } from "@/lib/sound";
-import { BASE_DIFFICULTIES, baseDifficultyForDiff, completeDailyGateQuest, completeTodo, completeWeeklyQuest, DIFF_XP, isWeeklyQuestScheduled, takeDamage, uid, type Alert, type GameState } from "@/lib/system";
+import { BASE_DIFFICULTIES, baseDifficultyForDiff, changeStats, completeDailyGateQuest, completeTodo, completeWeeklyQuest, GATE_ATTRIBUTE_PRACTICE, isWeeklyQuestScheduled, takeDamage, uid, type Alert, type GameState } from "@/lib/system";
 import { Panel, SysButton, inputCls } from "./ui";
 
 const BREAK_DMG = 10;
@@ -56,19 +56,19 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
       const { label, target: assignedTarget, details: gateDetails } = meta.current;
       s.sessions.unshift({ id: uid(), date: s.lastDay, minutes: totalFocusMinutes, success: true, label, ...(gateDetails ? { details: gateDetails } : {}) });
       const levelAtStart = s.level;
+      changeStats(s, ["discipline", "perception"], GATE_ATTRIBUTE_PRACTICE);
       if (assignedTarget.startsWith("t:")) {
         const task = s.todos.find((item) => item.id === assignedTarget.slice(2));
         const taskDifficulty = task?.baseDifficulty ?? (task ? baseDifficultyForDiff(task.diff, levelAtStart) : undefined);
         const qualifiesForDailyGate = Boolean(task && !task.done && taskDifficulty && BASE_DIFFICULTIES.indexOf(taskDifficulty) >= BASE_DIFFICULTIES.indexOf("Medium"));
         if (task) completeTodo(s, task.id, a);
-        if (qualifiesForDailyGate && task) completeDailyGateQuest(s, DIFF_XP[task.diff], levelAtStart, a);
+        if (qualifiesForDailyGate && task) completeDailyGateQuest(s, a);
       }
       if (assignedTarget.startsWith("w:")) {
-        const quest = s.weeklyQuests.find((item) => item.id === assignedTarget.slice(2));
-        if (completeWeeklyQuest(s, assignedTarget.slice(2), a) && quest) completeDailyGateQuest(s, DIFF_XP[quest.diff], levelAtStart, a);
+        if (completeWeeklyQuest(s, assignedTarget.slice(2), a)) completeDailyGateQuest(s, a);
       }
-      s.log.unshift({ id: uid(), ts: Date.now(), text: `Gate closed (${totalFocusMinutes}m focus).`, kind: "level" });
-      a.push({ kind: "info", title: "[SYSTEM] Gate Closed", body: `Gate closed after ${totalFocusMinutes} focus minutes. Completed: ${label}.` });
+      s.log.unshift({ id: uid(), ts: Date.now(), text: `Gate closed (${totalFocusMinutes}m focus). +${GATE_ATTRIBUTE_PRACTICE}% Discipline and Perception practice.`, kind: "level" });
+      a.push({ kind: "info", title: "[SYSTEM] Gate Closed", body: `Gate closed after ${totalFocusMinutes} focus minutes. +${GATE_ATTRIBUTE_PRACTICE}% Discipline and Perception practice. Completed: ${label}.` });
     });
   };
 
