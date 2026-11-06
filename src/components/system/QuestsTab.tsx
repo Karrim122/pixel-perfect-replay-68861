@@ -82,9 +82,9 @@ export function QuestsTab() {
         </div>
         <div className="mt-3 space-y-2">
           <p className="font-mono text-[10px] text-primary">Reward: +1 Healing Potion after completing the Gate, all Daily quests, and all Weekly quests scheduled for today.</p>
-          <SysButton className="flex w-full items-center justify-start gap-3 px-3 py-2 text-left" onClick={() => setOpen(true)}>
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center border border-primary/60 bg-primary/10"><Plus className="h-5 w-5" /></span>
-            <span className="min-w-0"><span className="block">New Daily Quest</span><span className="mt-0.5 block text-[9px] font-normal tracking-wider text-muted-foreground">Add an objective to today’s list</span></span>
+          <SysButton className="flex w-full items-center justify-start gap-2 px-3 text-left" onClick={() => setOpen(true)}>
+            <Plus className="h-4 w-4 shrink-0" />
+            <span>New Daily Quest</span>
           </SysButton>
         </div>
 
