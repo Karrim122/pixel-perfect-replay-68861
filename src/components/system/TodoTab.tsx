@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { Bell, Check, FlaskConical, Gift, Pencil, Trash2 } from "lucide-react";
+import { AlertTriangle, Check, Pencil, Trash2 } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
 import { playSound } from "@/lib/sound";
-import { baseDifficultyForDiff, completeTodo, DIFFS, resolveDifficulty, RANKS, today, uid, type Attr, type BaseDifficulty, type TodoReward } from "@/lib/system";
-import { AttrPicker, BaseDifficultyPicker, DiffBadge, Panel, SkillPicker, SysButton, inputCls } from "./ui";
+import { baseDifficultyForDiff, completeTodo, DIFFS, moveItem, RANKS, resolveDifficulty, today, uid, type Attr, type BaseDifficulty, type TodoReward } from "@/lib/system";
+import { AttrPicker, BaseDifficultyPicker, DiffBadge, Panel, ReorderButtons, SkillPicker, SysButton, inputCls } from "./ui";
 import { cn } from "@/lib/utils";
 
 export function TodoTab() {
@@ -12,7 +12,7 @@ export function TodoTab() {
   const [filter, setFilter] = useState<"all" | "today">("today");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [due, setDue] = useState(today());
+  const [due, setDue] = useState("");
   const [time, setTime] = useState("");
   const [baseDifficulty, setBaseDifficulty] = useState<BaseDifficulty>("Easy");
   const [attrs, setAttrs] = useState<Attr[]>(["intelligence"]);
@@ -23,10 +23,13 @@ export function TodoTab() {
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const potionRewardAllowed = baseDifficulty === "Hard" || baseDifficulty === "Very Hard";
-
   const list = state.todos
-    .filter((t) => filter === "all" || t.due === state.lastDay)
-    .sort((a, b) => Number(a.done) - Number(b.done) || a.due.localeCompare(b.due));
+    .filter((t) => filter === "today" ? !t.due || t.due === state.lastDay : !t.done)
+    .sort((a, b) => Number(a.done) - Number(b.done));
+
+  const startEmergency = () => {
+    act((s) => { s.focusRegainDeadline = Date.now() + 10 * 60 * 1000; });
+  };
 
   const save = (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,18 +42,18 @@ export function TodoTab() {
         : rewardType === "gift"
           ? { type: "gift", name: rewardName.trim(), description: rewardDescription.trim() || undefined }
           : undefined;
-      const values = { name: name.trim(), description: description.trim() || undefined, due, time: time || undefined, diff, baseDifficulty, attrs, skillId, reward };
+      const values = { name: name.trim(), description: description.trim() || undefined, due: due || undefined, time: time || undefined, diff, baseDifficulty, attrs, skillId, reward };
       if (todo) Object.assign(todo, values);
       else s.todos.push({ id: uid(), ...values, done: false });
     });
     if (time && typeof Notification !== "undefined" && Notification.permission === "default") Notification.requestPermission();
-    setName(""); setDescription(""); setDue(today()); setTime(""); setAttrs(["intelligence"]); setSkillId(undefined); setBaseDifficulty("Easy"); setRewardType("none"); setRewardName(""); setRewardDescription(""); setEditingId(null); setOpen(false);
+    setName(""); setDescription(""); setDue(""); setTime(""); setAttrs(["intelligence"]); setSkillId(undefined); setBaseDifficulty("Easy"); setRewardType("none"); setRewardName(""); setRewardDescription(""); setEditingId(null); setOpen(false);
   };
 
   const edit = (id: string) => {
     const task = state.todos.find((x) => x.id === id);
     if (!task) return;
-    setEditingId(id); setName(task.name); setDescription(task.description ?? ""); setDue(task.due); setTime(task.time ?? "");
+    setEditingId(id); setName(task.name); setDescription(task.description ?? ""); setDue(task.due ?? ""); setTime(task.time ?? "");
     const taskBaseDifficulty = task.baseDifficulty ?? baseDifficultyForDiff(task.diff, state.level);
     setBaseDifficulty(taskBaseDifficulty); setAttrs(task.attrs); setSkillId(task.skillId);
     setRewardType(task.reward?.type === "potion" && taskBaseDifficulty !== "Hard" && taskBaseDifficulty !== "Very Hard" ? "none" : task.reward?.type ?? "none"); setRewardName(task.reward?.type === "gift" ? task.reward.name : "");
@@ -69,15 +72,20 @@ export function TodoTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-2">
-        <p className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Task list</p>
-        <SysButton className="min-h-9 px-3" variant={filter === "today" ? "primary" : "ghost"} onClick={() => setFilter(filter === "today" ? "all" : "today")}>{filter === "today" ? "Today · On" : "Filter: Today"}</SysButton>
+      <div className="grid grid-cols-2 gap-2">
+        <SysButton variant={filter === "today" ? "primary" : "ghost"} onClick={() => setFilter("today")}>Today's Tasks</SysButton>
+        <SysButton variant={filter === "all" ? "primary" : "ghost"} onClick={() => setFilter("all")}>All Tasks</SysButton>
       </div>
-      <Panel title={`Tasks · ${list.filter((t) => !t.done).length} active`}>
-        {list.length === 0 && <p className="font-mono text-xs text-muted-foreground">No tasks registered.</p>}
+      <Panel>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="font-mono text-xs uppercase tracking-[0.3em] text-primary sys-glow-text">Quests · {list.filter((t) => !t.done).length} active</h2>
+          <SysButton variant="danger" className="!min-h-0 !h-8 !w-8 rounded-sm p-0 flex items-center justify-center" title="Start a Focus Regain urgent quest" aria-label="Start Focus Regain urgent quest" onClick={startEmergency}>
+            <AlertTriangle className="h-3.5 w-3.5" />
+          </SysButton>
+        </div>
+        {list.length === 0 && <p className="font-mono text-xs text-muted-foreground">No quests registered.</p>}
         <ul className="space-y-2">
-          {list.map((t) => {
-            const overdue = !t.done && t.due < state.lastDay;
+          {list.map((t, index) => {
             return (
               <li key={t.id} className="flex items-center gap-3 border-b border-border/40 pb-2">
                 <button onClick={() => complete(t.id)} aria-label={`Complete ${t.name}`}
@@ -86,21 +94,21 @@ export function TodoTab() {
                 </button>
                 <div className="flex-1">
                   <p className={cn("flex items-center gap-1 text-lg leading-tight", t.done && "text-muted-foreground line-through")}>
-                    {t.name}{t.reward?.type === "gift" && <Gift aria-label="Gift reward" className="h-4 w-4 text-primary" />}{t.reward?.type === "potion" && <FlaskConical aria-label="Healing potion reward" className="h-4 w-4 text-success" />}
+                    {t.name}
                   </p>
                   {t.description && <p className="text-xs text-muted-foreground">{t.description}</p>}
-                  <p className={cn("flex items-center gap-1 font-mono text-[10px] uppercase", overdue ? "text-destructive" : "text-muted-foreground")}>
-                    {t.due}{t.time && <><Bell className="ml-1 h-3 w-3" />{t.time}</>} · {t.attrs.join(" · ")}{t.skillId && state.skills.find((skill) => skill.id === t.skillId) ? ` · ${state.skills.find((skill) => skill.id === t.skillId)?.name}` : ""}
-                  </p>
                 </div>
                 <DiffBadge d={t.diff} />
-                <button aria-label={`Edit ${t.name}`} onClick={() => edit(t.id)} className="p-2 text-muted-foreground"><Pencil className="h-4 w-4" /></button>
-                <button aria-label="Delete" onClick={() => act((s) => { s.todos = s.todos.filter((x) => x.id !== t.id); })} className="p-2 text-muted-foreground"><Trash2 className="h-4 w-4" /></button>
+                <ReorderButtons itemName={t.name} canMoveUp={index > 0 && list[index - 1]!.done === t.done} canMoveDown={index < list.length - 1 && list[index + 1]!.done === t.done}
+                  onMoveUp={() => act((s) => moveItem(s.todos, t.id, list[index - 1]!.id))}
+                  onMoveDown={() => act((s) => moveItem(s.todos, t.id, list[index + 1]!.id))} />
+                {!t.emergency && <button aria-label={`Edit ${t.name}`} onClick={() => edit(t.id)} className="p-2 text-muted-foreground"><Pencil className="h-4 w-4" /></button>}
+                {!(t.emergency && !t.done && !t.emergencyFailed) && <button aria-label="Delete" onClick={() => act((s) => { s.todos = s.todos.filter((x) => x.id !== t.id); })} className="p-2 text-muted-foreground"><Trash2 className="h-4 w-4" /></button>}
               </li>
             );
           })}
         </ul>
-        <SysButton className="mt-3 w-full" onClick={() => { setEditingId(null); setName(""); setDescription(""); setDue(today()); setTime(""); setBaseDifficulty("Easy"); setAttrs(["intelligence"]); setSkillId(undefined); setRewardType("none"); setRewardName(""); setRewardDescription(""); setOpen(true); }}>+ New Task</SysButton>
+        <SysButton className="mt-3 w-full" onClick={() => { setEditingId(null); setName(""); setDescription(""); setDue(""); setTime(""); setBaseDifficulty("Easy"); setAttrs(["intelligence"]); setSkillId(undefined); setRewardType("none"); setRewardName(""); setRewardDescription(""); setOpen(true); }}>+ New Task</SysButton>
       </Panel>
 
       {open && createPortal(
@@ -110,7 +118,7 @@ export function TodoTab() {
             <input autoFocus required className={inputCls} placeholder="Task name" value={name} onChange={(e) => setName(e.target.value)} />
             <textarea className={`${inputCls} min-h-20 py-2`} placeholder="Description (optional)" value={description} onChange={(e) => setDescription(e.target.value)} />
             <div className="grid grid-cols-2 gap-2">
-              <div className="flex gap-1"><input aria-label="Task date" type="date" className={inputCls} value={due} onChange={(e) => setDue(e.target.value)} /><button type="button" onClick={() => setDue(today())} className="shrink-0 border border-primary/60 px-2 font-mono text-[9px] uppercase text-primary">Today</button></div>
+              <div className="flex gap-1"><input type="date" aria-label="Due date (optional)" className={inputCls} value={due} onChange={(e) => setDue(e.target.value)} /><button type="button" onClick={() => setDue(today())} className="shrink-0 border border-primary/60 px-2 font-mono text-[9px] uppercase text-primary">Today</button></div>
               <input type="time" className={inputCls} value={time} onChange={(e) => setTime(e.target.value)} aria-label="Reminder time" />
             </div>
             <BaseDifficultyPicker value={baseDifficulty} onChange={(value) => {

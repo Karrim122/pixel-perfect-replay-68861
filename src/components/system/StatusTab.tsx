@@ -53,6 +53,7 @@ export function StatusTab() {
         <div className="mb-4 border-b border-border pb-3">
           <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Player</p>
           <p className="text-2xl font-bold uppercase tracking-wider text-foreground">{state.playerName || "Player"}</p>
+          <p className="mt-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Player Since · {new Date(`${state.playerSince}T00:00:00`).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })}</p>
         </div>
         <div className="flex items-end justify-between">
           <div>
@@ -69,6 +70,7 @@ export function StatusTab() {
           <div>
             <div className="mb-1 flex justify-between font-mono text-xs"><span className="text-hp">HP</span><span>{state.hp} / {state.maxHp}</span></div>
             <Bar value={state.hp} max={state.maxHp} hp heal={hpHealing} />
+            <p className="mt-1 font-mono text-[10px] text-muted-foreground">Rest restores up to 20 HP each day.</p>
           </div>
           <div>
             <div className="mb-1 flex justify-between font-mono text-xs"><span className="text-primary">XP</span><span>{state.xp} / {xpToNext(state.level)}</span></div>
@@ -76,15 +78,8 @@ export function StatusTab() {
           </div>
         </div>
         <div className="mt-4 flex justify-between border-t border-border pt-3 font-mono text-xs">
-          <span className="text-muted-foreground">Available Points</span>
+          <span className="text-muted-foreground">Previously Earned Points</span>
           <span className="font-bold text-primary">{state.points}</span>
-        </div>
-      </Panel>
-
-      <Panel title="Inventory">
-        <div className="flex items-center justify-between gap-3">
-          <div><p className="font-bold">Items and rewards</p><p className="font-mono text-xs text-muted-foreground">{state.potions + state.inventoryGifts.length} items · {state.potions} healing potions · {state.inventoryGifts.length} gifts</p></div>
-          <SysButton className="flex items-center gap-2" onClick={() => setInventoryOpen(true)}><Package className="h-4 w-4" />Inventory</SysButton>
         </div>
       </Panel>
 
@@ -99,8 +94,15 @@ export function StatusTab() {
         </div>
       </Panel>
 
+      <Panel title="Inventory">
+        <div className="flex items-center justify-between gap-3">
+          <div><p className="font-bold">Items and rewards</p><p className="font-mono text-xs text-muted-foreground">{state.potions + state.inventoryGifts.length} items · {state.potions} healing potions · {state.inventoryGifts.length} gifts</p></div>
+          <SysButton className="flex items-center gap-2" onClick={() => setInventoryOpen(true)}><Package className="h-4 w-4" />Inventory</SysButton>
+        </div>
+      </Panel>
+
       <Panel title="Skills">
-        <p className="mb-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Create skills, then assign tasks and weekly quests to build mastery.</p>
+        <p className="mb-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Create skills and assign tasks or weekly quests to grow them.</p>
         <form className="mb-3 flex gap-2" onSubmit={(event) => { event.preventDefault(); const name = skillName.trim(); if (!name) return; act((s) => s.skills.push({ id: uid(), name, level: 1, xp: 0 })); setSkillName(""); }}>
           <input className="min-h-11 min-w-0 flex-1 border border-input bg-background/60 px-3 text-base text-foreground outline-none focus:border-primary" placeholder="New skill name" value={skillName} onChange={(event) => setSkillName(event.target.value)} />
           <SysButton type="submit" disabled={!skillName.trim()}>Create</SysButton>
@@ -109,27 +111,10 @@ export function StatusTab() {
           <p className="font-mono text-xs text-muted-foreground">No skills yet. Create one above.</p>
         ) : (
           <div className="space-y-3">
-            {state.skills.map((skill) => {
-              const level = Math.max(1, skill.level ?? 1);
-              const xp = Math.max(0, skill.xp ?? 0);
-              const required = xpToNext(level);
-              return (
-                <div key={skill.id} className="border border-border/70 bg-background/30 p-3">
-                  <div className="mb-2 flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <h3 className="truncate font-bold text-foreground">{skill.name}</h3>
-                      <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Skill mastery</p>
-                    </div>
-                    <div className="flex items-center gap-2"><span className="shrink-0 font-mono text-sm font-bold text-primary">Lv {level}</span><button aria-label={`Delete ${skill.name}`} onClick={() => act((s) => { s.skills = s.skills.filter((item) => item.id !== skill.id); s.todos.forEach((task) => { if (task.skillId === skill.id) task.skillId = undefined; }); s.weeklyQuests.forEach((quest) => { if (quest.skillId === skill.id) quest.skillId = undefined; }); })} className="text-xs text-muted-foreground">Delete</button></div>
-                  </div>
-                  <div className="mb-1 flex justify-between font-mono text-[10px]">
-                    <span className="text-muted-foreground">Progress to Lv {level + 1}</span>
-                    <span className="text-primary">{xp} / {required} XP</span>
-                  </div>
-                  <Bar value={xp} max={required} />
-                </div>
-              );
-            })}
+            {state.skills.map((skill) => <div key={skill.id} className="border border-border/70 bg-background/30 p-3">
+              <div className="mb-2 flex items-center justify-between"><h3 className="truncate font-bold text-foreground">{skill.name}</h3><div className="flex items-center gap-2"><span className="font-mono text-sm font-bold text-primary">Lv {skill.level}</span><button aria-label={`Delete ${skill.name}`} className="text-xs text-muted-foreground" onClick={() => act((s) => { s.skills = s.skills.filter((item) => item.id !== skill.id); s.todos.forEach((task) => { if (task.skillId === skill.id) task.skillId = undefined; }); s.weeklyQuests.forEach((quest) => { if (quest.skillId === skill.id) quest.skillId = undefined; }); s.dailyQuests.forEach((quest) => { if (quest.skillId === skill.id) quest.skillId = undefined; }); })}>Delete</button></div></div>
+              <div className="mb-1 flex justify-between font-mono text-[10px]"><span className="text-muted-foreground">Progress to Lv {skill.level + 1}</span><span className="text-primary">{skill.xp} / {xpToNext(skill.level)} XP</span></div><Bar value={skill.xp} max={xpToNext(skill.level)} />
+            </div>)}
           </div>
         )}
       </Panel>

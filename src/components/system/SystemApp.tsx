@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { CalendarDays, Hexagon, ListChecks, Settings, Swords, User, Volume2, VolumeX } from "lucide-react";
+import { Timer, CalendarDays, Hexagon, ListChecks, Settings, Swords, User, Volume2, VolumeX } from "lucide-react";
 import { SystemProvider, buzz, useSystem } from "@/lib/store";
-import { isWeeklyQuestScheduled, rankOf } from "@/lib/system";
+import { completeFocusRegain, failFocusRegain, isWeeklyQuestScheduled, rankOf } from "@/lib/system";
 import { StatusTab } from "./StatusTab";
 import { playSound, setSoundEnabled } from "@/lib/sound";
 import { QuestsTab } from "./QuestsTab";
@@ -21,26 +21,98 @@ const TABS = [
 ] as const;
 type Tab = (typeof TABS)[number]["key"];
 
+function AlertDetails({ body }: { body: string }) {
+  const sentences = body.split(/(?<=[.!?])\s+/).filter(Boolean);
+  return (
+    <div className="mt-4 space-y-2 border border-border/70 bg-background/60 p-4 text-left">
+      {sentences.map((sentence, index) => (
+        <p key={`${index}-${sentence}`} className="text-sm leading-relaxed text-foreground/90">
+          {sentence.split(/([+−-]?\s?\d+(?:\.\d+)?(?:%|\/\d+(?:\.\d+)?%?)?(?:\s?(?:XP|HP|minutes?|m|attribute progress))?)/gi).map((part, partIndex) => {
+            if (!/\d/.test(part)) return part;
+            const trimmed = part.trimStart();
+            const color = /^[−-]/.test(trimmed) ? "text-destructive" : trimmed.startsWith("+") ? "text-success" : "text-primary";
+            return <span key={`${partIndex}-${part}`} className={`font-bold tabular-nums ${color}`}>{part}</span>;
+          })}
+        </p>
+      ))}
+    </div>
+  );
+}
+
 function AlertModal() {
   const { alerts, dismiss } = useSystem();
   const a = alerts[0];
   useEffect(() => {
     if (a) {
-      const warning = ["death", "penalty", "lowHp"].includes(a.kind);
+      const warning = ["exhausted", "penalty", "lowHp"].includes(a.kind);
       buzz(warning ? [200, 80, 200] : 40);
       playSound(warning ? "warning" : "reward");
     }
   }, [a]);
   if (!a) return null;
-  const danger = a.kind === "death" || a.kind === "penalty" || a.kind === "lowHp";
+  const danger = a.kind === "exhausted" || a.kind === "penalty" || a.kind === "lowHp";
   const epic = a.kind === "awaken" || a.kind === "monarch";
   return (
     <div className={cn("fixed inset-0 z-50 flex items-center justify-center p-6 backdrop-blur-md", danger ? "bg-destructive/25" : "bg-background/80")}>
       <div role="alertdialog" aria-modal="true" aria-label={a.title} className={cn("sys-panel w-full max-w-sm p-6 text-center animate-sys-shatter", danger && "sys-danger animate-sys-shake")}>
         <p className={cn("font-mono text-[10px] uppercase tracking-[0.4em]", danger ? "text-destructive" : "text-primary")}>[ Notification ]</p>
         <h2 className={cn("mt-3 text-2xl font-bold uppercase", danger ? "text-destructive" : "text-primary sys-glow-text", epic && "text-3xl animate-sys-pulse")}>{a.title}</h2>
-        <p className="mt-3 text-base text-foreground/90">{a.body}</p>
+        <AlertDetails body={a.body} />
         <SysButton variant={danger ? "danger" : "primary"} className="mt-6 w-full" onClick={dismiss}>Acknowledge</SysButton>
+      </div>
+    </div>
+  );
+}
+
+function EmergencyOverlay() {
+  const { state, act } = useSystem();
+  const [now, setNow] = useState(Date.now());
+  const deadline = state.focusRegainDeadline;
+
+  useEffect(() => {
+    if (deadline === null) return;
+    setNow(Date.now());
+    const timer = window.setInterval(() => setNow(Date.now()), 250);
+    return () => window.clearInterval(timer);
+  }, [deadline]);
+
+  const secondsLeft = deadline === null ? 0 : Math.max(0, Math.ceil((deadline - now) / 1000));
+  useEffect(() => {
+    if (deadline !== null && secondsLeft === 0) playSound("done");
+  }, [deadline, secondsLeft]);
+
+  if (deadline === null) return null;
+  const minutes = String(Math.floor(secondsLeft / 60)).padStart(2, "0");
+  const seconds = String(secondsLeft % 60).padStart(2, "0");
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-background/90 p-5 text-foreground backdrop-blur-md" role="alertdialog" aria-modal="true" aria-label="Urgent Quest: Focus Regain">
+      <div className="sys-panel w-full max-w-sm p-6 text-center">
+        <div className="mx-auto flex w-fit items-center gap-2 border border-primary/60 bg-primary/10 px-3 py-1.5 text-primary">
+          <Timer className="h-4 w-4" />
+          <span className="font-mono text-[10px] font-bold uppercase tracking-[0.25em]">Urgent Quest Active</span>
+        </div>
+        <h2 className="mt-4 text-3xl font-black uppercase text-primary sys-glow-text">Urgent Quest</h2>
+        <p className="mt-2 text-sm font-bold uppercase tracking-wider text-foreground">Focus Regain</p>
+        <p className="mt-3 font-mono text-xs font-bold uppercase tracking-[0.3em] text-primary">Take a Breath</p>
+        <p className="mt-2 text-sm text-foreground/90">Follow the slow breathing rhythm to regain focus.</p>
+        <div role="timer" className="relative mx-auto my-6 flex h-44 w-44 items-center justify-center" aria-label={`Urgent quest timer: ${minutes}:${seconds}`}>
+          <span aria-hidden="true" className="urgent-breath-ring absolute inset-0" />
+          <span aria-hidden="true" className="urgent-breath-ring urgent-breath-ring-delayed absolute inset-4" />
+          <p className="relative z-10 border border-primary/60 bg-background/80 px-5 py-3 font-mono text-5xl font-black tabular-nums text-primary sys-glow-text" aria-live="off">{minutes}:{seconds}</p>
+        </div>
+        {secondsLeft === 0
+          ? <>
+            <p className="font-mono text-xs font-bold uppercase tracking-wider text-primary">Did you regain focus?</p>
+            <SysButton className="mt-4 w-full" onClick={() => act((s, alerts) => completeFocusRegain(s, alerts))}>I Regained Focus</SysButton>
+            <SysButton variant="danger" className="mt-2 w-full" onClick={() => act((s, alerts) => failFocusRegain(s, alerts))}>I Failed</SysButton>
+            <p className="mt-3 font-mono text-xs text-muted-foreground">Failure costs 20 HP and 20 Discipline and Perception practice.</p>
+          </>
+          : <>
+            <p className="font-mono text-xs font-bold uppercase tracking-wider text-primary">Breathe slowly and follow the rhythm.</p>
+            <SysButton variant="danger" className="mt-4 w-full" onClick={() => act((s, alerts) => failFocusRegain(s, alerts))}>Failed</SysButton>
+            <p className="mt-3 font-mono text-xs text-muted-foreground">Failure costs 20 HP and 20 Discipline and Perception practice.</p>
+          </>}
       </div>
     </div>
   );
@@ -112,6 +184,7 @@ function Shell() {
         </nav>
       )}
       <AlertModal />
+      <EmergencyOverlay />
       {settings && <SettingsModal onClose={() => setSettings(false)} />}
       {ready && !state.playerName && <AwakeningModal />}
     </div>

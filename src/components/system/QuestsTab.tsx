@@ -2,10 +2,10 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { Check, Pencil, Plus, Trash2 } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
-import { baseDifficultyForDiff, completeDailyQuest, completeWeeklyQuest, difficultyForRankIndex, isWeeklyQuestScheduled, rankIndex, resolveDifficulty, uid, type Attr, type BaseDifficulty } from "@/lib/system";
+import { baseDifficultyForDiff, completeDailyQuest, completeWeeklyQuest, difficultyForRankIndex, isWeeklyQuestScheduled, moveItem, rankIndex, resolveDifficulty, uid, type Attr, type BaseDifficulty } from "@/lib/system";
 import { playSound } from "@/lib/sound";
 import { BonusPenaltySection } from "./BonusPenaltySection";
-import { AttrPicker, BaseDifficultyPicker, DiffBadge, Panel, SkillPicker, SysButton, inputCls } from "./ui";
+import { AttrPicker, BaseDifficultyPicker, DiffBadge, Panel, ReorderButtons, SysButton, inputCls } from "./ui";
 import { cn } from "@/lib/utils";
 
 export function QuestsTab() {
@@ -20,12 +20,10 @@ export function QuestsTab() {
   const [baseDifficulty, setBaseDifficulty] = useState<BaseDifficulty>("Easy");
   const [attrs, setAttrs] = useState<Attr[]>(["discipline"]);
   const [reminder, setReminder] = useState("");
-  const [skillId, setSkillId] = useState<string>();
-  const [urgent, setUrgent] = useState(false);
 
   const closeEditor = () => {
     setOpen(false); setEditingId(null); setName(""); setDescription("");
-    setBaseDifficulty("Easy"); setAttrs(["discipline"]); setReminder(""); setSkillId(undefined); setUrgent(false);
+    setBaseDifficulty("Easy"); setAttrs(["discipline"]); setReminder("");
   };
 
   const save = (event: React.FormEvent) => {
@@ -34,7 +32,7 @@ export function QuestsTab() {
     act((s) => {
       const diff = resolveDifficulty(baseDifficulty, s.level);
       const quest = editingId ? s.dailyQuests.find((item) => item.id === editingId) : undefined;
-      const values = { name: name.trim(), description: description.trim() || undefined, diff, baseDifficulty, attrs, skillId, urgent, reminder: reminder || undefined };
+      const values = { name: name.trim(), description: description.trim() || undefined, diff, baseDifficulty, attrs, reminder: reminder || undefined };
       if (quest) Object.assign(quest, values);
       else s.dailyQuests.push({ id: uid(), ...values, doneDate: null });
     });
@@ -47,7 +45,7 @@ export function QuestsTab() {
     if (!quest) return;
     setEditingId(id); setName(quest.name); setDescription(quest.description ?? "");
     setBaseDifficulty(quest.baseDifficulty ?? baseDifficultyForDiff(quest.diff, state.level));
-    setAttrs(quest.attrs); setReminder(quest.reminder ?? ""); setSkillId(quest.skillId); setUrgent(!!quest.urgent); setOpen(true);
+    setAttrs(quest.attrs); setReminder(quest.reminder ?? ""); setOpen(true);
   };
 
   const completeDaily = (id: string) => {
@@ -68,7 +66,6 @@ export function QuestsTab() {
           </button>
           <div className="flex-1">
             <p className={cn("text-lg", dailyDone && "text-muted-foreground line-through")}>Close todays gate</p>
-            <p className="font-mono text-[10px] uppercase text-muted-foreground">Fixed · Mandatory · Complete a Gate focus timer</p>
           </div>
           <DiffBadge d={rankDiff} />
         </div>
@@ -81,7 +78,7 @@ export function QuestsTab() {
           <p className="mb-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Your daily quests · repeat every day</p>
           {state.dailyQuests.length === 0 ? <p className="mb-3 font-mono text-xs text-muted-foreground">Add daily quests to build your routine.</p> : (
             <ul className="space-y-3">
-              {state.dailyQuests.map((quest) => {
+              {state.dailyQuests.map((quest, index) => {
                 const done = quest.doneDate === state.lastDay;
                 return (
                   <li key={quest.id} className="flex items-center gap-2 border-b border-border/40 pb-3">
@@ -92,9 +89,11 @@ export function QuestsTab() {
                     <div className="min-w-0 flex-1">
                       <p className={cn("truncate text-base", done && "text-muted-foreground line-through")}>{quest.name}</p>
                       {quest.description && <p className="text-xs text-muted-foreground">{quest.description}</p>}
-                      <p className="font-mono text-[10px] uppercase text-muted-foreground">{quest.attrs.join(" · ")}{quest.reminder ? ` · ${quest.reminder}` : ""}</p>
                     </div>
                     <DiffBadge d={quest.diff} />
+                    <ReorderButtons itemName={quest.name} canMoveUp={index > 0} canMoveDown={index < state.dailyQuests.length - 1}
+                      onMoveUp={() => act((s) => moveItem(s.dailyQuests, quest.id, state.dailyQuests[index - 1]!.id))}
+                      onMoveDown={() => act((s) => moveItem(s.dailyQuests, quest.id, state.dailyQuests[index + 1]!.id))} />
                     <button aria-label={`Edit ${quest.name}`} onClick={() => edit(quest.id)} className="p-2 text-muted-foreground"><Pencil className="h-4 w-4" /></button>
                     <button aria-label={`Delete ${quest.name}`} onClick={() => act((s) => { s.dailyQuests = s.dailyQuests.filter((item) => item.id !== quest.id); })} className="p-2 text-muted-foreground"><Trash2 className="h-4 w-4" /></button>
                   </li>
@@ -110,7 +109,7 @@ export function QuestsTab() {
           <p className="font-mono text-xs text-muted-foreground">No weekly quests are scheduled for today.</p>
         ) : (
           <ul className="space-y-3">
-            {todayQuests.map((quest) => {
+            {todayQuests.map((quest, index) => {
               const done = quest.doneDates.includes(state.lastDay);
               return (
                 <li key={quest.id} className="flex items-center gap-3 border-b border-border/40 pb-3">
@@ -121,9 +120,11 @@ export function QuestsTab() {
                   <div className="flex-1">
                     <p className={cn("text-lg leading-tight", done && "text-muted-foreground line-through")}>{quest.name}</p>
                     {quest.description && <p className="text-xs text-muted-foreground">{quest.description}</p>}
-                    <p className="font-mono text-[10px] uppercase text-muted-foreground">{quest.attrs.join(" · ")}</p>
                   </div>
                   <DiffBadge d={quest.diff} />
+                  <ReorderButtons itemName={quest.name} canMoveUp={index > 0} canMoveDown={index < todayQuests.length - 1}
+                    onMoveUp={() => act((s) => moveItem(s.weeklyQuests, quest.id, todayQuests[index - 1]!.id))}
+                    onMoveDown={() => act((s) => moveItem(s.weeklyQuests, quest.id, todayQuests[index + 1]!.id))} />
                 </li>
               );
             })}
@@ -143,8 +144,6 @@ export function QuestsTab() {
             <textarea className={`${inputCls} min-h-20 py-2`} placeholder="Description (optional)" value={description} onChange={(event) => setDescription(event.target.value)} />
             <BaseDifficultyPicker value={baseDifficulty} onChange={setBaseDifficulty} playerLevel={state.level} />
             <AttrPicker value={attrs} onChange={setAttrs} />
-            <SkillPicker skills={state.skills} value={skillId} onChange={setSkillId} />
-            <label className="flex items-center gap-2 font-mono text-xs text-muted-foreground"><input type="checkbox" checked={urgent} onChange={(event) => setUrgent(event.target.checked)} />Urgent quest (missed quests reduce each assigned attribute by 50%)</label>
             <label className="block font-mono text-xs text-muted-foreground">Reminder (optional)<input type="time" className={inputCls} value={reminder} onChange={(event) => setReminder(event.target.value)} /></label>
             <div className="flex gap-2"><SysButton type="submit" className="flex-1">{editingId ? "Save Changes" : "Create Daily Quest"}</SysButton><SysButton type="button" variant="ghost" onClick={closeEditor}>Cancel</SysButton></div>
           </form>

@@ -2,19 +2,19 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { Check, Pencil, Trash2 } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
-import { baseDifficultyForDiff, completeWeeklyQuest, isWeeklyQuestScheduled, resolveDifficulty, uid, type Attr, type BaseDifficulty } from "@/lib/system";
+import { baseDifficultyForDiff, completeWeeklyQuest, isWeeklyQuestScheduled, moveItem, resolveDifficulty, uid, uncompleteWeeklyQuest, type Attr, type BaseDifficulty } from "@/lib/system";
 import { playSound } from "@/lib/sound";
-import { AttrPicker, BaseDifficultyPicker, DiffBadge, Panel, SkillPicker, SysButton, inputCls } from "./ui";
+import { AttrPicker, BaseDifficultyPicker, DiffBadge, Panel, ReorderButtons, SkillPicker, SysButton, inputCls } from "./ui";
 import { cn } from "@/lib/utils";
 
 const WEEKDAYS = [
-  { value: 1, label: "Monday" }, { value: 2, label: "Tuesday" }, { value: 3, label: "Wednesday" },
-  { value: 4, label: "Thursday" }, { value: 5, label: "Friday" }, { value: 6, label: "Saturday" }, { value: 0, label: "Sunday" },
+  { value: 6, label: "Saturday" }, { value: 0, label: "Sunday" }, { value: 1, label: "Monday" },
+  { value: 2, label: "Tuesday" }, { value: 3, label: "Wednesday" }, { value: 4, label: "Thursday" }, { value: 5, label: "Friday" },
 ];
 
 function dateForWeekday(referenceDate: string, weekday: number) {
   const date = new Date(`${referenceDate}T00:00:00`);
-  date.setDate(date.getDate() - ((date.getDay() + 6) % 7) + ((weekday + 6) % 7));
+  date.setDate(date.getDate() - ((date.getDay() + 1) % 7) + ((weekday + 1) % 7));
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
@@ -43,7 +43,7 @@ export function WeeklyQuestsTab() {
       const quest = editingId ? s.weeklyQuests.find((item) => item.id === editingId) : undefined;
       const values = { name: name.trim(), description: description.trim() || undefined, diff, baseDifficulty, attrs, daysOfWeek, skillId, reminder: reminder || undefined };
       if (quest) Object.assign(quest, values);
-      else s.weeklyQuests.push({ id: uid(), ...values, doneDates: [] });
+      else s.weeklyQuests.push({ id: uid(), ...values, doneDates: [], rewardedDates: [] });
     });
     if (reminder && typeof Notification !== "undefined" && Notification.permission === "default") Notification.requestPermission();
     closeEditor();
@@ -57,8 +57,9 @@ export function WeeklyQuestsTab() {
     setAttrs(quest.attrs); setDaysOfWeek(quest.daysOfWeek); setReminder(quest.reminder ?? ""); setSkillId(quest.skillId); setOpen(true);
   };
 
-  const complete = (id: string) => {
-    buzz(); playSound("done"); act((s, alerts) => completeWeeklyQuest(s, id, alerts));
+  const toggleComplete = (id: string, done: boolean, date: string) => {
+    buzz(); playSound(done ? "warning" : "done");
+    act((s, alerts) => done ? uncompleteWeeklyQuest(s, id, date) : completeWeeklyQuest(s, id, alerts, date));
   };
 
   const toggleDay = (day: number) => setDaysOfWeek((selected) => selected.includes(day) ? selected.filter((value) => value !== day) : [...selected, day]);
@@ -66,7 +67,7 @@ export function WeeklyQuestsTab() {
   return (
     <div className="space-y-4">
       <Panel title="Weekly Quests">
-        <p className="mb-3 font-mono text-[11px] text-muted-foreground">Choose the weekdays when each quest repeats. Complete today's quests here or from the Daily page.</p>
+        <p className="mb-3 font-mono text-[11px] text-muted-foreground">Choose the weekdays when each quest repeats. Mark or unmark quests for any date shown. Complete all quests scheduled for a date to earn a gift; unmarking does not retract rewards already earned.</p>
         <SysButton className="w-full" onClick={() => setOpen(true)}>+ New Weekly Quest</SysButton>
       </Panel>
 
@@ -77,21 +78,22 @@ export function WeeklyQuestsTab() {
           <Panel key={value} title={`${label} · ${date}`}>
             {quests.length === 0 ? <p className="font-mono text-xs text-muted-foreground">No quests scheduled.</p> : (
               <ul className="space-y-3">
-                {quests.map((quest) => {
+                {quests.map((quest, index) => {
                   const done = quest.doneDates.includes(date);
-                  const canComplete = date === state.lastDay;
                   return (
                     <li key={quest.id} className="flex items-center gap-2 border-b border-border/40 pb-3">
-                      <button disabled={!canComplete || done} onClick={() => complete(quest.id)} aria-label={done ? `Completed ${quest.name}` : `Complete ${quest.name}`}
+                      <button type="button" role="checkbox" aria-checked={done} onClick={() => toggleComplete(quest.id, done, date)} aria-label={done ? `Unmark ${quest.name} as complete for ${date}` : `Mark ${quest.name} as complete for ${date}`}
                         className={cn("flex h-9 w-9 shrink-0 items-center justify-center border disabled:cursor-default", done ? "border-success bg-success/20 text-success" : "border-primary/60 text-primary")}>
                         {done && <Check className="h-4 w-4" />}
                       </button>
                       <div className="min-w-0 flex-1">
                         <p className={cn("truncate text-base", done && "text-muted-foreground line-through")}>{quest.name}</p>
                         {quest.description && <p className="text-xs text-muted-foreground">{quest.description}</p>}
-                        <p className="font-mono text-[10px] uppercase text-muted-foreground">{quest.attrs.join(" · ")}{quest.reminder ? ` · ${quest.reminder}` : ""}</p>
                       </div>
                       <DiffBadge d={quest.diff} />
+                      <ReorderButtons itemName={quest.name} canMoveUp={index > 0} canMoveDown={index < quests.length - 1}
+                        onMoveUp={() => act((s) => moveItem(s.weeklyQuests, quest.id, quests[index - 1]!.id))}
+                        onMoveDown={() => act((s) => moveItem(s.weeklyQuests, quest.id, quests[index + 1]!.id))} />
                       <button aria-label={`Edit ${quest.name}`} onClick={() => edit(quest.id)} className="p-2 text-muted-foreground"><Pencil className="h-4 w-4" /></button>
                       <button aria-label={`Delete ${quest.name}`} onClick={() => act((s) => { s.weeklyQuests = s.weeklyQuests.filter((item) => item.id !== quest.id); })} className="p-2 text-muted-foreground"><Trash2 className="h-4 w-4" /></button>
                     </li>

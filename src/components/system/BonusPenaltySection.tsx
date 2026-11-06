@@ -2,9 +2,9 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { Minus, Pencil, Plus, Trash2 } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
-import { baseDifficultyForDiff, DIFF_HP, DIFF_XP, resolveDifficulty, triggerBonusPenaltyHabit, uid, type Attr, type BaseDifficulty } from "@/lib/system";
+import { baseDifficultyForDiff, moveItem, resolveDifficulty, triggerBonusPenaltyHabit, uid, type Attr, type BaseDifficulty } from "@/lib/system";
 import { playSound } from "@/lib/sound";
-import { AttrPicker, BaseDifficultyPicker, DiffBadge, Panel, SysButton, inputCls } from "./ui";
+import { AttrPicker, BaseDifficultyPicker, DiffBadge, Panel, ReorderButtons, SysButton, inputCls } from "./ui";
 
 export function BonusPenaltySection() {
   const { state, act } = useSystem();
@@ -29,7 +29,12 @@ export function BonusPenaltySection() {
       const habit = editingId ? s.bonusPenaltyHabits.find((item) => item.id === editingId) : undefined;
       const values = { name: name.trim(), description: description.trim() || undefined, kind, diff, baseDifficulty, attrs };
       if (habit) {
-        if (habit.kind !== kind) habit.count = 0;
+        if (habit.kind !== kind) {
+          habit.count = 0;
+          habit.rewardCount = 0;
+          delete habit.lastRewardDate;
+          delete habit.lastPracticeDate;
+        }
         Object.assign(habit, values);
       }
       else s.bonusPenaltyHabits.push({ id: uid(), ...values, count: 0 });
@@ -53,14 +58,13 @@ export function BonusPenaltySection() {
 
   return (
     <>
-      <Panel title="Bonus-Penality">
-        <p className="mb-3 font-mono text-[11px] text-muted-foreground">Log good habits for XP and attribute bonuses. Bad-habit penalties grow every time you log them.</p>
+      <Panel title="Bonus-Penalty">
+        <p className="mb-3 font-mono text-[11px] text-muted-foreground">Good habits earn XP on up to 2 logs per day and attribute progress once per day at 3× the XP fraction, scaled to your level. Bad habits cost 15–60 HP per log at base, escalating with each log that day; penalties reset the next day.</p>
         {state.bonusPenaltyHabits.length === 0 ? (
           <p className="mb-3 font-mono text-xs text-muted-foreground">No bonus or penalty habits registered.</p>
         ) : (
           <ul className="space-y-3">
-            {state.bonusPenaltyHabits.map((habit) => {
-              const nextOccurrence = habit.count + 1;
+            {state.bonusPenaltyHabits.map((habit, index) => {
               const positive = habit.kind === "bonus";
               return (
                 <li key={habit.id} className="flex items-center gap-2 border-b border-border/40 pb-3">
@@ -71,11 +75,11 @@ export function BonusPenaltySection() {
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-base">{habit.name}</p>
                     {habit.description && <p className="text-xs text-muted-foreground">{habit.description}</p>}
-                    <p className="font-mono text-[10px] uppercase text-muted-foreground">
-                      {positive ? `Next: +${DIFF_XP[habit.diff]} XP | +1 ${habit.attrs.join(" | ")}` : `Next: -${DIFF_HP[habit.diff] * nextOccurrence} HP | -${nextOccurrence} ${habit.attrs.join(" | ")}`} | logged x{habit.count}
-                    </p>
                   </div>
                   <DiffBadge d={habit.diff} />
+                  <ReorderButtons itemName={habit.name} canMoveUp={index > 0} canMoveDown={index < state.bonusPenaltyHabits.length - 1}
+                    onMoveUp={() => act((s) => moveItem(s.bonusPenaltyHabits, habit.id, state.bonusPenaltyHabits[index - 1]!.id))}
+                    onMoveDown={() => act((s) => moveItem(s.bonusPenaltyHabits, habit.id, state.bonusPenaltyHabits[index + 1]!.id))} />
                   <button aria-label={`Edit ${habit.name}`} onClick={() => edit(habit.id)} className="p-2 text-muted-foreground"><Pencil className="h-4 w-4" /></button>
                   <button aria-label={`Delete ${habit.name}`} onClick={() => act((s) => { s.bonusPenaltyHabits = s.bonusPenaltyHabits.filter((item) => item.id !== habit.id); })} className="p-2 text-muted-foreground"><Trash2 className="h-4 w-4" /></button>
                 </li>
