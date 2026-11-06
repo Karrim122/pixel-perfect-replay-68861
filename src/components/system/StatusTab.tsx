@@ -6,6 +6,14 @@ import { FlaskConical, Gift, Package, X } from "lucide-react";
 import { AttributeIcon, Bar, DiffBadge, Panel, SysButton } from "./ui";
 import { cn } from "@/lib/utils";
 
+const ATTRIBUTE_TITLES: Record<(typeof ATTRS)[number]["key"], string> = {
+  strength: "The Iron Vanguard",
+  discipline: "The Unbroken",
+  intelligence: "The Tactician",
+  perception: "The Keen Observer",
+  vitality: "The Everlasting",
+};
+
 export function StatusTab() {
   const { state, act } = useSystem();
   const [inventoryOpen, setInventoryOpen] = useState(false);
@@ -18,6 +26,7 @@ export function StatusTab() {
   const rank = RANKS[ri] ?? RANKS[0];
   if (!rank) return null;
   const next = RANKS[ri + 1];
+  const highestAttribute = ATTRS.reduce((highest, attr) => state.stats[attr.key] > state.stats[highest.key] ? attr : highest, ATTRS[0]!);
   const showItemEffect = (type: "potion" | "gift", label: string) => {
     if (itemEffectTimeout.current !== null) window.clearTimeout(itemEffectTimeout.current);
     setItemEffect({ type, label, id: Date.now() });
@@ -53,6 +62,7 @@ export function StatusTab() {
         <div className="mb-4 border-b border-border pb-3">
           <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Player</p>
           <p className="text-2xl font-bold uppercase tracking-wider text-foreground">{state.playerName || "Player"}</p>
+          <p className="mt-0.5 font-mono text-xs uppercase tracking-[0.2em] text-primary">{ATTRIBUTE_TITLES[highestAttribute.key]}</p>
           <p className="mt-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Player Since · {new Date(`${state.playerSince}T00:00:00`).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })}</p>
         </div>
         <div className="flex items-end justify-between">
