@@ -128,7 +128,7 @@ export function WeeklyQuestsTab() {
             <AttrPicker value={attrs} onChange={setAttrs} />
             <SkillPicker skills={state.skills} value={skillId} onChange={setSkillId} />
             <label className="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Assigned gate focus time
-              <select className={`${inputCls} mt-1`} value={focusMinutes} onChange={(event) => setFocusMinutes(event.target.value)}><option value="">No assigned time</option>{[15, 25, 45, 60].map((minutes) => <option key={minutes} value={minutes}>{minutes} minutes</option>)}</select>
+              <input type="number" min={10} step={1} inputMode="numeric" placeholder="Optional · minimum 10 minutes" className={`${inputCls} mt-1`} value={focusMinutes} onChange={(event) => setFocusMinutes(event.target.value)} />
             </label>
             <label className="block font-mono text-xs text-muted-foreground">Reminder (optional)<input type="time" className={inputCls} value={reminder} onChange={(event) => setReminder(event.target.value)} /></label>
             <div className="flex gap-2"><SysButton type="submit" className="flex-1" disabled={!daysOfWeek.length}>{editingId ? "Save Changes" : "Create Quest"}</SysButton><SysButton type="button" variant="ghost" onClick={closeEditor}>Cancel</SysButton></div>

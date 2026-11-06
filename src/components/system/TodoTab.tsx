@@ -128,7 +128,7 @@ export function TodoTab() {
             <AttrPicker value={attrs} onChange={setAttrs} />
             <SkillPicker skills={state.skills} value={skillId} onChange={setSkillId} />
             <label className="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Assigned gate focus time
-              <select className={`${inputCls} mt-1`} value={focusMinutes} onChange={(event) => setFocusMinutes(event.target.value)}><option value="">No assigned time</option>{[15, 25, 45, 60].map((minutes) => <option key={minutes} value={minutes}>{minutes} minutes</option>)}</select>
+              <input type="number" min={10} step={1} inputMode="numeric" placeholder="Optional · minimum 10 minutes" className={`${inputCls} mt-1`} value={focusMinutes} onChange={(event) => setFocusMinutes(event.target.value)} />
             </label>
             <div className="space-y-2 border-t border-border/60 pt-3">
               <label className="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Completion reward</label>

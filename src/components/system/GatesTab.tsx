@@ -8,7 +8,7 @@ const BREAK_DMG = 10;
 
 export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
   const { state, act } = useSystem();
-  const [minutes, setMinutes] = useState(25);
+  const [minutes, setMinutes] = useState("25");
   const [target, setTarget] = useState("");
   const [details, setDetails] = useState("");
   const [endAt, setEndAt] = useState<number | null>(null);
@@ -93,7 +93,7 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
   const start = () => {
     const selected = options.find((option) => option.id === target);
     meta.current = { target: selected?.id ?? "", label: selected?.label ?? "Free focus", details: details.trim() };
-    const initialDuration = selected?.focusMinutes ?? minutes;
+    const initialDuration = selected?.focusMinutes ?? Math.max(10, Number(minutes) || 10);
     setFocusMinutes(0); setGateActive(true); onLock(true); buzz(60);
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
       setEntering(false); startTimer("focus", initialDuration); return;
@@ -175,12 +175,9 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
           <p className="mt-1 font-mono text-xs text-muted-foreground">Completed focus: {focusMinutes} min · {focusMinutes} XP on gate close</p>
           <p className="mt-2 font-mono text-xs text-primary">Timer complete. Continue with another focus or rest session, close the gate, or leave.</p>
           <p className="mt-4 font-mono text-xs uppercase tracking-wider text-primary">Choose your next step</p>
-          <p className="mb-2 mt-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Another focus timer</p>
-          <div className="mt-2 grid grid-cols-4 gap-2">
-            {[15, 25, 45, 60].map((duration) => (
-              <SysButton key={duration} variant="ghost" onClick={() => startTimer("focus", duration)}>{duration}m</SysButton>
-            ))}
-          </div>
+          <label className="mb-2 mt-3 block font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Another focus timer · minimum 10 minutes
+            <div className="mt-2 flex gap-2"><input aria-label="Next focus timer duration in minutes" type="number" min={10} step={1} inputMode="numeric" className={inputCls} value={minutes} onChange={(event) => setMinutes(event.target.value)} /><SysButton onClick={() => startTimer("focus", Math.max(10, Number(minutes) || 10))}>Start</SysButton></div>
+          </label>
           <p className="mb-2 mt-4 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Rest timer</p>
           <div className="grid grid-cols-3 gap-2">
             {[5, 10, 15].map((duration) => (
@@ -199,7 +196,7 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
     <div className="space-y-4">
       <Panel title="Open a Gate">
         <label className="mb-1 block font-mono text-xs text-muted-foreground">Assigned objective</label>
-        <select className={inputCls} value={target} onChange={(e) => { const value = e.target.value; setTarget(value); const selected = options.find((option) => option.id === value); if (selected?.focusMinutes) setMinutes(selected.focusMinutes); }}>
+        <select className={inputCls} value={target} onChange={(e) => { const value = e.target.value; setTarget(value); const selected = options.find((option) => option.id === value); if (selected?.focusMinutes) setMinutes(String(selected.focusMinutes)); }}>
           <option value="">Free focus</option>
           {todoOptions.length > 0 && <optgroup label="To-Do Tasks">{todoOptions.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</optgroup>}
           {weeklyOptions.length > 0 && <optgroup label="Weekly Quests">{weeklyOptions.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</optgroup>}
@@ -208,11 +205,9 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
         <textarea id="gate-details" className={`${inputCls} min-h-20 py-2`} maxLength={500} placeholder="What do you plan to focus on? (optional)" value={details} onChange={(event) => setDetails(event.target.value)} />
         <p className="mb-1 mt-4 font-mono text-xs text-muted-foreground">Duration</p>
         {options.find((option) => option.id === target)?.focusMinutes && <p className="mb-2 font-mono text-[10px] text-primary">Assigned duration: {options.find((option) => option.id === target)?.focusMinutes} minutes</p>}
-        <div className="grid grid-cols-4 gap-2">
-          {[15, 25, 45, 60].map((m) => (
-            <SysButton key={m} variant={minutes === m ? "primary" : "ghost"} onClick={() => setMinutes(m)}>{m}m</SysButton>
-          ))}
-        </div>
+        <label className="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Minutes · minimum 10
+          <input aria-label="Gate focus timer duration in minutes" type="number" min={10} step={1} inputMode="numeric" className={`${inputCls} mt-2`} value={minutes} onChange={(event) => setMinutes(event.target.value)} />
+        </label>
         <SysButton className="mt-5 h-14 w-full text-sm" onClick={start}>Enter Gate</SysButton>
       </Panel>
       <Panel title="Focus Analysis">
