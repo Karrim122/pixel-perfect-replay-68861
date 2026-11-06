@@ -69,7 +69,7 @@ export function BonusPenaltySection() {
               return (
                 <li key={habit.id} className="flex items-center gap-2 border-b border-border/40 pb-3">
                   <button aria-label={`Log ${positive ? "good" : "bad"} habit ${habit.name}`} onClick={() => trigger(habit.id)}
-                    className={`flex h-9 w-9 shrink-0 items-center justify-center border active:scale-90 ${positive ? "border-success text-success" : "border-destructive text-destructive"}`}>
+                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md border active:scale-90 ${positive ? "border-success text-success" : "border-destructive text-destructive"}`}>
                     {positive ? <Plus className="h-5 w-5" /> : <Minus className="h-5 w-5" />}
                   </button>
                   <div className="min-w-0 flex-1 pr-3">

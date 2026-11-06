@@ -90,7 +90,7 @@ export function TodoTab() {
             return (
               <li key={t.id} className="flex items-center gap-3 border-b border-border/40 pb-2">
                 <button onClick={() => complete(t.id)} aria-label={`Complete ${t.name}`}
-                  className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-sm border", t.done ? "border-success bg-success/20 text-success" : "border-primary/60")}>
+                  className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-md border", t.done ? "border-success bg-success/20 text-success" : "border-primary/60")}>
                   {t.done && <Check className="h-5 w-5" />}
                 </button>
                 <div className="min-w-0 flex-1 pr-3">

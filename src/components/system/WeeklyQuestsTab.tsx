@@ -85,7 +85,7 @@ export function WeeklyQuestsTab() {
                   return (
                     <li key={quest.id} className="flex items-center gap-2 border-b border-border/40 pb-3">
                       <button type="button" role="checkbox" aria-checked={done} onClick={() => toggleComplete(quest.id, done, date)} aria-label={done ? `Unmark ${quest.name} as complete for ${date}` : `Mark ${quest.name} as complete for ${date}`}
-                        className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border disabled:cursor-default", done ? "border-success bg-success/20 text-success" : "border-primary/60 text-primary")}>
+                        className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-md border disabled:cursor-default", done ? "border-success bg-success/20 text-success" : "border-primary/60 text-primary")}>
                         {done && <Check className="h-4 w-4" />}
                       </button>
                       <div className="min-w-0 flex-1 pr-3">
