@@ -14,6 +14,7 @@ const WEEKDAYS = [
 
 function dateForWeekday(referenceDate: string, weekday: number) {
   const date = new Date(`${referenceDate}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return referenceDate;
   date.setDate(date.getDate() - ((date.getDay() + 1) % 7) + ((weekday + 1) % 7));
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
@@ -92,9 +93,6 @@ export function WeeklyQuestsTab() {
                         {quest.description && <p className="text-xs text-muted-foreground">{quest.description}</p>}
                       </div>
                       <DiffBadge d={quest.diff} />
-                      <ReorderButtons itemName={quest.name} canMoveUp={index > 0} canMoveDown={index < quests.length - 1}
-                        onMoveUp={() => act((s) => moveItem(s.weeklyQuests, quest.id, quests[index - 1]!.id))}
-                        onMoveDown={() => act((s) => moveItem(s.weeklyQuests, quest.id, quests[index + 1]!.id))} />
                       <ItemOptionsMenu itemName={quest.name} info={`${quest.description || "No description."}\nRank: ${quest.diff}\nFocus time: ${quest.focusMinutes ? `${quest.focusMinutes} minutes` : "not assigned"}\nRepeat: ${quest.daysOfWeek.length} days per week`} onEdit={() => edit(quest.id)} canMoveUp={index > 0} canMoveDown={index < quests.length - 1}
                         onMoveUp={() => act((s) => moveItem(s.weeklyQuests, quest.id, quests[index - 1]!.id))}
                         onMoveDown={() => act((s) => moveItem(s.weeklyQuests, quest.id, quests[index + 1]!.id))}

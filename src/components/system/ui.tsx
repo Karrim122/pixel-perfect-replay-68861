@@ -93,11 +93,11 @@ export function ItemOptionsMenu({ itemName, info, onEdit, onMoveUp, onMoveDown, 
         <DropdownMenuItem onSelect={() => setInfoOpen(true)}><Info />Info</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
-    <Dialog open={infoOpen} onOpenChange={setInfoOpen}>
+    {infoOpen && <Dialog open onOpenChange={setInfoOpen}>
       <DialogContent className="max-w-sm">
         <DialogHeader><DialogTitle>{itemName}</DialogTitle><DialogDescription className="whitespace-pre-wrap">{info || "No additional details."}</DialogDescription></DialogHeader>
       </DialogContent>
-    </Dialog>
+    </Dialog>}
   </>;
 }
 
