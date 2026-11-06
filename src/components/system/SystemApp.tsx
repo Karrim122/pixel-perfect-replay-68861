@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Timer, CalendarDays, Hexagon, ListChecks, Settings, Swords, User, Volume2, VolumeX } from "lucide-react";
 import { SystemProvider, buzz, useSystem } from "@/lib/store";
-import { completeFocusRegain, failFocusRegain, isWeeklyQuestScheduled, rankOf } from "@/lib/system";
+import { completeFocusRegain, failFocusRegain, FOCUS_REGAIN_STEPS, isWeeklyQuestScheduled, rankOf } from "@/lib/system";
 import { StatusTab } from "./StatusTab";
 import { playSound, setSoundEnabled } from "@/lib/sound";
 import { QuestsTab } from "./QuestsTab";
@@ -82,37 +82,37 @@ function EmergencyOverlay() {
   }, [deadline, secondsLeft]);
 
   if (deadline === null) return null;
+  const stepIndex = Math.max(0, Math.min(FOCUS_REGAIN_STEPS.length - 1, state.focusRegainStep));
+  const step = FOCUS_REGAIN_STEPS[stepIndex]!;
   const minutes = String(Math.floor(secondsLeft / 60)).padStart(2, "0");
   const seconds = String(secondsLeft % 60).padStart(2, "0");
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-background/90 p-5 text-foreground backdrop-blur-md" role="alertdialog" aria-modal="true" aria-label="Urgent Quest: Focus Regain">
-      <div className="sys-panel w-full max-w-sm p-6 text-center">
-        <div className="mx-auto flex w-fit items-center gap-2 border border-primary/60 bg-primary/10 px-3 py-1.5 text-primary">
+    <div className="urgent-quest-overlay fixed inset-0 z-[60] flex items-center justify-center bg-background/90 p-4 text-foreground backdrop-blur-md" role="alertdialog" aria-modal="true" aria-label="Urgent Quest: Focus Regain">
+      <div className="urgent-quest-panel sys-panel w-full max-w-md p-5 text-center animate-sys-shatter sm:p-6">
+        <div className="mx-auto flex w-fit items-center gap-2 border border-destructive/70 bg-destructive/10 px-3 py-1.5 text-destructive">
           <Timer className="h-4 w-4" />
-          <span className="font-mono text-[10px] font-bold uppercase tracking-[0.25em]">Urgent Quest Active</span>
+          <span className="font-mono text-[10px] font-bold uppercase tracking-[0.25em]">[ System Alert ] Urgent Quest Active</span>
         </div>
-        <h2 className="mt-4 text-3xl font-black uppercase text-primary sys-glow-text">Urgent Quest</h2>
-        <p className="mt-2 text-sm font-bold uppercase tracking-wider text-foreground">Focus Regain</p>
-        <p className="mt-3 font-mono text-xs font-bold uppercase tracking-[0.3em] text-primary">Take a Breath</p>
-        <p className="mt-2 text-sm text-foreground/90">Follow the slow breathing rhythm to regain focus.</p>
-        <div role="timer" className="relative mx-auto my-6 flex h-44 w-44 items-center justify-center" aria-label={`Urgent quest timer: ${minutes}:${seconds}`}>
+        <h2 className="mt-4 text-3xl font-black uppercase text-destructive sys-glow-text">Urgent Quest</h2>
+        <p className="mt-1 font-mono text-xs font-bold uppercase tracking-[0.3em] text-foreground">Focus Regain Protocol</p>
+        <div className="mx-auto mt-5 flex max-w-xs items-center gap-1.5" aria-label={`Step ${stepIndex + 1} of ${FOCUS_REGAIN_STEPS.length}`}>
+          {FOCUS_REGAIN_STEPS.map((questStep, index) => <span key={questStep.title} className={cn("h-1.5 flex-1", index <= stepIndex ? "bg-destructive shadow-[0_0_8px_var(--destructive)]" : "bg-muted")} />)}
+        </div>
+        <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.25em] text-destructive">Step {stepIndex + 1} / {FOCUS_REGAIN_STEPS.length}</p>
+        <section className="urgent-quest-task mt-4 border border-destructive/50 bg-destructive/5 p-4">
+          <h3 className="text-xl font-black uppercase tracking-wider text-foreground">{step.title}</h3>
+          <p className="mt-1 text-sm text-muted-foreground">{step.description}</p>
+        </section>
+        <div role="timer" className="urgent-quest-clock relative mx-auto my-5 flex h-36 w-36 items-center justify-center sm:h-40 sm:w-40" aria-label={`Urgent quest timer: ${minutes}:${seconds}`}>
           <span aria-hidden="true" className="urgent-breath-ring absolute inset-0" />
           <span aria-hidden="true" className="urgent-breath-ring urgent-breath-ring-delayed absolute inset-4" />
-          <p className="relative z-10 border border-primary/60 bg-background/80 px-5 py-3 font-mono text-5xl font-black tabular-nums text-primary sys-glow-text" aria-live="off">{minutes}:{seconds}</p>
+          <p className="urgent-quest-clock-face relative z-10 border border-destructive/70 bg-background/90 px-4 py-3 font-mono text-5xl font-black tabular-nums text-destructive sys-glow-text" aria-live="off">{minutes}:{seconds}</p>
         </div>
-        {secondsLeft === 0
-          ? <>
-            <p className="font-mono text-xs font-bold uppercase tracking-wider text-primary">Did you regain focus?</p>
-            <SysButton className="mt-4 w-full" onClick={() => act((s, alerts) => completeFocusRegain(s, alerts))}>I Regained Focus</SysButton>
-            <SysButton variant="danger" className="mt-2 w-full" onClick={() => act((s, alerts) => failFocusRegain(s, alerts))}>I Failed</SysButton>
-            <p className="mt-3 font-mono text-xs text-muted-foreground">Failure costs 20 HP and 20 Discipline and Perception practice.</p>
-          </>
-          : <>
-            <p className="font-mono text-xs font-bold uppercase tracking-wider text-primary">Breathe slowly and follow the rhythm.</p>
-            <SysButton variant="danger" className="mt-4 w-full" onClick={() => act((s, alerts) => failFocusRegain(s, alerts))}>Failed</SysButton>
-            <p className="mt-3 font-mono text-xs text-muted-foreground">Failure costs 20 HP and 20 Discipline and Perception practice.</p>
-          </>}
+        <p className="font-mono text-xs font-bold uppercase tracking-wider text-destructive">{secondsLeft === 0 ? "Timer complete · mark this step done to continue" : "Complete the task before time runs out"}</p>
+        <SysButton disabled={secondsLeft > 0} className="mt-4 w-full" onClick={() => act((s, alerts) => completeFocusRegain(s, alerts))}>Done</SysButton>
+        <SysButton variant="danger" className="mt-2 w-full" onClick={() => act((s, alerts) => failFocusRegain(s, alerts))}>Failed</SysButton>
+        <p className="mt-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Failure penalty: -20 HP and lose 50% of Discipline and Perception practice.</p>
       </div>
     </div>
   );

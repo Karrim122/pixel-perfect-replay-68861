@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { AlertTriangle, Check } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
 import { playSound } from "@/lib/sound";
-import { baseDifficultyForDiff, completeTodo, DIFFS, moveItem, RANKS, resolveDifficulty, today, uid, type Attr, type BaseDifficulty, type TodoReward } from "@/lib/system";
+import { baseDifficultyForDiff, completeTodo, DIFFS, moveItem, RANKS, resolveDifficulty, startFocusRegain, today, uid, type Attr, type BaseDifficulty, type TodoReward } from "@/lib/system";
 import { AddIconButton, AttrPicker, BaseDifficultyPicker, DiffBadge, ItemOptionsMenu, Panel, SkillPicker, SysButton, inputCls } from "./ui";
 import { cn } from "@/lib/utils";
 
@@ -29,7 +29,7 @@ export function TodoTab() {
     .sort((a, b) => Number(a.done) - Number(b.done));
 
   const startEmergency = () => {
-    act((s) => { s.focusRegainDeadline = Date.now() + 10 * 60 * 1000; });
+    act((s) => startFocusRegain(s));
   };
 
   const save = (e: React.FormEvent) => {

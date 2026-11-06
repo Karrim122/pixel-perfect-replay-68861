@@ -93,6 +93,7 @@ export interface GameState {
   statProgress: Record<Attr, number>;
   dailyQuests: DailyQuest[]; weeklyQuests: WeeklyQuest[]; skills: Skill[]; bonusPenaltyHabits: BonusPenaltyHabit[]; todos: Todo[]; inventoryGifts: InventoryGift[]; sessions: Session[]; log: LogEntry[];
   focusRegainDeadline: number | null;
+  focusRegainStep: number;
   focusAnalysisCorrection: FocusAnalysisCorrection;
   startingStatsAdjusted: boolean;
   lastDay: string; dailyGateQuestDoneDate: string | null; dailyQuestRewardDay: string | null; weeklyQuestRewardDays: string[];
@@ -104,6 +105,12 @@ export const today = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
 export const uid = () => Math.random().toString(36).slice(2, 10);
+
+export const FOCUS_REGAIN_STEPS = [
+  { title: "Physical Shock", description: "Stand up, move, wash your face.", durationSeconds: 60 },
+  { title: "Deep Breaths", description: "Take slow, steady breaths.", durationSeconds: 120 },
+  { title: "Write Something on Paper", description: "Write anything that comes to mind.", durationSeconds: 300 },
+] as const;
 
 export function moveItem<T extends { id: string }>(items: T[], id: string, targetId: string) {
   const from = items.findIndex((item) => item.id === id);
@@ -118,7 +125,7 @@ export const initialState = (): GameState => ({
   level: 1, xp: 0, hp: 100, maxHp: 100, points: 0, potions: 0,
   stats: { strength: 1, discipline: 1, intelligence: 1, perception: 1, vitality: 1 },
   statProgress: { strength: 0, discipline: 0, intelligence: 0, perception: 0, vitality: 0 },
-  dailyQuests: [], weeklyQuests: [], skills: [], bonusPenaltyHabits: [], todos: [], inventoryGifts: [], sessions: [], log: [], focusRegainDeadline: null, focusAnalysisCorrection: { used: false, todayMinutes: 0, todayDate: today(), totalMinutes: 0, closedGates: 0, efficiency: 0 }, startingStatsAdjusted: true, lastDay: today(), dailyGateQuestDoneDate: null, dailyQuestRewardDay: null, weeklyQuestRewardDays: [], playerName: "", playerSince: today(),
+  dailyQuests: [], weeklyQuests: [], skills: [], bonusPenaltyHabits: [], todos: [], inventoryGifts: [], sessions: [], log: [], focusRegainDeadline: null, focusRegainStep: 0, focusAnalysisCorrection: { used: false, todayMinutes: 0, todayDate: today(), totalMinutes: 0, closedGates: 0, efficiency: 0 }, startingStatsAdjusted: true, lastDay: today(), dailyGateQuestDoneDate: null, dailyQuestRewardDay: null, weeklyQuestRewardDays: [], playerName: "", playerSince: today(),
 });
 
 export type Alert = { kind: "info" | "penalty" | "level" | "awaken" | "exhausted" | "monarch" | "lowHp"; title: string; body: string };
@@ -265,9 +272,21 @@ export function completeTodo(s: GameState, id: string, alerts: Alert[]) {
   }
 }
 
+export function startFocusRegain(s: GameState) {
+  s.focusRegainStep = 0;
+  s.focusRegainDeadline = Date.now() + FOCUS_REGAIN_STEPS[0].durationSeconds * 1000;
+}
+
 export function completeFocusRegain(s: GameState, alerts: Alert[]) {
   if (s.focusRegainDeadline === null || s.focusRegainDeadline > Date.now()) return;
+  if (s.focusRegainStep < FOCUS_REGAIN_STEPS.length - 1) {
+    s.focusRegainStep += 1;
+    s.focusRegainDeadline = Date.now() + FOCUS_REGAIN_STEPS[s.focusRegainStep]!.durationSeconds * 1000;
+    log(s, `Urgent quest step complete: ${FOCUS_REGAIN_STEPS[s.focusRegainStep - 1]!.title}`, "info");
+    return;
+  }
   s.focusRegainDeadline = null;
+  s.focusRegainStep = 0;
   const earnedXp = DIFF_XP[resolveDifficulty("Very Hard", s.level)];
   const progress = attributeProgressForXp(earnedXp, s.level);
   gainXp(s, earnedXp, alerts);
@@ -279,6 +298,7 @@ export function completeFocusRegain(s: GameState, alerts: Alert[]) {
 export function failFocusRegain(s: GameState, alerts: Alert[]) {
   if (s.focusRegainDeadline === null) return;
   s.focusRegainDeadline = null;
+  s.focusRegainStep = 0;
   const damage = 20;
   (["discipline", "perception"] as const).forEach((attr) => {
     s.statProgress[attr] = Math.round(s.statProgress[attr] * 0.5 * 10) / 10;
@@ -449,5 +469,10 @@ export function hydrateState(raw: string): GameState {
   ].filter((date) => /^\d{4}-\d{2}-\d{2}$/.test(date)).sort();
   const playerSince = saved.playerSince ?? legacyActivityDates[0] ?? saved.lastDay ?? today();
   const legacyFocusDeadline = saved.todos?.find((task) => task.emergency && !task.done && !task.emergencyFailed)?.emergencyDeadline;
-  return { ...base, ...current, todos: (saved.todos ?? []).filter((task) => !task.emergency), focusRegainDeadline: saved.focusRegainDeadline ?? legacyFocusDeadline ?? null, focusAnalysisCorrection: saved.focusAnalysisCorrection ?? base.focusAnalysisCorrection, startingStatsAdjusted: true, stats, statProgress, playerSince, dailyQuests: saved.dailyQuests ?? [], weeklyQuests: weeklyQuests.map((quest) => ({ ...quest, daysOfWeek: Array.isArray(quest.daysOfWeek) ? quest.daysOfWeek.filter((day) => Number.isInteger(day) && day >= 0 && day <= 6) : [], doneDates: Array.isArray(quest.doneDates) ? quest.doneDates : [], rewardedDates: Array.isArray(quest.rewardedDates) ? quest.rewardedDates : Array.isArray(quest.doneDates) ? quest.doneDates : [], masteryLevel: Math.max(1, quest.masteryLevel ?? 1), masteryXp: Math.max(0, quest.masteryXp ?? 0) })), bonusPenaltyHabits, inventoryGifts: saved.inventoryGifts ?? [], dailyGateQuestDoneDate: saved.dailyGateQuestDoneDate ?? null, weeklyQuestRewardDays: saved.weeklyQuestRewardDays ?? (saved.weeklyQuestRewardDay ? [saved.weeklyQuestRewardDay] : []) } as GameState;
+  const storedFocusRegainDeadline = saved.focusRegainDeadline ?? legacyFocusDeadline ?? null;
+  const focusRegainStep = Math.max(0, Math.min(FOCUS_REGAIN_STEPS.length - 1, Math.floor(saved.focusRegainStep ?? 0)));
+  const focusRegainDeadline = storedFocusRegainDeadline !== null && saved.focusRegainStep === undefined
+    ? Date.now() + FOCUS_REGAIN_STEPS[0].durationSeconds * 1000
+    : storedFocusRegainDeadline;
+  return { ...base, ...current, todos: (saved.todos ?? []).filter((task) => !task.emergency), focusRegainDeadline, focusRegainStep, focusAnalysisCorrection: saved.focusAnalysisCorrection ?? base.focusAnalysisCorrection, startingStatsAdjusted: true, stats, statProgress, playerSince, dailyQuests: saved.dailyQuests ?? [], weeklyQuests: weeklyQuests.map((quest) => ({ ...quest, daysOfWeek: Array.isArray(quest.daysOfWeek) ? quest.daysOfWeek.filter((day) => Number.isInteger(day) && day >= 0 && day <= 6) : [], doneDates: Array.isArray(quest.doneDates) ? quest.doneDates : [], rewardedDates: Array.isArray(quest.rewardedDates) ? quest.rewardedDates : Array.isArray(quest.doneDates) ? quest.doneDates : [], masteryLevel: Math.max(1, quest.masteryLevel ?? 1), masteryXp: Math.max(0, quest.masteryXp ?? 0) })), bonusPenaltyHabits, inventoryGifts: saved.inventoryGifts ?? [], dailyGateQuestDoneDate: saved.dailyGateQuestDoneDate ?? null, weeklyQuestRewardDays: saved.weeklyQuestRewardDays ?? (saved.weeklyQuestRewardDay ? [saved.weeklyQuestRewardDay] : []) } as GameState;
 }
