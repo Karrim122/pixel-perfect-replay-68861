@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { buzz, useSystem } from "@/lib/store";
 import { playSound } from "@/lib/sound";
-import { BASE_DIFFICULTIES, baseDifficultyForDiff, completeDailyGateQuest, completeTodo, completeWeeklyQuest, gainXp, isWeeklyQuestScheduled, takeDamage, uid, type Alert, type GameState } from "@/lib/system";
+import { BASE_DIFFICULTIES, baseDifficultyForDiff, completeDailyGateQuest, completeTodo, completeWeeklyQuest, DIFF_XP, isWeeklyQuestScheduled, takeDamage, uid, type Alert, type GameState } from "@/lib/system";
 import { Panel, SysButton, inputCls } from "./ui";
 
 const BREAK_DMG = 10;
@@ -29,7 +29,6 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
     .filter((quest) => isWeeklyQuestScheduled(quest, state.lastDay) && !quest.doneDates.includes(state.lastDay))
     .map((quest) => ({ id: `w:${quest.id}`, label: quest.name, focusMinutes: quest.focusMinutes }));
   const options = [...todoOptions, ...weeklyOptions];
-  const gateXpForMinutes = (duration: number) => Math.floor(duration / 5);
 
   const fail = (reason: string) => {
     const timerElapsedMinutes = timerKind === "focus" && endAt
@@ -56,19 +55,20 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
     act((s: GameState, a: Alert[]) => {
       const { label, target: assignedTarget, details: gateDetails } = meta.current;
       s.sessions.unshift({ id: uid(), date: s.lastDay, minutes: totalFocusMinutes, success: true, label, ...(gateDetails ? { details: gateDetails } : {}) });
-      const xp = gateXpForMinutes(totalFocusMinutes);
       const levelAtStart = s.level;
-      gainXp(s, xp, a);
       if (assignedTarget.startsWith("t:")) {
         const task = s.todos.find((item) => item.id === assignedTarget.slice(2));
         const taskDifficulty = task?.baseDifficulty ?? (task ? baseDifficultyForDiff(task.diff, levelAtStart) : undefined);
         const qualifiesForDailyGate = Boolean(task && !task.done && taskDifficulty && BASE_DIFFICULTIES.indexOf(taskDifficulty) >= BASE_DIFFICULTIES.indexOf("Medium"));
         if (task) completeTodo(s, task.id, a);
-        if (qualifiesForDailyGate) completeDailyGateQuest(s, xp, levelAtStart, a);
+        if (qualifiesForDailyGate && task) completeDailyGateQuest(s, DIFF_XP[task.diff], levelAtStart, a);
       }
-      if (assignedTarget.startsWith("w:") && completeWeeklyQuest(s, assignedTarget.slice(2), a)) completeDailyGateQuest(s, xp, levelAtStart, a);
-      s.log.unshift({ id: uid(), ts: Date.now(), text: `Gate closed (${totalFocusMinutes}m focus). +${xp} XP`, kind: "level" });
-      a.push({ kind: "info", title: "[SYSTEM] Gate Closed", body: `Gate closed after ${totalFocusMinutes} focus minutes. +${xp} XP. Completed: ${label}.` });
+      if (assignedTarget.startsWith("w:")) {
+        const quest = s.weeklyQuests.find((item) => item.id === assignedTarget.slice(2));
+        if (completeWeeklyQuest(s, assignedTarget.slice(2), a) && quest) completeDailyGateQuest(s, DIFF_XP[quest.diff], levelAtStart, a);
+      }
+      s.log.unshift({ id: uid(), ts: Date.now(), text: `Gate closed (${totalFocusMinutes}m focus).`, kind: "level" });
+      a.push({ kind: "info", title: "[SYSTEM] Gate Closed", body: `Gate closed after ${totalFocusMinutes} focus minutes. Completed: ${label}.` });
     });
   };
 
@@ -196,7 +196,7 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
         <div className="gate-timer-content">
         <p className="gate-timer-task text-lg">{timerKind === "rest" ? "Rest and recover" : meta.current.label}</p>
         {meta.current.details && <p className="gate-timer-details max-w-sm text-sm text-muted-foreground">{meta.current.details}</p>}
-        {focusMinutes > 0 && <p className="font-mono text-xs text-muted-foreground">Completed focus: {focusMinutes} min · {gateXpForMinutes(focusMinutes)} XP on gate close</p>}
+        {focusMinutes > 0 && <p className="font-mono text-xs text-muted-foreground">Completed focus: {focusMinutes} min</p>}
         {timerKind === "rest" && resumeFocusMinutes !== null && <p className="font-mono text-xs text-primary">Rest ends, then your remaining {Math.ceil(resumeFocusMinutes)} focus minutes resume automatically.</p>}
         {timerKind === "focus" && <div className="gate-timer-rest-controls space-y-2 text-center">
           <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Take a rest · focus time will pause and resume afterward</p>
@@ -218,7 +218,7 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
         <Panel title="Gate In Progress">
           <p className="font-bold">{meta.current.label}</p>
           {meta.current.details && <p className="mt-1 text-sm text-muted-foreground">{meta.current.details}</p>}
-          <p className="mt-1 font-mono text-xs text-muted-foreground">Completed focus: {focusMinutes} min · {gateXpForMinutes(focusMinutes)} XP on gate close</p>
+          <p className="mt-1 font-mono text-xs text-muted-foreground">Completed focus: {focusMinutes} min</p>
           <p className="mt-1 font-mono text-xs text-muted-foreground">Rests used: {restsUsed}/{restLimit} · one rest per 25 minutes assigned</p>
           <p className="mt-2 font-mono text-xs text-primary">Timer complete. Continue with another focus or rest session, close the gate, or leave.</p>
           <p className="mt-4 font-mono text-xs uppercase tracking-wider text-primary">Choose your next step</p>
