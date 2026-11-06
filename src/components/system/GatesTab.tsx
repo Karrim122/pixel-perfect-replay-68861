@@ -15,6 +15,7 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
   const [now, setNow] = useState(Date.now());
   const [timerKind, setTimerKind] = useState<"focus" | "rest" | null>(null);
   const [timerMinutes, setTimerMinutes] = useState(25);
+  const [resumeFocusMinutes, setResumeFocusMinutes] = useState<number | null>(null);
   const [focusMinutes, setFocusMinutes] = useState(0);
   const [gateActive, setGateActive] = useState(false);
   const [entering, setEntering] = useState(false);
@@ -66,6 +67,17 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
     setTimerMinutes(duration); setTimerKind(kind); setNow(Date.now()); setEndAt(Date.now() + duration * 60000); buzz(60);
   };
 
+  const takeRest = (duration: number) => {
+    if (timerKind !== "focus" || endAt === null) return;
+    const startedAt = endAt - timerMinutes * 60000;
+    const elapsed = Math.max(0, Math.min(timerMinutes, (Date.now() - startedAt) / 60000));
+    const remaining = Math.max(0, timerMinutes - elapsed);
+    if (remaining < 0.01) return;
+    setFocusMinutes((total) => Math.round((total + elapsed) * 10) / 10);
+    setResumeFocusMinutes(remaining);
+    startTimer("rest", duration);
+  };
+
   useEffect(() => {
     if (!gateActive) return;
     const t = endAt ? setInterval(() => setNow(Date.now()), 250) : null;
@@ -84,11 +96,19 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
   useEffect(() => {
     if (!endAt || now < endAt) return;
     setEndAt(null);
-    if (timerKind === "focus") setFocusMinutes((total) => total + timerMinutes);
-    setTimerKind(null);
+    if (timerKind === "focus") {
+      setFocusMinutes((total) => total + timerMinutes);
+      setTimerKind(null);
+    } else if (timerKind === "rest" && resumeFocusMinutes !== null) {
+      const remaining = resumeFocusMinutes;
+      setResumeFocusMinutes(null);
+      setTimerMinutes(remaining); setTimerKind("focus"); setNow(Date.now()); setEndAt(Date.now() + remaining * 60000); buzz(60);
+    } else {
+      setTimerKind(null);
+    }
     buzz([40, 40, 40]);
     playSound("done");
-  }, [now, endAt, timerKind, timerMinutes]);
+  }, [now, endAt, timerKind, timerMinutes, resumeFocusMinutes]);
 
   const start = () => {
     const selected = options.find((option) => option.id === target);
@@ -158,6 +178,11 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
         <p className="text-lg">{timerKind === "rest" ? "Rest and recover" : meta.current.label}</p>
         {meta.current.details && <p className="max-w-sm text-sm text-muted-foreground">{meta.current.details}</p>}
         {focusMinutes > 0 && <p className="font-mono text-xs text-muted-foreground">Completed focus: {focusMinutes} min · {focusMinutes} XP on gate close</p>}
+        {timerKind === "rest" && resumeFocusMinutes !== null && <p className="font-mono text-xs text-primary">Rest ends, then your remaining {Math.ceil(resumeFocusMinutes)} focus minutes resume automatically.</p>}
+        {timerKind === "focus" && <div className="space-y-2 text-center">
+          <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Take a rest · focus time will pause and resume afterward</p>
+          <div className="flex justify-center gap-2">{[5, 10, 15].map((duration) => <SysButton key={duration} variant="ghost" onClick={() => takeRest(duration)}>Rest {duration}m</SysButton>)}</div>
+        </div>}
         <div className="flex gap-2">
           <SysButton variant="danger" onClick={() => fail("You abandoned the Gate.")}>Exit Gate (−{BREAK_DMG} HP)</SysButton>
         </div>
