@@ -71,6 +71,7 @@ export const rankOf = (level: number) => RANKS[rankIndex(level)]!;
 export const xpToNext = (level: number) => level < 60
   ? 50 + 3 * (level - 1)
   : Math.round(275 * Math.pow(1.04, level - 60));
+export const skillXpToNext = (level: number) => xpToNext(level) * 3;
 
 export interface Skill { id: string; name: string; description?: string | undefined; level: number; xp: number; }
 export interface WeeklyQuest { id: string; name: string; description?: string | undefined; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; skillId?: string | undefined; focusMinutes?: number | undefined; daysOfWeek: number[]; doneDates: string[]; rewardedDates: string[]; reminder?: string | undefined; masteryLevel?: number; masteryXp?: number; }
@@ -304,8 +305,8 @@ export function awardSkillXp(s: GameState, skillId: string | undefined, amount: 
   const skill = s.skills.find((item) => item.id === skillId);
   if (!skill) return;
   skill.xp += amount;
-  while (skill.xp >= xpToNext(skill.level)) {
-    skill.xp -= xpToNext(skill.level);
+  while (skill.xp >= skillXpToNext(skill.level)) {
+    skill.xp -= skillXpToNext(skill.level);
     skill.level += 1;
     log(s, `Skill improved: ${skill.name} reached level ${skill.level}`, "level");
   }
