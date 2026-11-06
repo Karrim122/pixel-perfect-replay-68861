@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { Check, Plus } from "lucide-react";
+import { Check } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
 import { baseDifficultyForDiff, completeDailyQuest, completeWeeklyQuest, difficultyForRankIndex, isWeeklyQuestScheduled, moveItem, rankIndex, resolveDifficulty, uid, type Attr, type BaseDifficulty } from "@/lib/system";
 import { playSound } from "@/lib/sound";
 import { BonusPenaltySection } from "./BonusPenaltySection";
-import { AttrPicker, BaseDifficultyPicker, DiffBadge, ItemOptionsMenu, Panel, SysButton, inputCls } from "./ui";
+import { AddIconButton, AttrPicker, BaseDifficultyPicker, DiffBadge, ItemOptionsMenu, Panel, SysButton, inputCls } from "./ui";
 import { cn } from "@/lib/utils";
 
 export function QuestsTab() {
@@ -69,7 +69,7 @@ export function QuestsTab() {
 
   return (
     <div className="space-y-4">
-      <Panel title="Daily">
+      <Panel title="Daily" actions={<AddIconButton label="Add daily quest" onClick={() => { setEditingId(null); setEditingWeeklyId(null); setName(""); setDescription(""); setBaseDifficulty("Easy"); setAttrs(["discipline"]); setReminder(""); setOpen(true); }} />}>
         <div className="flex items-center gap-3 border-b border-border/40 pb-3">
           <button type="button" role="checkbox" aria-checked={dailyDone} aria-label="Close todays gate" disabled
             className={cn("flex h-10 w-10 shrink-0 cursor-not-allowed items-center justify-center rounded-md border", dailyDone ? "border-success bg-success/20 text-success" : "border-primary/60 text-primary")}>
@@ -82,10 +82,6 @@ export function QuestsTab() {
         </div>
         <div className="mt-3 space-y-2">
           <p className="font-mono text-[10px] text-primary">Reward: +1 Healing Potion after completing the Gate, all Daily quests, and all Weekly quests scheduled for today.</p>
-          <SysButton className="flex w-full items-center justify-start gap-2 px-3 text-left" onClick={() => setOpen(true)}>
-            <Plus className="h-4 w-4 shrink-0" />
-            <span>New Daily Quest</span>
-          </SysButton>
         </div>
 
         <div className="mt-4 border-t border-border/40 pt-3">

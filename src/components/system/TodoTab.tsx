@@ -4,7 +4,7 @@ import { AlertTriangle, Check } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
 import { playSound } from "@/lib/sound";
 import { baseDifficultyForDiff, completeTodo, DIFFS, moveItem, RANKS, resolveDifficulty, today, uid, type Attr, type BaseDifficulty, type TodoReward } from "@/lib/system";
-import { AttrPicker, BaseDifficultyPicker, DiffBadge, ItemOptionsMenu, Panel, SkillPicker, SysButton, inputCls } from "./ui";
+import { AddIconButton, AttrPicker, BaseDifficultyPicker, DiffBadge, ItemOptionsMenu, Panel, SkillPicker, SysButton, inputCls } from "./ui";
 import { cn } from "@/lib/utils";
 
 export function TodoTab() {
@@ -73,9 +73,12 @@ export function TodoTab() {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-2">
-        <SysButton variant={filter === "today" ? "primary" : "ghost"} onClick={() => setFilter("today")}>Today's Tasks</SysButton>
-        <SysButton variant={filter === "all" ? "primary" : "ghost"} onClick={() => setFilter("all")}>All Tasks</SysButton>
+      <div className="flex gap-2">
+        <div className="grid flex-1 grid-cols-2 gap-2">
+          <SysButton variant={filter === "today" ? "primary" : "ghost"} onClick={() => setFilter("today")}>Today's Tasks</SysButton>
+          <SysButton variant={filter === "all" ? "primary" : "ghost"} onClick={() => setFilter("all")}>All Tasks</SysButton>
+        </div>
+        <AddIconButton label="Add task" onClick={() => { setEditingId(null); setName(""); setDescription(""); setDue(""); setTime(""); setBaseDifficulty("Easy"); setAttrs(["intelligence"]); setSkillId(undefined); setFocusMinutes(""); setRewardType("none"); setRewardName(""); setRewardDescription(""); setOpen(true); }} />
       </div>
       <Panel>
         <div className="mb-3 flex items-center justify-between">
@@ -108,7 +111,6 @@ export function TodoTab() {
             );
           })}
         </ul>
-        <SysButton className="mt-3 w-full" onClick={() => { setEditingId(null); setName(""); setDescription(""); setDue(""); setTime(""); setBaseDifficulty("Easy"); setAttrs(["intelligence"]); setSkillId(undefined); setFocusMinutes(""); setRewardType("none"); setRewardName(""); setRewardDescription(""); setOpen(true); }}>+ New Task</SysButton>
       </Panel>
 
       {open && createPortal(

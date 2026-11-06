@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { useSystem } from "@/lib/store";
 import { ATTRS, RANKS, rankIndex, xpToNext, usePotion, POTION_HP, isLowHp, uid } from "@/lib/system";
 import { FlaskConical, Gift, Package, X } from "lucide-react";
-import { AttributeIcon, Bar, DiffBadge, Panel, SysButton } from "./ui";
+import { AddIconButton, AttributeIcon, Bar, DiffBadge, Panel, SysButton } from "./ui";
 import { cn } from "@/lib/utils";
 
 const ATTRIBUTE_TITLES: Record<(typeof ATTRS)[number]["key"], string> = {
@@ -18,6 +18,7 @@ export function StatusTab() {
   const { state, act } = useSystem();
   const [inventoryOpen, setInventoryOpen] = useState(false);
   const [skillName, setSkillName] = useState("");
+  const [skillEditorOpen, setSkillEditorOpen] = useState(false);
   const [hpHealing, setHpHealing] = useState(false);
   const hpHealTimeout = useRef<number | null>(null);
   const [itemEffect, setItemEffect] = useState<{ type: "potion" | "gift"; label: string; id: number } | null>(null);
@@ -111,12 +112,12 @@ export function StatusTab() {
         </div>
       </Panel>
 
-      <Panel title="Skills">
+      <Panel title="Skills" actions={<AddIconButton label="Add skill" onClick={() => setSkillEditorOpen((open) => !open)} />}>
         <p className="mb-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Create skills and assign tasks or weekly quests to grow them.</p>
-        <form className="mb-3 flex gap-2" onSubmit={(event) => { event.preventDefault(); const name = skillName.trim(); if (!name) return; act((s) => s.skills.push({ id: uid(), name, level: 1, xp: 0 })); setSkillName(""); }}>
-          <input className="min-h-11 min-w-0 flex-1 border border-input bg-background/60 px-3 text-base text-foreground outline-none focus:border-primary" placeholder="New skill name" value={skillName} onChange={(event) => setSkillName(event.target.value)} />
-          <SysButton type="submit" disabled={!skillName.trim()}>Create</SysButton>
-        </form>
+        {skillEditorOpen && <form className="mb-3 flex gap-2" onSubmit={(event) => { event.preventDefault(); const name = skillName.trim(); if (!name) return; act((s) => s.skills.push({ id: uid(), name, level: 1, xp: 0 })); setSkillName(""); setSkillEditorOpen(false); }}>
+          <input autoFocus className="min-h-11 min-w-0 flex-1 border border-input bg-background/60 px-3 text-base text-foreground outline-none focus:border-primary" placeholder="Skill name" value={skillName} onChange={(event) => setSkillName(event.target.value)} />
+          <SysButton type="submit" disabled={!skillName.trim()}>Add</SysButton>
+        </form>}
         {state.skills.length === 0 ? (
           <p className="font-mono text-xs text-muted-foreground">No skills yet. Create one above.</p>
         ) : (

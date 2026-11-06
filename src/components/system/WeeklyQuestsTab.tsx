@@ -4,7 +4,7 @@ import { Check } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
 import { baseDifficultyForDiff, completeWeeklyQuest, isWeeklyQuestScheduled, moveItem, resolveDifficulty, uid, uncompleteWeeklyQuest, type Attr, type BaseDifficulty } from "@/lib/system";
 import { playSound } from "@/lib/sound";
-import { AttrPicker, BaseDifficultyPicker, DiffBadge, ItemOptionsMenu, Panel, SkillPicker, SysButton, inputCls } from "./ui";
+import { AddIconButton, AttrPicker, BaseDifficultyPicker, DiffBadge, ItemOptionsMenu, Panel, SkillPicker, SysButton, inputCls } from "./ui";
 import { cn } from "@/lib/utils";
 
 const WEEKDAYS = [
@@ -68,9 +68,8 @@ export function WeeklyQuestsTab() {
 
   return (
     <div className="space-y-4">
-      <Panel title="Weekly Quests">
+      <Panel title="Weekly Quests" actions={<AddIconButton label="Add weekly quest" onClick={() => setOpen(true)} />}>
         <p className="mb-3 font-mono text-[11px] text-muted-foreground">Choose the weekdays when each quest repeats. Mark or unmark quests for any date shown. Complete all quests scheduled for a date to earn a gift; unmarking does not retract rewards already earned.</p>
-        <SysButton className="w-full" onClick={() => setOpen(true)}>+ New Weekly Quest</SysButton>
       </Panel>
 
       {WEEKDAYS.map(({ value, label }) => {

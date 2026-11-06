@@ -1,18 +1,27 @@
 import { useState, type ReactNode } from "react";
-import { ArrowDown, ArrowUp, Brain, Dumbbell, Eye, HeartPulse, MoreHorizontal, Pencil, Trash2, Info, ShieldCheck } from "lucide-react";
+import { ArrowDown, ArrowUp, Brain, Dumbbell, Eye, HeartPulse, MoreHorizontal, Pencil, Plus, Trash2, Info, ShieldCheck } from "lucide-react";
 import { ATTRS, BASE_DIFFICULTIES, DIFFS, RANKS, rankIndex, resolveDifficulty, type Attr, type BaseDifficulty, type Diff } from "@/lib/system";
 import { cn } from "@/lib/utils";
 import { playSound } from "@/lib/sound";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
-export function Panel({ children, className, title }: { children: ReactNode; className?: string; title?: string }) {
+export function Panel({ children, className, title, actions }: { children: ReactNode; className?: string; title?: string; actions?: ReactNode }) {
   return (
     <section className={cn("sys-panel p-4", className)}>
-      {title && <h2 className="mb-3 font-mono text-xs uppercase tracking-[0.3em] text-primary sys-glow-text">{title}</h2>}
+      {(title || actions) && <div className="mb-3 flex items-center justify-between gap-2">
+        {title && <h2 className="min-w-0 font-mono text-xs uppercase tracking-[0.3em] text-primary sys-glow-text">{title}</h2>}
+        {actions}
+      </div>}
       {children}
     </section>
   );
+}
+
+export function AddIconButton({ label, onClick }: { label: string; onClick: () => void }) {
+  return <SysButton type="button" variant="ghost" aria-label={label} title={label} onClick={onClick} className="h-8 min-h-8 w-8 shrink-0 px-0 text-primary">
+    <Plus className="mx-auto h-4 w-4" />
+  </SysButton>;
 }
 
 export function Bar({ value, max, hp, heal }: { value: number; max: number; hp?: boolean; heal?: boolean }) {
