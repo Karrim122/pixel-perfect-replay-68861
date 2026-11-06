@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useSystem } from "@/lib/store";
-import { ATTRS, RANKS, rankIndex, xpToNext, skillXpToNext, usePotion, POTION_HP, isLowHp, uid } from "@/lib/system";
+import { ATTRS, RANKS, rankIndex, xpToNext, usePotion, POTION_HP, isLowHp, uid } from "@/lib/system";
 import { FlaskConical, Gift, Package, X } from "lucide-react";
 import { AttributeIcon, Bar, DiffBadge, Panel, SysButton } from "./ui";
 import { cn } from "@/lib/utils";
@@ -111,9 +111,9 @@ export function StatusTab() {
           <p className="font-mono text-xs text-muted-foreground">No skills yet. Create one above.</p>
         ) : (
           <div className="space-y-3">
-            {state.skills.map((skill) => <div key={skill.id} className="border border-border/70 bg-background/30 p-3">
-              <div className="mb-2 flex items-center justify-between"><h3 className="truncate font-bold text-foreground">{skill.name}</h3><div className="flex items-center gap-2"><span className="font-mono text-sm font-bold text-primary">Lv {skill.level}</span><button aria-label={`Delete ${skill.name}`} className="text-xs text-muted-foreground" onClick={() => act((s) => { s.skills = s.skills.filter((item) => item.id !== skill.id); s.todos.forEach((task) => { if (task.skillId === skill.id) task.skillId = undefined; }); s.weeklyQuests.forEach((quest) => { if (quest.skillId === skill.id) quest.skillId = undefined; }); s.dailyQuests.forEach((quest) => { if (quest.skillId === skill.id) quest.skillId = undefined; }); })}>Delete</button></div></div>
-              <div className="font-mono text-[10px] text-muted-foreground">Progress to Lv {skill.level + 1}: <span className="text-primary">{skill.xp} / {skillXpToNext(skill.level)} XP</span></div>
+            {state.skills.map((skill) => <div key={skill.id} className="flex items-center justify-between gap-3 border border-border/70 bg-background/30 p-3">
+              <h3 className="min-w-0 truncate font-bold text-foreground">{skill.name}</h3>
+              <div className="flex shrink-0 items-center gap-2"><span className="font-mono text-sm font-bold text-primary">Lv {skill.level}</span><button aria-label={`Delete ${skill.name}`} className="text-xs text-muted-foreground" onClick={() => act((s) => { s.skills = s.skills.filter((item) => item.id !== skill.id); s.todos.forEach((task) => { if (task.skillId === skill.id) task.skillId = undefined; }); s.weeklyQuests.forEach((quest) => { if (quest.skillId === skill.id) quest.skillId = undefined; }); s.dailyQuests.forEach((quest) => { if (quest.skillId === skill.id) quest.skillId = undefined; }); })}>Delete</button></div>
             </div>)}
           </div>
         )}
