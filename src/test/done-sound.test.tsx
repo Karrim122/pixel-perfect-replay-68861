@@ -18,7 +18,7 @@ describe("Quest completion feedback", () => {
 
   it("shows the fixed daily gate quest and today's weekly quests", () => {
     renderInSystem(<QuestsTab />);
-    expect(screen.getByText("Close todays gate")).toBeInTheDocument();
+    expect(screen.getByText("Close a quest gate")).toBeInTheDocument();
     expect(screen.getByText("Today's Quests")).toBeInTheDocument();
   });
 

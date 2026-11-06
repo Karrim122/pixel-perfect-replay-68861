@@ -71,11 +71,14 @@ export function QuestsTab() {
       <Panel title="Daily" actions={<AddIconButton label="Add daily quest" onClick={() => { setEditingId(null); setEditingWeeklyId(null); setName(""); setDescription(""); setBaseDifficulty("Easy"); setAttrs(["discipline"]); setReminder(""); setOpen(true); }} />}>
         <ul className="space-y-3">
           <li className="flex items-center gap-3 border-b border-border/40 pb-3">
-            <button type="button" role="checkbox" aria-checked={dailyDone} aria-label="Close todays gate" disabled
+            <button type="button" role="checkbox" aria-checked={dailyDone} aria-label="Close a quest gate" disabled
               className={cn("flex h-10 w-10 shrink-0 cursor-not-allowed items-center justify-center rounded-md border", dailyDone ? "border-success bg-success/20 text-success" : "border-primary/60 text-primary")}>
               {dailyDone && <Check className="h-5 w-5" />}
             </button>
-            <p className={cn("min-w-0 flex-1 pr-3 text-lg", dailyDone && "text-muted-foreground line-through")}>Close todays gate</p>
+            <div className="min-w-0 flex-1 pr-3">
+              <p className={cn("text-lg", dailyDone && "text-muted-foreground line-through")}>Close a quest gate</p>
+              <p className="font-mono text-[10px] text-muted-foreground">A weekly quest gate, or a same rank or higher to-do task gate.</p>
+            </div>
           </li>
           {state.dailyQuests.map((quest, index) => {
             const done = quest.doneDate === state.lastDay;

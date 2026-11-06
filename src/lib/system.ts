@@ -133,7 +133,7 @@ function awardDailyPotionIfComplete(s: GameState, alerts: Alert[]) {
   s.dailyQuestRewardDay = s.lastDay;
   s.potions += 1;
   log(s, "All daily and today's weekly quests complete. +1 Healing Potion", "level");
-  alerts.push({ kind: "info", title: "[SYSTEM] Daily Quests Complete!", body: "You completed Close today's gate, all Daily quests, and all Weekly quests scheduled for today. Reward: +1 Healing Potion." });
+  alerts.push({ kind: "info", title: "[SYSTEM] Daily Quests Complete!", body: "You completed Close a quest gate, all Daily quests, and all Weekly quests scheduled for today. Reward: +1 Healing Potion." });
 }
 
 function awardWeeklyCompletionGift(s: GameState, quest: WeeklyQuest, date: string, alerts: Alert[]) {
@@ -294,7 +294,7 @@ export function completeDailyGateQuest(s: GameState, earnedXp: number, levelAtSt
   s.dailyGateQuestDoneDate = s.lastDay;
   const progress = attributeProgressForXp(earnedXp, levelAtStart);
   changeStats(s, ["discipline", "perception"], progress);
-  log(s, `Daily Quest complete: Close todays gate (+${progress}% Discipline and Perception progress)`, "level");
+  log(s, `Daily Quest complete: Close a quest gate (+${progress}% Discipline and Perception progress)`, "level");
   awardDailyPotionIfComplete(s, alerts);
 }
 
@@ -387,8 +387,8 @@ export function rollover(s: GameState, alerts: Alert[]) {
   if (s.dailyGateQuestDoneDate !== s.lastDay) {
     const diff = difficultyForRankIndex(rankIndex(s.level));
     const damage = Math.max(10, DIFF_HP[diff] * 5);
-    log(s, `Daily Quest failed: Close todays gate. -${damage} HP`, "warn");
-    alerts.push({ kind: "penalty", title: "[System Alert] Daily Quest Failed", body: `Close todays gate was not completed. -${damage} HP.` });
+    log(s, `Daily Quest failed: Close a quest gate. -${damage} HP`, "warn");
+    alerts.push({ kind: "penalty", title: "[System Alert] Daily Quest Failed", body: `Close a quest gate was not completed. -${damage} HP.` });
     takeDamage(s, damage, alerts);
   }
   s.todos = s.todos.filter((task) => !task.done);

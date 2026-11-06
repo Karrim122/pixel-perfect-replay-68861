@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { buzz, useSystem } from "@/lib/store";
 import { playSound } from "@/lib/sound";
-import { completeDailyGateQuest, completeTodo, completeWeeklyQuest, gainXp, isWeeklyQuestScheduled, takeDamage, uid, type Alert, type GameState } from "@/lib/system";
+import { BASE_DIFFICULTIES, baseDifficultyForDiff, completeDailyGateQuest, completeTodo, completeWeeklyQuest, gainXp, isWeeklyQuestScheduled, takeDamage, uid, type Alert, type GameState } from "@/lib/system";
 import { Panel, SysButton, inputCls } from "./ui";
 
 const BREAK_DMG = 10;
@@ -58,7 +58,13 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
       const xp = Math.round(totalFocusMinutes);
       const levelAtStart = s.level;
       gainXp(s, xp, a);
-      if (assignedTarget.startsWith("t:")) completeTodo(s, assignedTarget.slice(2), a);
+      if (assignedTarget.startsWith("t:")) {
+        const task = s.todos.find((item) => item.id === assignedTarget.slice(2));
+        const taskDifficulty = task?.baseDifficulty ?? (task ? baseDifficultyForDiff(task.diff, levelAtStart) : undefined);
+        const qualifiesForDailyGate = Boolean(task && !task.done && taskDifficulty && BASE_DIFFICULTIES.indexOf(taskDifficulty) >= BASE_DIFFICULTIES.indexOf("Medium"));
+        if (task) completeTodo(s, task.id, a);
+        if (qualifiesForDailyGate) completeDailyGateQuest(s, xp, levelAtStart, a);
+      }
       if (assignedTarget.startsWith("w:") && completeWeeklyQuest(s, assignedTarget.slice(2), a)) completeDailyGateQuest(s, xp, levelAtStart, a);
       s.log.unshift({ id: uid(), ts: Date.now(), text: `Gate closed (${totalFocusMinutes}m focus). +${xp} XP`, kind: "level" });
       a.push({ kind: "info", title: "[SYSTEM] Gate Closed", body: `Gate closed after ${totalFocusMinutes} focus minutes. +${xp} XP. Completed: ${label}.` });
@@ -225,7 +231,7 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
         </Panel>
         <SysButton disabled={!focusMinutes} className="h-14 w-full" onClick={clear}>Close Gate</SysButton>
         <SysButton variant="danger" className="w-full" onClick={() => fail("You left the Gate.")}>Leave Gate (−{BREAK_DMG} HP)</SysButton>
-        <p className="text-center font-mono text-[10px] text-muted-foreground">Only a gate assigned to a weekly quest completes the daily “Close today’s gate” quest. Leaving applies the penalty.</p>
+        <p className="text-center font-mono text-[10px] text-muted-foreground">A weekly quest gate or a Medium-rank-or-higher to-do task gate completes “Close a quest gate.” Leaving applies the penalty.</p>
       </div>
     );
   }
