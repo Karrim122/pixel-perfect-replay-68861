@@ -4,7 +4,7 @@ import { Minus, Plus } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
 import { baseDifficultyForDiff, moveItem, resolveDifficulty, triggerBonusPenaltyHabit, uid, type Attr, type BaseDifficulty } from "@/lib/system";
 import { playSound } from "@/lib/sound";
-import { AddIconButton, AttrPicker, BaseDifficultyPicker, DiffBadge, ItemOptionsMenu, Panel, SysButton, inputCls } from "./ui";
+import { AddIconButton, AttrPicker, BaseDifficultyPicker, ItemOptionsMenu, Panel, SysButton, inputCls } from "./ui";
 
 export function BonusPenaltySection() {
   const { state, act } = useSystem();
@@ -75,7 +75,6 @@ export function BonusPenaltySection() {
                     <p className="truncate text-base">{habit.name}</p>
                     {habit.description && <p className="text-xs text-muted-foreground">{habit.description}</p>}
                   </div>
-                  <DiffBadge d={habit.diff} />
                   <ItemOptionsMenu itemName={habit.name} info={`${habit.description || "No description."}\nType: ${positive ? "Good habit" : "Bad habit"}\nRank: ${habit.diff}\nAttributes: ${habit.attrs.join(", ")}\nLogged: ${habit.count} times`} onEdit={() => edit(habit.id)} canMoveUp={index > 0} canMoveDown={index < state.bonusPenaltyHabits.length - 1}
                     onMoveUp={() => act((s) => moveItem(s.bonusPenaltyHabits, habit.id, state.bonusPenaltyHabits[index - 1]!.id))}
                     onMoveDown={() => act((s) => moveItem(s.bonusPenaltyHabits, habit.id, state.bonusPenaltyHabits[index + 1]!.id))}

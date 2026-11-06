@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { Check } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
-import { baseDifficultyForDiff, completeDailyQuest, completeWeeklyQuest, difficultyForRankIndex, isWeeklyQuestScheduled, moveItem, rankIndex, resolveDifficulty, uid, type Attr, type BaseDifficulty } from "@/lib/system";
+import { baseDifficultyForDiff, completeDailyQuest, completeWeeklyQuest, isWeeklyQuestScheduled, moveItem, resolveDifficulty, uid, type Attr, type BaseDifficulty } from "@/lib/system";
 import { playSound } from "@/lib/sound";
 import { BonusPenaltySection } from "./BonusPenaltySection";
 import { AddIconButton, AttrPicker, BaseDifficultyPicker, DiffBadge, ItemOptionsMenu, Panel, SysButton, inputCls } from "./ui";
@@ -12,7 +12,6 @@ export function QuestsTab() {
   const { state, act } = useSystem();
   const dailyDone = state.dailyGateQuestDoneDate === state.lastDay;
   const todayQuests = state.weeklyQuests.filter((quest) => isWeeklyQuestScheduled(quest, state.lastDay));
-  const rankDiff = difficultyForRankIndex(rankIndex(state.level));
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingWeeklyId, setEditingWeeklyId] = useState<string | null>(null);
@@ -77,7 +76,6 @@ export function QuestsTab() {
               {dailyDone && <Check className="h-5 w-5" />}
             </button>
             <p className={cn("min-w-0 flex-1 pr-3 text-lg", dailyDone && "text-muted-foreground line-through")}>Close todays gate</p>
-            <DiffBadge d={rankDiff} />
           </li>
           {state.dailyQuests.map((quest, index) => {
             const done = quest.doneDate === state.lastDay;
@@ -91,7 +89,6 @@ export function QuestsTab() {
                   <p className={cn("truncate text-base", done && "text-muted-foreground line-through")}>{quest.name}</p>
                   {quest.description && <p className="text-xs text-muted-foreground">{quest.description}</p>}
                 </div>
-                <DiffBadge d={quest.diff} />
                 <ItemOptionsMenu itemName={quest.name} info={`${quest.description || "No description."}\nAttributes: ${quest.attrs.join(", ")}\nRank: ${quest.diff}${quest.reminder ? `\nReminder: ${quest.reminder}` : ""}`} onEdit={() => edit(quest.id)} canMoveUp={index > 0} canMoveDown={index < state.dailyQuests.length - 1}
                   onMoveUp={() => act((s) => moveItem(s.dailyQuests, quest.id, state.dailyQuests[index - 1]!.id))}
                   onMoveDown={() => act((s) => moveItem(s.dailyQuests, quest.id, state.dailyQuests[index + 1]!.id))}
