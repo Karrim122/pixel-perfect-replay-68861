@@ -292,7 +292,7 @@ export function failFocusRegain(s: GameState, alerts: Alert[]) {
 export function completeDailyGateQuest(s: GameState, earnedXp: number, levelAtStart: number, alerts: Alert[]) {
   if (s.dailyGateQuestDoneDate === s.lastDay) return;
   s.dailyGateQuestDoneDate = s.lastDay;
-  const progress = attributeProgressForXp(earnedXp, levelAtStart);
+  const progress = Math.round((earnedXp / xpToNext(levelAtStart)) * ATTRIBUTE_GAIN_THRESHOLD * 10) / 10;
   changeStats(s, ["discipline", "perception"], progress);
   log(s, `Daily Quest complete: Close a quest gate (+${progress}% Discipline and Perception progress)`, "level");
   awardDailyPotionIfComplete(s, alerts);
