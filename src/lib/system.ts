@@ -279,13 +279,11 @@ export function failFocusRegain(s: GameState, alerts: Alert[]) {
   if (s.focusRegainDeadline === null) return;
   s.focusRegainDeadline = null;
   const damage = 20;
-  const losses = (["discipline", "perception"] as const).map((attr) => {
-    const current = s.stats[attr];
-    s.stats[attr] = Math.max(1, Math.floor(current * 0.5));
-    return `${attr === "discipline" ? "Discipline" : "Perception"} -${current - s.stats[attr]}`;
+  (["discipline", "perception"] as const).forEach((attr) => {
+    s.statProgress[attr] = Math.round(s.statProgress[attr] * 0.5 * 10) / 10;
   });
-  log(s, `Focus Regain failed. -${damage} HP, attribute loss: ${losses.join(", ")}.`, "warn");
-  alerts.push({ kind: "penalty", title: "[SYSTEM] Focus Regain Failed", body: `Focus was not regained. -${damage} HP and 50% of Discipline and Perception were lost (${losses.join(", ")}).` });
+  log(s, `Focus Regain failed. -${damage} HP and 50% of Discipline and Perception practice progress.`, "warn");
+  alerts.push({ kind: "penalty", title: "[SYSTEM] Focus Regain Failed", body: `Focus was not regained. -${damage} HP and 50% of Discipline and Perception practice progress was lost.` });
   takeDamage(s, damage, alerts);
 }
 
