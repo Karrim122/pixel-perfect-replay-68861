@@ -17,6 +17,8 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
   const [timerMinutes, setTimerMinutes] = useState(25);
   const [resumeFocusMinutes, setResumeFocusMinutes] = useState<number | null>(null);
   const [focusMinutes, setFocusMinutes] = useState(0);
+  const [restLimit, setRestLimit] = useState(1);
+  const [restsUsed, setRestsUsed] = useState(0);
   const [gateActive, setGateActive] = useState(false);
   const [entering, setEntering] = useState(false);
   const meta = useRef({ label: "", target: "", details: "" });
@@ -67,15 +69,21 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
     setTimerMinutes(duration); setTimerKind(kind); setNow(Date.now()); setEndAt(Date.now() + duration * 60000); buzz(60);
   };
 
+  const startRestTimer = (duration: number, resumeFocus: number | null = null) => {
+    if (restsUsed >= restLimit) return;
+    setRestsUsed((used) => used + 1);
+    setResumeFocusMinutes(resumeFocus);
+    startTimer("rest", duration);
+  };
+
   const takeRest = (duration: number) => {
-    if (timerKind !== "focus" || endAt === null) return;
+    if (timerKind !== "focus" || endAt === null || restsUsed >= restLimit) return;
     const startedAt = endAt - timerMinutes * 60000;
     const elapsed = Math.max(0, Math.min(timerMinutes, (Date.now() - startedAt) / 60000));
     const remaining = Math.max(0, timerMinutes - elapsed);
     if (remaining < 0.01) return;
     setFocusMinutes((total) => Math.round((total + elapsed) * 10) / 10);
-    setResumeFocusMinutes(remaining);
-    startTimer("rest", duration);
+    startRestTimer(duration, remaining);
   };
 
   useEffect(() => {
@@ -114,6 +122,7 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
     const selected = options.find((option) => option.id === target);
     meta.current = { target: selected?.id ?? "", label: selected?.label ?? "Free focus", details: details.trim() };
     const initialDuration = selected?.focusMinutes ?? Math.max(10, Number(minutes) || 10);
+    setRestLimit(Math.floor(initialDuration / 25)); setRestsUsed(0); setResumeFocusMinutes(null);
     setFocusMinutes(0); setGateActive(true); onLock(true); buzz(60);
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
       setEntering(false); startTimer("focus", initialDuration); return;
@@ -181,7 +190,8 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
         {timerKind === "rest" && resumeFocusMinutes !== null && <p className="font-mono text-xs text-primary">Rest ends, then your remaining {Math.ceil(resumeFocusMinutes)} focus minutes resume automatically.</p>}
         {timerKind === "focus" && <div className="space-y-2 text-center">
           <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Take a rest · focus time will pause and resume afterward</p>
-          <div className="flex justify-center gap-2">{[5, 10, 15].map((duration) => <SysButton key={duration} variant="ghost" onClick={() => takeRest(duration)}>Rest {duration}m</SysButton>)}</div>
+          <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Rests used: {restsUsed}/{restLimit} · one rest per 25 minutes assigned</p>
+          {restsUsed < restLimit && <div className="flex justify-center gap-2">{[5, 10, 15].map((duration) => <SysButton key={duration} variant="ghost" onClick={() => takeRest(duration)}>Rest {duration}m</SysButton>)}</div>}
         </div>}
         <div className="flex gap-2">
           <SysButton variant="danger" onClick={() => fail("You abandoned the Gate.")}>Exit Gate (−{BREAK_DMG} HP)</SysButton>
@@ -198,17 +208,20 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
           <p className="font-bold">{meta.current.label}</p>
           {meta.current.details && <p className="mt-1 text-sm text-muted-foreground">{meta.current.details}</p>}
           <p className="mt-1 font-mono text-xs text-muted-foreground">Completed focus: {focusMinutes} min · {focusMinutes} XP on gate close</p>
+          <p className="mt-1 font-mono text-xs text-muted-foreground">Rests used: {restsUsed}/{restLimit} · one rest per 25 minutes assigned</p>
           <p className="mt-2 font-mono text-xs text-primary">Timer complete. Continue with another focus or rest session, close the gate, or leave.</p>
           <p className="mt-4 font-mono text-xs uppercase tracking-wider text-primary">Choose your next step</p>
           <label className="mb-2 mt-3 block font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Another focus timer · minimum 10 minutes
             <div className="mt-2 flex gap-2"><input aria-label="Next focus timer duration in minutes" type="number" min={10} step={1} inputMode="numeric" className={inputCls} value={minutes} onChange={(event) => setMinutes(event.target.value)} /><SysButton onClick={() => startTimer("focus", Math.max(10, Number(minutes) || 10))}>Start</SysButton></div>
           </label>
           <p className="mb-2 mt-4 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Rest timer</p>
-          <div className="grid grid-cols-3 gap-2">
-            {[5, 10, 15].map((duration) => (
-              <SysButton key={duration} variant="ghost" onClick={() => startTimer("rest", duration)}>{duration}m Rest</SysButton>
-            ))}
-          </div>
+          {restsUsed < restLimit
+            ? <div className="grid grid-cols-3 gap-2">
+              {[5, 10, 15].map((duration) => (
+                <SysButton key={duration} variant="ghost" onClick={() => startRestTimer(duration)}>{duration}m Rest</SysButton>
+              ))}
+            </div>
+            : <p className="font-mono text-xs text-muted-foreground">No rests remaining for this assigned duration.</p>}
         </Panel>
         <SysButton disabled={!focusMinutes} className="h-14 w-full" onClick={clear}>Close Gate</SysButton>
         <SysButton variant="danger" className="w-full" onClick={() => fail("You left the Gate.")}>Leave Gate (−{BREAK_DMG} HP)</SysButton>
