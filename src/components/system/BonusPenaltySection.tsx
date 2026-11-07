@@ -78,15 +78,15 @@ export function BonusPenaltySection() {
                   </button>
                   <div className="min-w-0 flex-1 pr-3">
                     <p className="truncate text-base">{habit.name}</p>
-                    <div className="mt-0.5 flex items-center">
-                      <StreakBadge count={streak} label={positive ? `${streak} day good habit streak` : `${streak} clean days without ${habit.name}`} />
-                    </div>
                     {habit.description && <p className="text-xs text-muted-foreground">{habit.description}</p>}
                   </div>
-                  <ItemOptionsMenu itemName={habit.name} info={`${habit.description || "No description."}\nType: ${positive ? "Good habit" : "Bad habit"}\nRank: ${habit.diff}\nAttributes: ${habit.attrs.join(", ")}\nLogged: ${habit.count} times`} onEdit={() => edit(habit.id)} canMoveUp={index > 0} canMoveDown={index < state.bonusPenaltyHabits.length - 1}
-                    onMoveUp={() => act((s) => moveItem(s.bonusPenaltyHabits, habit.id, state.bonusPenaltyHabits[index - 1]!.id))}
-                    onMoveDown={() => act((s) => moveItem(s.bonusPenaltyHabits, habit.id, state.bonusPenaltyHabits[index + 1]!.id))}
-                    onDelete={() => act((s) => { s.bonusPenaltyHabits = s.bonusPenaltyHabits.filter((item) => item.id !== habit.id); })} />
+                  <div className="flex shrink-0 items-center gap-2">
+                    <StreakBadge count={streak} label={positive ? `${streak} day good habit streak` : `${streak} clean days without ${habit.name}`} />
+                    <ItemOptionsMenu itemName={habit.name} info={`${habit.description || "No description."}\nType: ${positive ? "Good habit" : "Bad habit"}\nRank: ${habit.diff}\nAttributes: ${habit.attrs.join(", ")}\nLogged: ${habit.count} times`} onEdit={() => edit(habit.id)} canMoveUp={index > 0} canMoveDown={index < state.bonusPenaltyHabits.length - 1}
+                      onMoveUp={() => act((s) => moveItem(s.bonusPenaltyHabits, habit.id, state.bonusPenaltyHabits[index - 1]!.id))}
+                      onMoveDown={() => act((s) => moveItem(s.bonusPenaltyHabits, habit.id, state.bonusPenaltyHabits[index + 1]!.id))}
+                      onDelete={() => act((s) => { s.bonusPenaltyHabits = s.bonusPenaltyHabits.filter((item) => item.id !== habit.id); })} />
+                  </div>
                 </li>
               );
             })}
