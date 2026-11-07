@@ -77,8 +77,8 @@ export function BonusPenaltySection() {
                     {positive ? <Plus className="h-5 w-5" /> : <Minus className="h-5 w-5" />}
                   </button>
                   <div className="min-w-0 flex-1 pr-3">
-                    <div className="flex min-w-0 items-center gap-1.5">
-                      <p className="truncate text-base">{habit.name}</p>
+                    <p className="truncate text-base">{habit.name}</p>
+                    <div className="mt-0.5 flex items-center">
                       <StreakBadge count={streak} label={positive ? `${streak} day good habit streak` : `${streak} clean days without ${habit.name}`} />
                     </div>
                     {habit.description && <p className="text-xs text-muted-foreground">{habit.description}</p>}
