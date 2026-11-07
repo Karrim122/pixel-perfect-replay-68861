@@ -24,6 +24,10 @@ export function AddIconButton({ label, onClick }: { label: string; onClick: () =
   </SysButton>;
 }
 
+export function StreakBadge({ count, label }: { count: number; label: string }) {
+  return <span role="img" aria-label={label} title={label} className="inline-flex h-5 min-w-6 shrink-0 items-center justify-center border border-primary/35 bg-primary/5 px-1 font-mono text-[10px] font-bold leading-none text-primary">{count}</span>;
+}
+
 export function Bar({ value, max, hp, heal }: { value: number; max: number; hp?: boolean; heal?: boolean }) {
   return (
     <div className={cn("h-2 w-full overflow-hidden bg-secondary", heal && "hp-heal-frame")}>

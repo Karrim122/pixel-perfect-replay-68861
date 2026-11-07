@@ -2,15 +2,16 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { Check } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
-import { baseDifficultyForDiff, completeDailyQuest, completeWeeklyQuest, isWeeklyQuestScheduled, moveItem, resolveDifficulty, uid, type Attr, type BaseDifficulty } from "@/lib/system";
+import { baseDifficultyForDiff, completeDailyQuest, completeWeeklyQuest, dailyQuestStreakFor, isWeeklyQuestScheduled, moveItem, resolveDifficulty, uid, type Attr, type BaseDifficulty } from "@/lib/system";
 import { playSound } from "@/lib/sound";
 import { BonusPenaltySection } from "./BonusPenaltySection";
-import { AddIconButton, AttrPicker, BaseDifficultyPicker, DiffBadge, ItemOptionsMenu, Panel, SysButton, inputCls } from "./ui";
+import { AddIconButton, AttrPicker, BaseDifficultyPicker, DiffBadge, ItemOptionsMenu, Panel, StreakBadge, SysButton, inputCls } from "./ui";
 import { cn } from "@/lib/utils";
 
 export function QuestsTab() {
   const { state, act } = useSystem();
   const dailyDone = state.dailyGateQuestDoneDate === state.lastDay;
+  const dailyStreak = dailyQuestStreakFor(state);
   const todayQuests = state.weeklyQuests.filter((quest) => isWeeklyQuestScheduled(quest, state.lastDay));
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -68,7 +69,7 @@ export function QuestsTab() {
 
   return (
     <div className="space-y-4">
-      <Panel title="Daily" actions={<AddIconButton label="Add daily quest" onClick={() => { setEditingId(null); setEditingWeeklyId(null); setName(""); setDescription(""); setBaseDifficulty("Easy"); setAttrs(["discipline"]); setReminder(""); setOpen(true); }} />}>
+      <Panel title="Daily" actions={<div className="flex items-center gap-2"><StreakBadge count={dailyStreak} label={`${dailyStreak} day streak completing the gate and every Daily quest`} /><AddIconButton label="Add daily quest" onClick={() => { setEditingId(null); setEditingWeeklyId(null); setName(""); setDescription(""); setBaseDifficulty("Easy"); setAttrs(["discipline"]); setReminder(""); setOpen(true); }} /></div>}>
         <ul className="space-y-3">
           <li className="flex items-center gap-3 border-b border-border/40 pb-3">
             <button type="button" role="checkbox" aria-checked={dailyDone} aria-label="Close a quest gate" disabled

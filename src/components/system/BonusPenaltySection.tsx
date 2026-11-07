@@ -2,9 +2,9 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { Minus, Plus } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
-import { baseDifficultyForDiff, moveItem, resolveDifficulty, triggerBonusPenaltyHabit, uid, type Attr, type BaseDifficulty } from "@/lib/system";
+import { baseDifficultyForDiff, habitStreakFor, moveItem, resolveDifficulty, triggerBonusPenaltyHabit, uid, type Attr, type BaseDifficulty } from "@/lib/system";
 import { playSound } from "@/lib/sound";
-import { AddIconButton, AttrPicker, BaseDifficultyPicker, ItemOptionsMenu, Panel, SysButton, inputCls } from "./ui";
+import { AddIconButton, AttrPicker, BaseDifficultyPicker, ItemOptionsMenu, Panel, StreakBadge, SysButton, inputCls } from "./ui";
 
 export function BonusPenaltySection() {
   const { state, act } = useSystem();
@@ -34,6 +34,10 @@ export function BonusPenaltySection() {
           habit.rewardCount = 0;
           delete habit.lastRewardDate;
           delete habit.lastPracticeDate;
+          delete habit.penaltyDate;
+          delete habit.penaltyCount;
+          habit.streakCount = 0;
+          habit.streakDate = null;
         }
         Object.assign(habit, values);
       }
@@ -65,6 +69,7 @@ export function BonusPenaltySection() {
           <ul className="space-y-3">
             {state.bonusPenaltyHabits.map((habit, index) => {
               const positive = habit.kind === "bonus";
+              const streak = habitStreakFor(habit, state.lastDay);
               return (
                 <li key={habit.id} className="flex items-center gap-2 border-b border-border/40 pb-3">
                   <button aria-label={`Log ${positive ? "good" : "bad"} habit ${habit.name}`} onClick={() => trigger(habit.id)}
@@ -72,7 +77,10 @@ export function BonusPenaltySection() {
                     {positive ? <Plus className="h-5 w-5" /> : <Minus className="h-5 w-5" />}
                   </button>
                   <div className="min-w-0 flex-1 pr-3">
-                    <p className="truncate text-base">{habit.name}</p>
+                    <div className="flex min-w-0 items-center gap-1.5">
+                      <p className="truncate text-base">{habit.name}</p>
+                      <StreakBadge count={streak} label={positive ? `${streak} day good habit streak` : `${streak} clean days without ${habit.name}`} />
+                    </div>
                     {habit.description && <p className="text-xs text-muted-foreground">{habit.description}</p>}
                   </div>
                   <ItemOptionsMenu itemName={habit.name} info={`${habit.description || "No description."}\nType: ${positive ? "Good habit" : "Bad habit"}\nRank: ${habit.diff}\nAttributes: ${habit.attrs.join(", ")}\nLogged: ${habit.count} times`} onEdit={() => edit(habit.id)} canMoveUp={index > 0} canMoveDown={index < state.bonusPenaltyHabits.length - 1}
