@@ -265,11 +265,11 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
       <Panel title="Focus Analysis">
         <div className="grid grid-cols-2 gap-3 text-center font-mono">
           <div>
-            <p className="text-2xl font-bold text-primary">{analysis.todayMinutes}</p>
+            <p className="text-2xl font-bold text-primary">{Math.round(analysis.todayMinutes)}</p>
             <p className="text-[10px] uppercase text-muted-foreground">Min today</p>
           </div>
           <div>
-            <p className="text-2xl font-bold text-primary">{analysis.totalMinutes}</p>
+            <p className="text-2xl font-bold text-primary">{Math.round(analysis.totalMinutes)}</p>
             <p className="text-[10px] uppercase text-muted-foreground">Min total</p>
           </div>
           <div>
