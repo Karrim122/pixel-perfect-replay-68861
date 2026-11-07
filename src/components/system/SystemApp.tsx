@@ -22,7 +22,13 @@ const TABS = [
 type Tab = (typeof TABS)[number]["key"];
 
 function AlertDetails({ body }: { body: string }) {
-  const sentences = body.split(/(?<=[.!?])\s+/).filter(Boolean);
+  const integerBody = body.replace(/([+\-−]?\s*)(\d+)\.(\d+)/g, (_match, sign: string, whole: string, fraction: string) => {
+    const prefix = sign.trim();
+    const value = Number(`${prefix === "−" ? "-" : prefix}${whole}.${fraction}`);
+    const rounded = Math.round(value);
+    return `${prefix === "+" && rounded >= 0 ? "+" : ""}${rounded}`;
+  });
+  const sentences = integerBody.split(/(?<=[.!?])\s+/).filter(Boolean);
   return (
     <div className="mt-4 space-y-2 border border-border/70 bg-background/60 p-4 text-left">
       {sentences.map((sentence, index) => (
