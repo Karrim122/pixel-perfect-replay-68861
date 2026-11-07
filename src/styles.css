@@ -133,8 +133,8 @@
 .system-window-progress span.is-active { background: var(--primary); box-shadow: 0 0 12px color-mix(in oklab, var(--primary) 68%, transparent); }
 .system-window-objective { position: relative; border: 1px solid color-mix(in oklab, var(--primary) 38%, transparent); border-left: 3px solid var(--primary); background: linear-gradient(110deg, color-mix(in oklab, var(--primary) 10%, transparent), color-mix(in oklab, var(--background) 45%, transparent)); padding: 1rem; box-shadow: inset 0 0 25px -20px var(--primary); }
 .system-window-timer { position: relative; isolation: isolate; display: flex; min-height: 10.5rem; align-items: center; justify-content: center; }
-.system-window-timer::before, .system-window-timer::after { position: absolute; z-index: -1; width: 9.5rem; height: 9.5rem; border: 1px solid color-mix(in oklab, var(--primary) 66%, transparent); border-radius: 50%; box-shadow: 0 0 25px color-mix(in oklab, var(--primary) 20%, transparent), inset 0 0 22px color-mix(in oklab, var(--primary) 10%, transparent); content: ""; animation: focus-breathe-ring 4.5s ease-in-out infinite; }
-.system-window-timer::after { animation-delay: -2.25s; }
+.system-window-timer::before, .system-window-timer::after { position: absolute; z-index: -1; width: 9.5rem; height: 9.5rem; border: 1px solid color-mix(in oklab, var(--primary) 66%, transparent); border-radius: 50%; box-shadow: 0 0 25px color-mix(in oklab, var(--primary) 20%, transparent), inset 0 0 22px color-mix(in oklab, var(--primary) 10%, transparent); content: ""; animation: focus-breathe-ring 12s ease-in-out infinite; }
+.system-window-timer::after { animation-delay: -6s; }
 .system-window-timer-focus { min-height: 11rem; }
 .system-window-timer-focus::before, .system-window-timer-focus::after { width: 10rem; height: 10rem; }
 @keyframes focus-breathe-ring { 0%,100% { transform: scale(.76); opacity: .3; } 50% { transform: scale(1.12); opacity: .95; } }

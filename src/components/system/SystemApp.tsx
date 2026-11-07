@@ -96,7 +96,7 @@ function EmergencyOverlay() {
         </div>
         <div className="mt-6 text-left">
           <p className="font-mono text-[10px] font-bold uppercase tracking-[0.32em] text-primary">Emergency quest · {stepIndex + 1} of {FOCUS_REGAIN_STEPS.length}</p>
-          <h2 className="mt-2 text-4xl font-black uppercase leading-none tracking-tight text-foreground sm:text-5xl">Urgent Quest</h2>
+          <h2 className="mt-2 text-4xl font-black uppercase leading-none tracking-tight text-primary sys-glow-text sm:text-5xl">Urgent Quest</h2>
           <p className="mt-2 font-mono text-sm font-bold uppercase tracking-[0.24em] text-primary sys-glow-text">Focus Regain Protocol</p>
         </div>
         <div className="system-window-progress mt-5" aria-label={`Step ${stepIndex + 1} of ${FOCUS_REGAIN_STEPS.length}`}>
@@ -114,7 +114,7 @@ function EmergencyOverlay() {
         <p className="text-center font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-primary">{secondsLeft === 0 ? "Timer complete · confirm objective" : "Breathe slowly · complete the objective"}</p>
         <div className="mt-5 grid grid-cols-2 gap-2">
           <SysButton disabled={secondsLeft > 0} className="rounded-sm" onClick={() => act((s, alerts) => completeFocusRegain(s, alerts))}>Objective complete</SysButton>
-          <SysButton variant="ghost" className="rounded-sm" onClick={() => act((s, alerts) => failFocusRegain(s, alerts))}>Abandon quest</SysButton>
+          <SysButton variant="danger" className="rounded-sm" onClick={() => act((s, alerts) => failFocusRegain(s, alerts))}>Failed</SysButton>
         </div>
         <p className="system-window-warning mt-4"><span>Failure penalty</span><span>-20 HP · half Discipline and Perception practice</span></p>
       </div>
@@ -152,7 +152,7 @@ function FocusBreathOverlay() {
         </div>
         <div className="mt-6 text-center">
           <p className="font-mono text-[10px] font-bold uppercase tracking-[0.32em] text-primary">Focus reset protocol</p>
-          <h2 className="mt-2 text-3xl font-black uppercase tracking-tight text-foreground">Deep Breaths</h2>
+          <h2 className="mt-2 text-3xl font-black uppercase tracking-tight text-primary sys-glow-text">Deep Breaths</h2>
           <p className="mx-auto mt-2 max-w-xs text-sm leading-relaxed text-muted-foreground">Sit comfortably. Breathe in gently, then let each breath out slowly.</p>
         </div>
         <div className="system-window-focus-divider mt-5"><span>Recovery sequence</span></div>
