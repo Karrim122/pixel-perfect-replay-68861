@@ -183,7 +183,7 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
     return (
       <div className="gate-timer-screen">
         <div className="gate-timer-visual">
-        <p className="font-mono text-xs uppercase tracking-[0.4em] text-primary animate-sys-pulse">{timerKind === "rest" ? "Rest Timer" : "Gate Lockdown Active"}</p>
+        <p className="gate-timer-label font-mono text-xs uppercase tracking-[0.4em] text-primary animate-sys-pulse">{timerKind === "rest" ? "Rest Timer" : "Gate Lockdown Active"}</p>
         <div className="relative flex h-64 w-64 items-center justify-center">
           <div className={timerKind === "rest" ? "gate-animation gate-animation-rest" : "gate-animation"} aria-hidden="true">
             <div className="gate-animation-rim gate-animation-rim-outer" />
