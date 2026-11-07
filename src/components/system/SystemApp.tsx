@@ -89,28 +89,34 @@ function EmergencyOverlay() {
 
   return (
     <div className="urgent-quest-overlay fixed inset-0 z-[60] flex items-center justify-center bg-background/85 p-4 text-foreground backdrop-blur-lg" role="alertdialog" aria-modal="true" aria-label="Urgent Quest: Focus Regain">
-      <div className="urgent-quest-panel sys-panel w-full max-w-md p-5 text-center sm:p-6">
-        <div className="mx-auto flex w-fit items-center gap-2 border border-primary/40 bg-primary/5 px-3 py-1.5 text-primary">
-          <Timer className="h-4 w-4" />
-          <span className="font-mono text-[10px] font-bold uppercase tracking-[0.25em]">[ System Quest ] Focus Regain</span>
+      <div className="system-window-panel system-window-urgent w-full max-w-md p-5 sm:p-6">
+        <div className="system-window-topline">
+          <span className="system-window-mark"><Timer className="h-4 w-4" /> SYSTEM WINDOW</span>
+          <span className="system-window-live"><i /> ACTIVE</span>
         </div>
-        <h2 className="mt-4 text-3xl font-black uppercase text-primary sys-glow-text">Urgent Quest</h2>
-        <p className="mt-1 font-mono text-xs font-bold uppercase tracking-[0.3em] text-foreground">Focus Regain Protocol</p>
-        <div className="mx-auto mt-5 flex max-w-xs items-center gap-1.5" aria-label={`Step ${stepIndex + 1} of ${FOCUS_REGAIN_STEPS.length}`}>
-          {FOCUS_REGAIN_STEPS.map((questStep, index) => <span key={questStep.title} className={cn("h-1.5 flex-1 rounded-full", index <= stepIndex ? "bg-primary shadow-[0_0_8px_var(--primary)]" : "bg-muted")} />)}
+        <div className="mt-6 text-left">
+          <p className="font-mono text-[10px] font-bold uppercase tracking-[0.32em] text-primary">Emergency quest · {stepIndex + 1} of {FOCUS_REGAIN_STEPS.length}</p>
+          <h2 className="mt-2 text-4xl font-black uppercase leading-none tracking-tight text-foreground sm:text-5xl">Urgent Quest</h2>
+          <p className="mt-2 font-mono text-sm font-bold uppercase tracking-[0.24em] text-primary sys-glow-text">Focus Regain Protocol</p>
         </div>
-        <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.25em] text-primary">Step {stepIndex + 1} / {FOCUS_REGAIN_STEPS.length}</p>
-        <section className="urgent-quest-task mt-4 border border-primary/25 bg-primary/5 p-4">
-          <h3 className="text-xl font-black uppercase tracking-wider text-foreground">{step.title}</h3>
-          <p className="mt-1 text-sm text-muted-foreground">{step.description}</p>
+        <div className="system-window-progress mt-5" aria-label={`Step ${stepIndex + 1} of ${FOCUS_REGAIN_STEPS.length}`}>
+          {FOCUS_REGAIN_STEPS.map((questStep, index) => <span key={questStep.title} className={cn(index <= stepIndex && "is-active")} />)}
+        </div>
+        <section className="system-window-objective mt-5 text-left">
+          <p className="font-mono text-[9px] font-bold uppercase tracking-[0.28em] text-primary">Current objective // {String(stepIndex + 1).padStart(2, "0")}</p>
+          <h3 className="mt-2 text-2xl font-black uppercase tracking-wide text-foreground">{step.title}</h3>
+          <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{step.description}</p>
         </section>
-        <div role="timer" className="urgent-quest-timer my-6 flex justify-center" aria-label={`Urgent quest timer: ${minutes}:${seconds}`}>
+        <p className="mt-6 text-center font-mono text-[9px] font-bold uppercase tracking-[0.35em] text-muted-foreground">Time remaining</p>
+        <div role="timer" className="system-window-timer my-1" aria-label={`Urgent quest timer: ${minutes}:${seconds}`}>
           <p className="relative z-10 font-mono text-6xl font-bold tabular-nums text-primary sys-glow-text" aria-live="off">{minutes}:{seconds}</p>
         </div>
-        <p className="font-mono text-xs font-bold tracking-wider text-primary">{secondsLeft === 0 ? "Timer complete · mark this step done to continue" : "Take your time and complete this step"}</p>
-        <SysButton disabled={secondsLeft > 0} className="mt-4 w-full rounded-lg" onClick={() => act((s, alerts) => completeFocusRegain(s, alerts))}>Done</SysButton>
-        <SysButton variant="ghost" className="mt-2 w-full rounded-lg" onClick={() => act((s, alerts) => failFocusRegain(s, alerts))}>Failed</SysButton>
-        <p className="mt-3 text-xs text-muted-foreground">If you fail: -20 HP and half of your Discipline and Perception practice.</p>
+        <p className="text-center font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-primary">{secondsLeft === 0 ? "Timer complete · confirm objective" : "Breathe slowly · complete the objective"}</p>
+        <div className="mt-5 grid grid-cols-2 gap-2">
+          <SysButton disabled={secondsLeft > 0} className="rounded-sm" onClick={() => act((s, alerts) => completeFocusRegain(s, alerts))}>Objective complete</SysButton>
+          <SysButton variant="ghost" className="rounded-sm" onClick={() => act((s, alerts) => failFocusRegain(s, alerts))}>Abandon quest</SysButton>
+        </div>
+        <p className="system-window-warning mt-4"><span>Failure penalty</span><span>-20 HP · half Discipline and Perception practice</span></p>
       </div>
     </div>
   );
@@ -139,20 +145,27 @@ function FocusBreathOverlay() {
 
   return (
     <div className="focus-breath-overlay fixed inset-0 z-[60] flex items-center justify-center bg-background/80 p-4 text-foreground backdrop-blur-lg" role="dialog" aria-modal="true" aria-label="Five-minute focus breathing">
-      <div className="focus-breath-panel sys-panel w-full max-w-sm p-5 text-center sm:p-6">
-        <div className="mx-auto flex w-fit items-center gap-2 border border-primary/35 bg-primary/5 px-3 py-1.5 text-primary">
-          <Brain className="h-4 w-4" />
-          <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em]">Focus Reset</span>
+      <div className="system-window-panel system-window-focus w-full max-w-sm p-5 sm:p-6">
+        <div className="system-window-topline">
+          <span className="system-window-mark"><Brain className="h-4 w-4" /> SYSTEM WINDOW</span>
+          <span className="system-window-live"><i /> RECOVERY</span>
         </div>
-        <h2 className="mt-4 text-2xl font-bold text-primary">Deep Breaths</h2>
-        <p className="mt-2 text-sm text-muted-foreground">Sit comfortably and breathe slowly for five minutes.</p>
-        <div role="timer" className="my-6 flex justify-center" aria-label={`Focus breathing timer: ${minutes}:${seconds}`}>
-          <p className="font-mono text-6xl font-bold tabular-nums text-primary sys-glow-text" aria-live="off">{minutes}:{seconds}</p>
+        <div className="mt-6 text-center">
+          <p className="font-mono text-[10px] font-bold uppercase tracking-[0.32em] text-primary">Focus reset protocol</p>
+          <h2 className="mt-2 text-3xl font-black uppercase tracking-tight text-foreground">Deep Breaths</h2>
+          <p className="mx-auto mt-2 max-w-xs text-sm leading-relaxed text-muted-foreground">Sit comfortably. Breathe in gently, then let each breath out slowly.</p>
         </div>
-        <p className="font-mono text-xs text-primary">{secondsLeft === 0 ? "Timer complete · choose Done to receive the reward" : "Breathe in gently, then breathe out slowly"}</p>
-        <SysButton disabled={secondsLeft > 0} className="mt-4 w-full rounded-lg" onClick={() => act((s, alerts) => completeFocusBreaths(s, alerts))}>Done</SysButton>
-        <SysButton variant="ghost" className="mt-2 w-full rounded-lg" onClick={() => act((s) => failFocusBreaths(s))}>Failed</SysButton>
-        <p className="mt-3 text-xs text-muted-foreground">Finish the timer to earn Easy-task XP and Discipline and Perception practice. You can repeat this reset throughout the day.</p>
+        <div className="system-window-focus-divider mt-5"><span>Recovery sequence</span></div>
+        <p className="mt-5 text-center font-mono text-[9px] font-bold uppercase tracking-[0.35em] text-muted-foreground">Time remaining</p>
+        <div role="timer" className="system-window-timer system-window-timer-focus my-1" aria-label={`Focus breathing timer: ${minutes}:${seconds}`}>
+          <p className="relative z-10 font-mono text-6xl font-bold tabular-nums text-primary sys-glow-text" aria-live="off">{minutes}:{seconds}</p>
+        </div>
+        <p className="text-center font-mono text-[10px] font-bold uppercase tracking-[0.1em] text-primary">{secondsLeft === 0 ? "Sequence complete · reward ready" : "Inhale · hold · exhale"}</p>
+        <div className="mt-5 space-y-2">
+          <SysButton disabled={secondsLeft > 0} className="w-full rounded-sm" onClick={() => act((s, alerts) => completeFocusBreaths(s, alerts))}>Complete recovery</SysButton>
+          <SysButton variant="ghost" className="w-full rounded-sm" onClick={() => act((s) => failFocusBreaths(s))}>End session</SysButton>
+        </div>
+        <p className="mt-4 text-center text-xs leading-relaxed text-muted-foreground">Complete the sequence for XP and Discipline and Perception practice. Repeat whenever you need a reset.</p>
       </div>
     </div>
   );

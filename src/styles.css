@@ -117,16 +117,32 @@
 
 @keyframes sys-enter { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes sys-critical { 50% { box-shadow: 0 0 22px -4px var(--destructive); } }
-.urgent-quest-overlay { background-image: radial-gradient(ellipse at center, color-mix(in oklab, var(--primary) 8%, transparent), transparent 70%); }
-.urgent-quest-panel { max-height: calc(100dvh - 2rem); overflow-y: auto; border-radius: 1.25rem; border-color: color-mix(in oklab, var(--primary) 28%, var(--border)); box-shadow: 0 20px 70px -44px color-mix(in oklab, var(--primary) 42%, transparent), inset 0 1px 0 color-mix(in oklab, white 5%, transparent); animation: sys-enter .45s ease-out both; }
-.urgent-quest-task { border-radius: .9rem; background-image: linear-gradient(135deg, color-mix(in oklab, var(--primary) 5%, transparent), transparent 75%); }
-.urgent-quest-timer { position: relative; isolation: isolate; min-height: 8rem; align-items: center; }
-.urgent-quest-timer::before, .urgent-quest-timer::after { content: ""; position: absolute; z-index: -1; width: 8rem; height: 8rem; border: 1px solid color-mix(in oklab, var(--primary) 58%, transparent); border-radius: 50%; box-shadow: 0 0 24px color-mix(in oklab, var(--primary) 15%, transparent), inset 0 0 20px color-mix(in oklab, var(--primary) 8%, transparent); animation: focus-breathe-ring 4s ease-in-out infinite; }
-.urgent-quest-timer::after { animation-delay: -2s; }
-@keyframes focus-breathe-ring { 0%,100% { transform: scale(.78); opacity: .28; } 50% { transform: scale(1.08); opacity: .9; } }
-@media (prefers-reduced-motion: reduce) { .urgent-quest-timer::before, .urgent-quest-timer::after { animation: none; opacity: .55; } }
-.focus-breath-overlay { background-image: radial-gradient(ellipse at center, color-mix(in oklab, var(--primary) 7%, transparent), transparent 70%); }
-.focus-breath-panel { max-height: calc(100dvh - 2rem); overflow-y: auto; border-radius: 1.25rem; border-color: color-mix(in oklab, var(--primary) 24%, var(--border)); box-shadow: 0 20px 70px -48px color-mix(in oklab, var(--primary) 38%, transparent), inset 0 1px 0 color-mix(in oklab, white 5%, transparent); animation: sys-enter .4s ease-out both; }
+.urgent-quest-overlay, .focus-breath-overlay { background-image: radial-gradient(ellipse at center, color-mix(in oklab, var(--primary) 14%, transparent), transparent 68%), linear-gradient(0deg, color-mix(in oklab, var(--background) 90%, transparent), color-mix(in oklab, var(--background) 72%, transparent)); }
+.system-window-panel { position: relative; isolation: isolate; max-height: calc(100dvh - 2rem); overflow-y: auto; border: 1px solid color-mix(in oklab, var(--primary) 70%, white 8%); background: linear-gradient(145deg, color-mix(in oklab, var(--card) 97%, var(--primary) 3%), color-mix(in oklab, var(--background) 96%, black)); box-shadow: 0 0 0 1px color-mix(in oklab, var(--primary) 12%, transparent), 0 22px 90px -28px color-mix(in oklab, var(--primary) 55%, transparent), inset 0 0 35px -22px var(--primary); clip-path: polygon(0 0, calc(100% - 24px) 0, 100% 24px, 100% 100%, 0 100%); animation: sys-enter .4s ease-out both; }
+.system-window-panel::before { position: absolute; z-index: -1; inset: 7px; border: 1px solid color-mix(in oklab, var(--primary) 18%, transparent); content: ""; pointer-events: none; clip-path: polygon(0 0, calc(100% - 22px) 0, 100% 22px, 100% 100%, 0 100%); }
+.system-window-panel::after { position: absolute; top: 0; right: 0; width: 24px; height: 24px; background: var(--primary); clip-path: polygon(0 0, 100% 100%, 100% 0); content: ""; opacity: .85; pointer-events: none; }
+.system-window-urgent { box-shadow: 0 0 0 1px color-mix(in oklab, var(--primary) 14%, transparent), 0 22px 90px -28px color-mix(in oklab, var(--primary) 58%, transparent), inset 0 0 42px -24px var(--primary); }
+.system-window-focus { background: linear-gradient(150deg, color-mix(in oklab, var(--card) 96%, var(--primary) 4%), color-mix(in oklab, var(--background) 98%, var(--primary) 2%)); }
+.system-window-topline { display: flex; align-items: center; justify-content: space-between; gap: .75rem; border-bottom: 1px solid color-mix(in oklab, var(--primary) 28%, transparent); padding: 0 0 .75rem; font-family: var(--font-mono); font-size: .58rem; font-weight: 700; letter-spacing: .16em; color: color-mix(in oklab, var(--primary) 75%, white); }
+.system-window-mark, .system-window-live { display: inline-flex; align-items: center; gap: .45rem; }
+.system-window-mark { text-transform: uppercase; }
+.system-window-live { color: var(--success); }
+.system-window-live i { width: .42rem; height: .42rem; border-radius: 50%; background: currentColor; box-shadow: 0 0 10px currentColor; animation: sys-pulse 1.5s ease-in-out infinite; }
+.system-window-progress { display: flex; gap: .4rem; }
+.system-window-progress span { height: .22rem; flex: 1; background: color-mix(in oklab, var(--primary) 13%, transparent); }
+.system-window-progress span.is-active { background: var(--primary); box-shadow: 0 0 12px color-mix(in oklab, var(--primary) 68%, transparent); }
+.system-window-objective { position: relative; border: 1px solid color-mix(in oklab, var(--primary) 38%, transparent); border-left: 3px solid var(--primary); background: linear-gradient(110deg, color-mix(in oklab, var(--primary) 10%, transparent), color-mix(in oklab, var(--background) 45%, transparent)); padding: 1rem; box-shadow: inset 0 0 25px -20px var(--primary); }
+.system-window-timer { position: relative; isolation: isolate; display: flex; min-height: 10.5rem; align-items: center; justify-content: center; }
+.system-window-timer::before, .system-window-timer::after { position: absolute; z-index: -1; width: 9.5rem; height: 9.5rem; border: 1px solid color-mix(in oklab, var(--primary) 66%, transparent); border-radius: 50%; box-shadow: 0 0 25px color-mix(in oklab, var(--primary) 20%, transparent), inset 0 0 22px color-mix(in oklab, var(--primary) 10%, transparent); content: ""; animation: focus-breathe-ring 4.5s ease-in-out infinite; }
+.system-window-timer::after { animation-delay: -2.25s; }
+.system-window-timer-focus { min-height: 11rem; }
+.system-window-timer-focus::before, .system-window-timer-focus::after { width: 10rem; height: 10rem; }
+@keyframes focus-breathe-ring { 0%,100% { transform: scale(.76); opacity: .3; } 50% { transform: scale(1.12); opacity: .95; } }
+.system-window-warning { display: flex; flex-direction: column; gap: .25rem; border-top: 1px solid color-mix(in oklab, var(--destructive) 35%, transparent); padding-top: .7rem; text-align: left; font-size: .68rem; line-height: 1.4; color: var(--muted-foreground); }
+.system-window-warning span:first-child { font-family: var(--font-mono); font-size: .55rem; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: var(--destructive); }
+.system-window-focus-divider { display: flex; align-items: center; gap: .7rem; color: var(--primary); font-family: var(--font-mono); font-size: .55rem; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; }
+.system-window-focus-divider::before, .system-window-focus-divider::after { height: 1px; flex: 1; background: color-mix(in oklab, var(--primary) 26%, transparent); content: ""; }
+@media (prefers-reduced-motion: reduce) { .system-window-timer::before, .system-window-timer::after { animation: none; opacity: .55; } }
 @keyframes hp-heal-flash { 0%,100% { box-shadow: none; } 28% { box-shadow: 0 0 14px 3px var(--success); } 65% { box-shadow: 0 0 8px 1px var(--success); } }
 @keyframes hp-heal-fill { 0%,100% { filter: brightness(1); } 28% { filter: brightness(1.8); } 65% { filter: brightness(1.3); } }
 .hp-heal-frame { animation: hp-heal-flash 1.1s ease-out; }
