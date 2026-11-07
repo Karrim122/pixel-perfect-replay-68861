@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { AlertTriangle, Brain, Check } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
 import { playSound } from "@/lib/sound";
-import { baseDifficultyForDiff, completeTodo, DIFFS, FOCUS_BREATH_DAILY_LIMIT, moveItem, RANKS, resolveDifficulty, startFocusBreaths, startFocusRegain, today, uid, type Attr, type BaseDifficulty, type TodoReward } from "@/lib/system";
+import { baseDifficultyForDiff, completeTodo, DIFFS, moveItem, RANKS, resolveDifficulty, startFocusBreaths, startFocusRegain, today, uid, type Attr, type BaseDifficulty, type TodoReward } from "@/lib/system";
 import { AddIconButton, AttrPicker, BaseDifficultyPicker, DiffBadge, ItemOptionsMenu, Panel, SkillPicker, SysButton, inputCls } from "./ui";
 import { cn } from "@/lib/utils";
 
@@ -27,8 +27,7 @@ export function TodoTab() {
   const list = state.todos
     .filter((t) => filter === "today" ? !t.due || t.due === state.lastDay : !t.done)
     .sort((a, b) => Number(a.done) - Number(b.done));
-  const focusBreathsUsedToday = state.focusBreathUsesDate === state.lastDay ? state.focusBreathUses : 0;
-  const canStartFocusBreaths = focusBreathsUsedToday < FOCUS_BREATH_DAILY_LIMIT && state.focusBreathDeadline === null && state.focusRegainDeadline === null;
+  const canStartFocusBreaths = state.focusBreathDeadline === null && state.focusRegainDeadline === null;
 
   const startEmergency = () => {
     act((s) => startFocusRegain(s));
@@ -86,7 +85,7 @@ export function TodoTab() {
         <div className="mb-3 flex items-center justify-between">
           <h2 className="font-mono text-xs uppercase tracking-[0.3em] text-primary sys-glow-text">Quests · {list.filter((t) => !t.done).length} active</h2>
           <div className="flex items-center gap-1.5">
-            <SysButton variant="ghost" disabled={!canStartFocusBreaths} className="!min-h-0 !h-8 !w-8 rounded-sm p-0 flex items-center justify-center" title={`Start five-minute focus breathing · ${Math.max(0, FOCUS_BREATH_DAILY_LIMIT - focusBreathsUsedToday)} uses left today`} aria-label="Start five-minute focus breathing" onClick={() => act((s) => startFocusBreaths(s))}>
+            <SysButton variant="ghost" disabled={!canStartFocusBreaths} className="!min-h-0 !h-8 !w-8 rounded-sm p-0 flex items-center justify-center" title="Start five-minute focus breathing" aria-label="Start five-minute focus breathing" onClick={() => act((s) => startFocusBreaths(s))}>
               <Brain className="h-3.5 w-3.5" />
             </SysButton>
             <SysButton variant="danger" className="!min-h-0 !h-8 !w-8 rounded-sm p-0 flex items-center justify-center" title="Start a Focus Regain urgent quest" aria-label="Start Focus Regain urgent quest" onClick={startEmergency}>

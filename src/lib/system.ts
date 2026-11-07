@@ -115,7 +115,6 @@ export const FOCUS_REGAIN_STEPS = [
   { title: "Write Something on Paper", description: "Write anything that comes to mind.", durationSeconds: 300 },
 ] as const;
 export const FOCUS_BREATH_DURATION_SECONDS = 5 * 60;
-export const FOCUS_BREATH_DAILY_LIMIT = 2;
 
 export function moveItem<T extends { id: string }>(items: T[], id: string, targetId: string) {
   const from = items.findIndex((item) => item.id === id);
@@ -284,10 +283,8 @@ export function startFocusRegain(s: GameState) {
 
 export function startFocusBreaths(s: GameState) {
   if (s.focusBreathDeadline !== null || s.focusRegainDeadline !== null) return false;
-  const usesToday = s.focusBreathUsesDate === s.lastDay ? s.focusBreathUses : 0;
-  if (usesToday >= FOCUS_BREATH_DAILY_LIMIT) return false;
   s.focusBreathUsesDate = s.lastDay;
-  s.focusBreathUses = usesToday + 1;
+  s.focusBreathUses += 1;
   s.focusBreathDeadline = Date.now() + FOCUS_BREATH_DURATION_SECONDS * 1000;
   return true;
 }
@@ -506,6 +503,6 @@ export function hydrateState(raw: string): GameState {
   const focusRegainDeadline = storedFocusRegainDeadline !== null && saved.focusRegainStep === undefined
     ? Date.now() + FOCUS_REGAIN_STEPS[0].durationSeconds * 1000
     : storedFocusRegainDeadline;
-  const focusBreathUses = Math.max(0, Math.min(FOCUS_BREATH_DAILY_LIMIT, Math.floor(saved.focusBreathUses ?? 0)));
+  const focusBreathUses = Math.max(0, Math.floor(saved.focusBreathUses ?? 0));
   return { ...base, ...current, todos: (saved.todos ?? []).filter((task) => !task.emergency), focusRegainDeadline, focusRegainStep, focusBreathDeadline: saved.focusBreathDeadline ?? null, focusBreathUsesDate: saved.focusBreathUsesDate ?? null, focusBreathUses, focusAnalysisCorrection: saved.focusAnalysisCorrection ?? base.focusAnalysisCorrection, startingStatsAdjusted: true, stats, statProgress, playerSince, dailyQuests: saved.dailyQuests ?? [], weeklyQuests: weeklyQuests.map((quest) => ({ ...quest, daysOfWeek: Array.isArray(quest.daysOfWeek) ? quest.daysOfWeek.filter((day) => Number.isInteger(day) && day >= 0 && day <= 6) : [], doneDates: Array.isArray(quest.doneDates) ? quest.doneDates : [], rewardedDates: Array.isArray(quest.rewardedDates) ? quest.rewardedDates : Array.isArray(quest.doneDates) ? quest.doneDates : [], masteryLevel: Math.max(1, quest.masteryLevel ?? 1), masteryXp: Math.max(0, quest.masteryXp ?? 0) })), bonusPenaltyHabits, inventoryGifts: saved.inventoryGifts ?? [], dailyGateQuestDoneDate: saved.dailyGateQuestDoneDate ?? null, weeklyQuestRewardDays: saved.weeklyQuestRewardDays ?? (saved.weeklyQuestRewardDay ? [saved.weeklyQuestRewardDay] : []) } as GameState;
 }

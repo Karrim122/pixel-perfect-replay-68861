@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Brain, Timer, CalendarDays, Hexagon, ListChecks, Settings, Swords, User, Volume2, VolumeX } from "lucide-react";
 import { SystemProvider, buzz, useSystem } from "@/lib/store";
-import { completeFocusBreaths, completeFocusRegain, failFocusBreaths, failFocusRegain, FOCUS_BREATH_DAILY_LIMIT, FOCUS_REGAIN_STEPS, isWeeklyQuestScheduled, rankOf } from "@/lib/system";
+import { completeFocusBreaths, completeFocusRegain, failFocusBreaths, failFocusRegain, FOCUS_REGAIN_STEPS, isWeeklyQuestScheduled, rankOf } from "@/lib/system";
 import { StatusTab } from "./StatusTab";
 import { playSound, setSoundEnabled } from "@/lib/sound";
 import { QuestsTab } from "./QuestsTab";
@@ -104,8 +104,8 @@ function EmergencyOverlay() {
           <h3 className="text-xl font-black uppercase tracking-wider text-foreground">{step.title}</h3>
           <p className="mt-1 text-sm text-muted-foreground">{step.description}</p>
         </section>
-        <div role="timer" className="my-6 flex justify-center" aria-label={`Urgent quest timer: ${minutes}:${seconds}`}>
-          <p className="font-mono text-6xl font-bold tabular-nums text-primary sys-glow-text" aria-live="off">{minutes}:{seconds}</p>
+        <div role="timer" className="urgent-quest-timer my-6 flex justify-center" aria-label={`Urgent quest timer: ${minutes}:${seconds}`}>
+          <p className="relative z-10 font-mono text-6xl font-bold tabular-nums text-primary sys-glow-text" aria-live="off">{minutes}:{seconds}</p>
         </div>
         <p className="font-mono text-xs font-bold tracking-wider text-primary">{secondsLeft === 0 ? "Timer complete · mark this step done to continue" : "Take your time and complete this step"}</p>
         <SysButton disabled={secondsLeft > 0} className="mt-4 w-full rounded-lg" onClick={() => act((s, alerts) => completeFocusRegain(s, alerts))}>Done</SysButton>
@@ -136,14 +136,13 @@ function FocusBreathOverlay() {
   if (deadline === null) return null;
   const minutes = String(Math.floor(secondsLeft / 60)).padStart(2, "0");
   const seconds = String(secondsLeft % 60).padStart(2, "0");
-  const usesToday = state.focusBreathUsesDate === state.lastDay ? state.focusBreathUses : 0;
 
   return (
     <div className="focus-breath-overlay fixed inset-0 z-[60] flex items-center justify-center bg-background/80 p-4 text-foreground backdrop-blur-lg" role="dialog" aria-modal="true" aria-label="Five-minute focus breathing">
       <div className="focus-breath-panel sys-panel w-full max-w-sm p-5 text-center sm:p-6">
         <div className="mx-auto flex w-fit items-center gap-2 border border-primary/35 bg-primary/5 px-3 py-1.5 text-primary">
           <Brain className="h-4 w-4" />
-          <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em]">Focus Reset · {usesToday} / {FOCUS_BREATH_DAILY_LIMIT} today</span>
+          <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em]">Focus Reset</span>
         </div>
         <h2 className="mt-4 text-2xl font-bold text-primary">Deep Breaths</h2>
         <p className="mt-2 text-sm text-muted-foreground">Sit comfortably and breathe slowly for five minutes.</p>
@@ -153,7 +152,7 @@ function FocusBreathOverlay() {
         <p className="font-mono text-xs text-primary">{secondsLeft === 0 ? "Timer complete · choose Done to receive the reward" : "Breathe in gently, then breathe out slowly"}</p>
         <SysButton disabled={secondsLeft > 0} className="mt-4 w-full rounded-lg" onClick={() => act((s, alerts) => completeFocusBreaths(s, alerts))}>Done</SysButton>
         <SysButton variant="ghost" className="mt-2 w-full rounded-lg" onClick={() => act((s) => failFocusBreaths(s))}>Failed</SysButton>
-        <p className="mt-3 text-xs text-muted-foreground">Finish the timer to earn Easy-task XP and Discipline and Perception practice. Two attempts per day.</p>
+        <p className="mt-3 text-xs text-muted-foreground">Finish the timer to earn Easy-task XP and Discipline and Perception practice. You can repeat this reset throughout the day.</p>
       </div>
     </div>
   );

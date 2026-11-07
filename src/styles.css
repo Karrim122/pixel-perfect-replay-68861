@@ -120,6 +120,11 @@
 .urgent-quest-overlay { background-image: radial-gradient(ellipse at center, color-mix(in oklab, var(--primary) 8%, transparent), transparent 70%); }
 .urgent-quest-panel { max-height: calc(100dvh - 2rem); overflow-y: auto; border-radius: 1.25rem; border-color: color-mix(in oklab, var(--primary) 28%, var(--border)); box-shadow: 0 20px 70px -44px color-mix(in oklab, var(--primary) 42%, transparent), inset 0 1px 0 color-mix(in oklab, white 5%, transparent); animation: sys-enter .45s ease-out both; }
 .urgent-quest-task { border-radius: .9rem; background-image: linear-gradient(135deg, color-mix(in oklab, var(--primary) 5%, transparent), transparent 75%); }
+.urgent-quest-timer { position: relative; isolation: isolate; min-height: 8rem; align-items: center; }
+.urgent-quest-timer::before, .urgent-quest-timer::after { content: ""; position: absolute; z-index: -1; width: 8rem; height: 8rem; border: 1px solid color-mix(in oklab, var(--primary) 58%, transparent); border-radius: 50%; box-shadow: 0 0 24px color-mix(in oklab, var(--primary) 15%, transparent), inset 0 0 20px color-mix(in oklab, var(--primary) 8%, transparent); animation: focus-breathe-ring 4s ease-in-out infinite; }
+.urgent-quest-timer::after { animation-delay: -2s; }
+@keyframes focus-breathe-ring { 0%,100% { transform: scale(.78); opacity: .28; } 50% { transform: scale(1.08); opacity: .9; } }
+@media (prefers-reduced-motion: reduce) { .urgent-quest-timer::before, .urgent-quest-timer::after { animation: none; opacity: .55; } }
 .focus-breath-overlay { background-image: radial-gradient(ellipse at center, color-mix(in oklab, var(--primary) 7%, transparent), transparent 70%); }
 .focus-breath-panel { max-height: calc(100dvh - 2rem); overflow-y: auto; border-radius: 1.25rem; border-color: color-mix(in oklab, var(--primary) 24%, var(--border)); box-shadow: 0 20px 70px -48px color-mix(in oklab, var(--primary) 38%, transparent), inset 0 1px 0 color-mix(in oklab, white 5%, transparent); animation: sys-enter .4s ease-out both; }
 @keyframes hp-heal-flash { 0%,100% { box-shadow: none; } 28% { box-shadow: 0 0 14px 3px var(--success); } 65% { box-shadow: 0 0 8px 1px var(--success); } }
