@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import { hydrateState, initialState, isLowHp, isWeeklyQuestScheduled, rollover, type Alert, type GameState } from "./system";
+import { failInterruptedGate, hydrateState, initialState, isLowHp, isWeeklyQuestScheduled, rollover, type Alert, type GameState } from "./system";
 import { updateDailyBackup } from "./backup";
 
 const KEY = "sl-system-v1";
@@ -45,7 +45,7 @@ export function SystemProvider({ children }: { children: ReactNode }) {
       if (raw) { stateRef.current = hydrateState(raw); setState(stateRef.current); }
     } catch { /* ignore */ }
     setReady(true);
-    act((s, a) => rollover(s, a));
+    act((s, a) => { failInterruptedGate(s, a); rollover(s, a); });
     const t = setInterval(() => act((s, a) => rollover(s, a)), 30000);
     return () => clearInterval(t);
   }, [act]);

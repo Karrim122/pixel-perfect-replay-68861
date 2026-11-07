@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { buzz, useSystem } from "@/lib/store";
 import { playSound } from "@/lib/sound";
-import { BASE_DIFFICULTIES, baseDifficultyForDiff, changeStats, completeDailyGateQuest, completeTodo, completeWeeklyQuest, GATE_ATTRIBUTE_PRACTICE, isWeeklyQuestScheduled, takeDamage, uid, type Alert, type GameState } from "@/lib/system";
+import { BASE_DIFFICULTIES, baseDifficultyForDiff, changeStats, completeDailyGateQuest, completeTodo, completeWeeklyQuest, GATE_ATTRIBUTE_PRACTICE, GATE_BREAK_DAMAGE, isWeeklyQuestScheduled, takeDamage, uid, type Alert, type GameState } from "@/lib/system";
 import { Panel, SysButton, inputCls } from "./ui";
 
-const BREAK_DMG = 10;
+const BREAK_DMG = GATE_BREAK_DAMAGE;
 
 export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
   const { state, act } = useSystem();
@@ -39,6 +39,7 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
     entryTimeout.current = null; setEntering(false);
     setEndAt(null); setTimerKind(null); setGateActive(false); onLock(false); buzz([100, 50, 100]);
     act((s, a) => {
+      s.activeGate = null;
       s.sessions.unshift({ id: uid(), date: s.lastDay, minutes: totalFocusMinutes, success: false, label: meta.current.label, ...(meta.current.details ? { details: meta.current.details } : {}) });
       s.log.unshift({ id: uid(), ts: Date.now(), text: `Gate Break Failure (${totalFocusMinutes}m focus saved). -${BREAK_DMG} HP`, kind: "warn" });
       a.push({ kind: "penalty", title: "⚠️ [System Alert] Gate Break Failure", body: `${reason} -${BREAK_DMG} HP.` });
@@ -53,6 +54,7 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
     entryTimeout.current = null; setEntering(false);
     setEndAt(null); setTimerKind(null); setGateActive(false); onLock(false); buzz([40, 40, 40]);
     act((s: GameState, a: Alert[]) => {
+      s.activeGate = null;
       const { label, target: assignedTarget, details: gateDetails } = meta.current;
       s.sessions.unshift({ id: uid(), date: s.lastDay, minutes: totalFocusMinutes, success: true, label, ...(gateDetails ? { details: gateDetails } : {}) });
       const levelAtStart = s.level;
@@ -128,6 +130,7 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
   const start = () => {
     const selected = options.find((option) => option.id === target);
     meta.current = { target: selected?.id ?? "", label: selected?.label ?? "Free focus", details: details.trim() };
+    act((s) => { s.activeGate = { startedAt: Date.now(), label: meta.current.label, ...(meta.current.details ? { details: meta.current.details } : {}) }; });
     const initialDuration = selected?.focusMinutes ?? Math.max(10, Number(minutes) || 10);
     setRestLimit(Math.floor(initialDuration / 25)); setRestsUsed(0); setResumeFocusMinutes(null);
     setFocusMinutes(0); setGateActive(true); onLock(true); buzz(60);

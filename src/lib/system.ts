@@ -82,6 +82,7 @@ export type TodoReward = { type: "potion" } | { type: "gift"; name: string; desc
 export interface InventoryGift { id: string; name: string; description?: string | undefined; rank: Diff; sourceTask: string; earnedAt: string; }
 export interface Todo { id: string; name: string; description?: string | undefined; due?: string; time?: string | undefined; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; skillId?: string | undefined; focusMinutes?: number | undefined; done: boolean; notified?: boolean; reward?: TodoReward | undefined; emergency?: boolean; emergencyDeadline?: number; emergencyFailed?: boolean; }
 export interface Session { id: string; date: string; minutes: number; success: boolean; label: string; details?: string; paused?: boolean; }
+export interface ActiveGate { startedAt: number; label: string; details?: string; }
 export interface FocusAnalysisCorrection {
   used: boolean; todayMinutes: number; todayDate: string; totalMinutes: number; closedGates: number; efficiency: number;
 }
@@ -101,6 +102,7 @@ export interface GameState {
   startingStatsAdjusted: boolean;
   lastDay: string; dailyGateQuestDoneDate: string | null; dailyQuestRewardDay: string | null; weeklyQuestRewardDays: string[];
   dailyQuestStreak: number; dailyQuestStreakDate: string | null;
+  activeGate: ActiveGate | null;
   playerName: string; playerSince: string;
 }
 
@@ -130,12 +132,13 @@ export const initialState = (): GameState => ({
   level: 1, xp: 0, hp: 100, maxHp: 100, points: 0, potions: 0,
   stats: { strength: 1, discipline: 1, intelligence: 1, perception: 1, vitality: 1 },
   statProgress: { strength: 0, discipline: 0, intelligence: 0, perception: 0, vitality: 0 },
-  dailyQuests: [], weeklyQuests: [], skills: [], bonusPenaltyHabits: [], todos: [], inventoryGifts: [], sessions: [], log: [], focusRegainDeadline: null, focusRegainStep: 0, focusBreathDeadline: null, focusBreathUsesDate: null, focusBreathUses: 0, focusAnalysisCorrection: { used: false, todayMinutes: 0, todayDate: today(), totalMinutes: 0, closedGates: 0, efficiency: 0 }, startingStatsAdjusted: true, lastDay: today(), dailyGateQuestDoneDate: null, dailyQuestRewardDay: null, weeklyQuestRewardDays: [], dailyQuestStreak: 0, dailyQuestStreakDate: null, playerName: "", playerSince: today(),
+  dailyQuests: [], weeklyQuests: [], skills: [], bonusPenaltyHabits: [], todos: [], inventoryGifts: [], sessions: [], log: [], focusRegainDeadline: null, focusRegainStep: 0, focusBreathDeadline: null, focusBreathUsesDate: null, focusBreathUses: 0, focusAnalysisCorrection: { used: false, todayMinutes: 0, todayDate: today(), totalMinutes: 0, closedGates: 0, efficiency: 0 }, startingStatsAdjusted: true, lastDay: today(), dailyGateQuestDoneDate: null, dailyQuestRewardDay: null, weeklyQuestRewardDays: [], dailyQuestStreak: 0, dailyQuestStreakDate: null, activeGate: null, playerName: "", playerSince: today(),
 });
 
 export type Alert = { kind: "info" | "penalty" | "level" | "awaken" | "exhausted" | "monarch" | "lowHp"; title: string; body: string };
 
 export const isWeeklyQuestScheduled = (quest: WeeklyQuest, date: string) => quest.daysOfWeek.includes(new Date(`${date}T00:00:00`).getDay());
+export const GATE_BREAK_DAMAGE = 10;
 
 function previousDate(date: string) {
   const d = new Date(`${date}T12:00:00`);
@@ -186,6 +189,16 @@ function advanceBadHabitStreaks(s: GameState, fromDate: string, untilDate: strin
       habit.streakDate = date;
     });
   }
+}
+
+export function failInterruptedGate(s: GameState, alerts: Alert[]) {
+  const gate = s.activeGate;
+  if (!gate) return;
+  s.activeGate = null;
+  s.sessions.unshift({ id: uid(), date: s.lastDay, minutes: 0, success: false, label: gate.label, ...(gate.details ? { details: gate.details } : {}) });
+  log(s, `Gate Break Failure (System closed during gate). -${GATE_BREAK_DAMAGE} HP`, "warn");
+  alerts.push({ kind: "penalty", title: "[System Alert] Gate Break Failure", body: `The System was closed while the Gate was active. -${GATE_BREAK_DAMAGE} HP.` });
+  takeDamage(s, GATE_BREAK_DAMAGE, alerts);
 }
 
 function awardDailyPotionIfComplete(s: GameState, alerts: Alert[]) {
@@ -563,5 +576,5 @@ export function hydrateState(raw: string): GameState {
     ? Date.now() + FOCUS_REGAIN_STEPS[0].durationSeconds * 1000
     : storedFocusRegainDeadline;
   const focusBreathUses = Math.max(0, Math.floor(saved.focusBreathUses ?? 0));
-  return { ...base, ...current, todos: (saved.todos ?? []).filter((task) => !task.emergency), focusRegainDeadline, focusRegainStep, focusBreathDeadline: saved.focusBreathDeadline ?? null, focusBreathUsesDate: saved.focusBreathUsesDate ?? null, focusBreathUses, focusAnalysisCorrection: saved.focusAnalysisCorrection ?? base.focusAnalysisCorrection, startingStatsAdjusted: true, stats, statProgress, playerSince, dailyQuests: saved.dailyQuests ?? [], weeklyQuests: weeklyQuests.map((quest) => ({ ...quest, daysOfWeek: Array.isArray(quest.daysOfWeek) ? quest.daysOfWeek.filter((day) => Number.isInteger(day) && day >= 0 && day <= 6) : [], doneDates: Array.isArray(quest.doneDates) ? quest.doneDates : [], rewardedDates: Array.isArray(quest.rewardedDates) ? quest.rewardedDates : Array.isArray(quest.doneDates) ? quest.doneDates : [], masteryLevel: Math.max(1, quest.masteryLevel ?? 1), masteryXp: Math.max(0, quest.masteryXp ?? 0) })), bonusPenaltyHabits, inventoryGifts: saved.inventoryGifts ?? [], dailyGateQuestDoneDate: saved.dailyGateQuestDoneDate ?? null, dailyQuestRewardDay: saved.dailyQuestRewardDay ?? null, dailyQuestStreak: Math.max(0, Math.floor(saved.dailyQuestStreak ?? 0)), dailyQuestStreakDate: saved.dailyQuestStreakDate ?? null, weeklyQuestRewardDays: saved.weeklyQuestRewardDays ?? (saved.weeklyQuestRewardDay ? [saved.weeklyQuestRewardDay] : []) } as GameState;
+  return { ...base, ...current, todos: (saved.todos ?? []).filter((task) => !task.emergency), focusRegainDeadline, focusRegainStep, focusBreathDeadline: saved.focusBreathDeadline ?? null, focusBreathUsesDate: saved.focusBreathUsesDate ?? null, focusBreathUses, focusAnalysisCorrection: saved.focusAnalysisCorrection ?? base.focusAnalysisCorrection, startingStatsAdjusted: true, stats, statProgress, playerSince, dailyQuests: saved.dailyQuests ?? [], weeklyQuests: weeklyQuests.map((quest) => ({ ...quest, daysOfWeek: Array.isArray(quest.daysOfWeek) ? quest.daysOfWeek.filter((day) => Number.isInteger(day) && day >= 0 && day <= 6) : [], doneDates: Array.isArray(quest.doneDates) ? quest.doneDates : [], rewardedDates: Array.isArray(quest.rewardedDates) ? quest.rewardedDates : Array.isArray(quest.doneDates) ? quest.doneDates : [], masteryLevel: Math.max(1, quest.masteryLevel ?? 1), masteryXp: Math.max(0, quest.masteryXp ?? 0) })), bonusPenaltyHabits, inventoryGifts: saved.inventoryGifts ?? [], dailyGateQuestDoneDate: saved.dailyGateQuestDoneDate ?? null, dailyQuestRewardDay: saved.dailyQuestRewardDay ?? null, dailyQuestStreak: Math.max(0, Math.floor(saved.dailyQuestStreak ?? 0)), dailyQuestStreakDate: saved.dailyQuestStreakDate ?? null, activeGate: saved.activeGate ?? null, weeklyQuestRewardDays: saved.weeklyQuestRewardDays ?? (saved.weeklyQuestRewardDay ? [saved.weeklyQuestRewardDay] : []) } as GameState;
 }
