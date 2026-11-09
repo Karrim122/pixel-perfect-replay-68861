@@ -33,9 +33,9 @@ export function QuestsTab() {
     act((s) => {
       const diff = resolveDifficulty(baseDifficulty, s.level);
       const quest = editingId ? s.dailyQuests.find((item) => item.id === editingId) : undefined;
-      const values = { name: name.trim(), diff, baseDifficulty, attrs, reminder: reminder || undefined };
+      const values = { name: name.trim(), description: description.trim() || undefined, diff, baseDifficulty, attrs, reminder: reminder || undefined };
       const weeklyQuest = editingWeeklyId ? s.weeklyQuests.find((item) => item.id === editingWeeklyId) : undefined;
-      if (weeklyQuest) Object.assign(weeklyQuest, { ...values, description: description.trim() || undefined });
+      if (weeklyQuest) Object.assign(weeklyQuest, values);
       else if (quest) Object.assign(quest, values);
       else s.dailyQuests.push({ id: uid(), ...values, doneDate: null });
     });
@@ -46,7 +46,7 @@ export function QuestsTab() {
   const edit = (id: string) => {
     const quest = state.dailyQuests.find((item) => item.id === id);
     if (!quest) return;
-    setEditingWeeklyId(null); setEditingId(id); setName(quest.name);
+    setEditingWeeklyId(null); setEditingId(id); setName(quest.name); setDescription(quest.description ?? "");
     setBaseDifficulty(quest.baseDifficulty ?? baseDifficultyForDiff(quest.diff, state.level));
     setAttrs(quest.attrs); setReminder(quest.reminder ?? ""); setOpen(true);
   };
@@ -141,7 +141,7 @@ export function QuestsTab() {
             className="sys-panel mx-auto max-h-[90dvh] w-full max-w-sm space-y-2 overflow-y-auto p-4 animate-in slide-in-from-bottom">
             <h3 className="font-mono text-xs uppercase tracking-[0.3em] text-primary">{editingWeeklyId ? "Edit Weekly Quest" : editingId ? "Edit Daily Quest" : "New Daily Quest"}</h3>
             <input autoFocus required className={inputCls} placeholder="Quest name" value={name} onChange={(event) => setName(event.target.value)} />
-            {editingWeeklyId && <textarea className={`${inputCls} min-h-20 py-2`} placeholder="Description (optional)" value={description} onChange={(event) => setDescription(event.target.value)} />}
+            <textarea className={`${inputCls} min-h-20 py-2`} placeholder="Description (optional)" value={description} onChange={(event) => setDescription(event.target.value)} />
             <BaseDifficultyPicker value={baseDifficulty} onChange={setBaseDifficulty} playerLevel={state.level} />
             <AttrPicker value={attrs} onChange={setAttrs} />
             <label className="block font-mono text-xs text-muted-foreground">Reminder (optional)<input type="time" className={inputCls} value={reminder} onChange={(event) => setReminder(event.target.value)} /></label>
