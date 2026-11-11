@@ -14,6 +14,8 @@ export const penaltyHabitDamage = (diff: Diff, occurrence: number) => Math.max(1
 export const ATTRIBUTE_PRACTICE_THRESHOLD = 100;
 export const ATTRIBUTE_GAIN_THRESHOLD = 100;
 export const GATE_ATTRIBUTE_PRACTICE = 2;
+export const FOCUS_REWARD_INTERVAL_MINUTES = 120;
+export const FOCUS_REWARD_PRACTICE = 5;
 export type BaseDifficulty = "Very Easy" | "Easy" | "Medium" | "Hard" | "Very Hard";
 export const BASE_DIFFICULTIES: BaseDifficulty[] = ["Very Easy", "Easy", "Medium", "Hard", "Very Hard"];
 export const ATTRIBUTE_PRACTICE: Record<BaseDifficulty, number> = { "Very Easy": 6, Easy: 8, Medium: 12, Hard: 18, "Very Hard": 24 };

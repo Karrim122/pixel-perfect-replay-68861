@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { buzz, useSystem } from "@/lib/store";
 import { playSound } from "@/lib/sound";
-import { BASE_DIFFICULTIES, baseDifficultyForDiff, changeStats, completeDailyGateQuest, completeTodo, completeWeeklyQuest, GATE_ATTRIBUTE_PRACTICE, GATE_BREAK_DAMAGE, isWeeklyQuestScheduled, takeDamage, uid, type Alert, type GameState } from "@/lib/system";
+import { BASE_DIFFICULTIES, baseDifficultyForDiff, changeStats, completeDailyGateQuest, completeTodo, completeWeeklyQuest, FOCUS_REWARD_INTERVAL_MINUTES, FOCUS_REWARD_PRACTICE, GATE_ATTRIBUTE_PRACTICE, GATE_BREAK_DAMAGE, isWeeklyQuestScheduled, takeDamage, uid, type Alert, type GameState } from "@/lib/system";
 import { Panel, SysButton, inputCls } from "./ui";
 
 const BREAK_DMG = GATE_BREAK_DAMAGE;
@@ -56,9 +56,14 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
     act((s: GameState, a: Alert[]) => {
       s.activeGate = null;
       const { label, target: assignedTarget, details: gateDetails } = meta.current;
+      const completedFocusBefore = s.sessions.reduce((total, session) => total + (session.success && !session.paused ? session.minutes : 0), 0);
+      const previousMilestones = Math.floor(completedFocusBefore / FOCUS_REWARD_INTERVAL_MINUTES);
+      const newMilestones = Math.floor((completedFocusBefore + totalFocusMinutes) / FOCUS_REWARD_INTERVAL_MINUTES) - previousMilestones;
+      const focusBonus = newMilestones * FOCUS_REWARD_PRACTICE;
+      const totalAttributePractice = GATE_ATTRIBUTE_PRACTICE + focusBonus;
       s.sessions.unshift({ id: uid(), date: s.lastDay, minutes: totalFocusMinutes, success: true, label, ...(gateDetails ? { details: gateDetails } : {}) });
       const levelAtStart = s.level;
-      changeStats(s, ["discipline", "perception"], GATE_ATTRIBUTE_PRACTICE);
+      changeStats(s, ["discipline", "perception"], totalAttributePractice);
       if (assignedTarget.startsWith("t:")) {
         const task = s.todos.find((item) => item.id === assignedTarget.slice(2));
         const taskDifficulty = task?.baseDifficulty ?? (task ? baseDifficultyForDiff(task.diff, levelAtStart) : undefined);
@@ -69,8 +74,9 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
       if (assignedTarget.startsWith("w:")) {
         if (completeWeeklyQuest(s, assignedTarget.slice(2), a)) completeDailyGateQuest(s, a);
       }
-      s.log.unshift({ id: uid(), ts: Date.now(), text: `Gate closed (${totalFocusMinutes}m focus). +${GATE_ATTRIBUTE_PRACTICE}% Discipline and Perception practice.`, kind: "level" });
-      a.push({ kind: "info", title: "[SYSTEM] Gate Closed", body: `Gate closed after ${totalFocusMinutes} focus minutes. +${GATE_ATTRIBUTE_PRACTICE}% Discipline and Perception practice. Completed: ${label}.` });
+      const bonusMessage = focusBonus ? ` This includes +${focusBonus}% bonus practice for ${newMilestones} completed two-hour focus milestone${newMilestones === 1 ? "" : "s"}.` : "";
+      s.log.unshift({ id: uid(), ts: Date.now(), text: `Gate closed (${totalFocusMinutes}m focus). +${totalAttributePractice}% Discipline and Perception practice.`, kind: "level" });
+      a.push({ kind: "info", title: "[SYSTEM] Gate Closed", body: `Gate closed after ${totalFocusMinutes} focus minutes. +${totalAttributePractice}% Discipline and Perception practice.${bonusMessage} Completed: ${label}.` });
     });
   };
 
@@ -146,6 +152,8 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
   const today = state.sessions.filter((s) => s.date === state.lastDay);
   const total = state.sessions.reduce((n, s) => n + s.minutes, 0);
   const completedSessions = state.sessions.filter((s) => s.success && !s.paused);
+  const completedFocusMinutes = completedSessions.reduce((sum, session) => sum + session.minutes, 0);
+  const minutesToFocusBonus = FOCUS_REWARD_INTERVAL_MINUTES - (completedFocusMinutes % FOCUS_REWARD_INTERVAL_MINUTES);
   const measurableSessions = state.sessions.filter((s) => !s.paused);
   const ok = completedSessions.length;
   const eff = measurableSessions.length ? Math.round((ok / measurableSessions.length) * 100) : 0;
@@ -281,6 +289,7 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
             <p className="text-[10px] uppercase text-muted-foreground">Efficiency</p>
           </div>
         </div>
+        <p className="mt-3 border-t border-border/50 pt-3 text-center font-mono text-[10px] text-muted-foreground">Every {FOCUS_REWARD_INTERVAL_MINUTES} completed focus minutes: +{FOCUS_REWARD_PRACTICE}% Discipline and Perception practice. {Math.ceil(minutesToFocusBonus)} min to next bonus.</p>
       </Panel>
     </div>
   );
