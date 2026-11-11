@@ -171,47 +171,6 @@
   box-shadow: 0 0 10px var(--hp);
 }
 
-.system-status-bar {
-  position: relative;
-  height: 13px;
-  width: 100%;
-  overflow: hidden;
-  border: 2px solid var(--primary);
-  border: 2px solid color-mix(in oklab, var(--primary) 70%, white 30%);
-  border-radius: 999px;
-  background: var(--background);
-  background: color-mix(in oklab, var(--background) 94%, var(--primary) 6%);
-}
-.system-status-bar-track {
-  position: relative;
-  height: 100%;
-  margin: 0 2px;
-  overflow: hidden;
-  border-radius: inherit;
-  background: color-mix(in oklab, var(--secondary) 65%, var(--background));
-}
-.system-status-bar-fill {
-  background: var(--primary);
-  background: linear-gradient(180deg, color-mix(in oklab, white 55%, var(--primary)), var(--primary) 45%, var(--glow));
-  box-shadow: 0 0 7px var(--primary), inset 0 0 3px color-mix(in oklab, white 50%, var(--primary));
-  position: relative;
-  height: 100%;
-  min-width: 0;
-  border-radius: inherit;
-}
-.system-status-bar-fill::after {
-  position: absolute;
-  top: 1px;
-  right: 4px;
-  left: 4px;
-  height: 1px;
-  background: color-mix(in oklab, white 82%, var(--primary));
-  content: "";
-  opacity: .8;
-}
-.system-status-bar-xp { box-shadow: 0 0 9px color-mix(in oklab, var(--primary) 38%, transparent), inset 0 0 5px color-mix(in oklab, var(--primary) 24%, transparent); }
-.system-status-bar-hp { border-color: color-mix(in oklab, var(--primary) 72%, white 28%); box-shadow: 0 0 9px color-mix(in oklab, var(--primary) 38%, transparent), inset 0 0 5px color-mix(in oklab, var(--primary) 24%, transparent); }
-
 @keyframes sys-pulse { 0%,100% { opacity: 1 } 50% { opacity: .55 } }
 @keyframes sys-shatter { 0% { transform: scale(.6); opacity: 0; filter: blur(8px) } 60% { transform: scale(1.08); opacity: 1 } 100% { transform: scale(1); filter: blur(0) } }
 @keyframes sys-shake { 0%,100% { transform: translateX(0) } 25% { transform: translateX(-6px) } 75% { transform: translateX(6px) } }
