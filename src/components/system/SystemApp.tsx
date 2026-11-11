@@ -171,7 +171,7 @@ function FocusBreathOverlay() {
           <SysButton disabled={secondsLeft > 0} className="w-full rounded-sm" onClick={() => act((s, alerts) => completeFocusBreaths(s, alerts))}>Complete recovery</SysButton>
           <SysButton variant="ghost" className="w-full rounded-sm" onClick={() => act((s) => failFocusBreaths(s))}>End session</SysButton>
         </div>
-        <p className="mt-4 text-center text-xs leading-relaxed text-muted-foreground">Complete the sequence for XP and Discipline and Perception practice. Repeat whenever you need a reset.</p>
+        <p className="mt-4 text-center text-xs leading-relaxed text-muted-foreground">Complete the sequence for XP and Perception practice. Repeat whenever you need a reset.</p>
       </div>
     </div>
   );

@@ -364,9 +364,9 @@ export function completeFocusBreaths(s: GameState, alerts: Alert[]) {
   const earnedXp = DIFF_XP[resolveDifficulty("Easy", s.level)];
   const progress = attributeProgressForXp(earnedXp, s.level);
   gainXp(s, earnedXp, alerts);
-  changeStats(s, ["discipline", "perception"], progress);
-  log(s, `Deep breathing complete (+${earnedXp} XP, +${progress}% Discipline and Perception practice)`, "level");
-  alerts.push({ kind: "info", title: "[SYSTEM] Focus Restored", body: `Five minutes of deep breathing complete. +${earnedXp} XP and +${progress}% Discipline and Perception practice.` });
+  changeStats(s, ["perception"], progress);
+  log(s, `Deep breathing complete (+${earnedXp} XP, +${progress}% Perception practice)`, "level");
+  alerts.push({ kind: "info", title: "[SYSTEM] Focus Restored", body: `Five minutes of deep breathing complete. +${earnedXp} XP and +${progress}% Perception practice.` });
 }
 
 export function failFocusBreaths(s: GameState) {
