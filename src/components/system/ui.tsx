@@ -31,8 +31,10 @@ export function StreakBadge({ count, label, completedToday = true, color = "prim
 export function Bar({ value, max, hp, heal }: { value: number; max: number; hp?: boolean; heal?: boolean }) {
   const percent = Math.min(100, Math.max(0, (value / max) * 100));
   return (
-    <div className={cn("system-status-bar", hp ? "system-status-bar-hp" : "system-status-bar-xp", heal && "hp-heal-frame")} role="progressbar" aria-valuenow={Math.round(percent)} aria-valuemin={0} aria-valuemax={100}>
-      <div className={cn("system-status-bar-fill transition-all duration-700", hp ? "sys-bar-hp" : "sys-bar", hp && heal && "hp-heal-fill")} style={{ width: `${percent}%` }} />
+    <div className={cn("system-status-bar", hp ? "system-status-bar-hp" : "system-status-bar-xp", heal && "hp-heal-frame")} role="progressbar" aria-label={hp ? "HP" : "XP"} aria-valuenow={Math.round(percent)} aria-valuemin={0} aria-valuemax={100}>
+      <div className="system-status-bar-track">
+        <div className={cn("system-status-bar-fill transition-all duration-700", hp && heal && "hp-heal-fill")} style={{ width: `${percent}%` }} />
+      </div>
     </div>
   );
 }
