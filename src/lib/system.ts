@@ -117,6 +117,7 @@ export const FOCUS_REGAIN_STEPS = [
   { title: "Deep Breaths", description: "Take slow, steady breaths.", durationSeconds: 120 },
   { title: "Write Something on Paper", description: "Write anything that comes to mind.", durationSeconds: 300 },
 ] as const;
+export const FOCUS_REGAIN_FAILURE_HP = 40;
 export const FOCUS_BREATH_DURATION_SECONDS = 5 * 60;
 
 export function moveItem<T extends { id: string }>(items: T[], id: string, targetId: string) {
@@ -397,12 +398,12 @@ export function failFocusRegain(s: GameState, alerts: Alert[]) {
   if (s.focusRegainDeadline === null) return;
   s.focusRegainDeadline = null;
   s.focusRegainStep = 0;
-  const damage = 20;
+  const damage = FOCUS_REGAIN_FAILURE_HP;
   (["discipline", "perception"] as const).forEach((attr) => {
-    s.statProgress[attr] = Math.round(s.statProgress[attr] * 0.5 * 10) / 10;
+    s.statProgress[attr] = Math.min(0, s.statProgress[attr]);
   });
-  log(s, `Focus Regain failed. -${damage} HP and 50% of Discipline and Perception practice progress.`, "warn");
-  alerts.push({ kind: "penalty", title: "[SYSTEM] Focus Regain Failed", body: `Focus was not regained. -${damage} HP and 50% of Discipline and Perception practice progress was lost.` });
+  log(s, `Focus Regain failed. -${damage} HP and all positive Discipline and Perception practice progress.`, "warn");
+  alerts.push({ kind: "penalty", title: "[SYSTEM] Focus Regain Failed", body: `Focus was not regained. -${damage} HP and all positive Discipline and Perception practice progress was lost.` });
   takeDamage(s, damage, alerts);
 }
 

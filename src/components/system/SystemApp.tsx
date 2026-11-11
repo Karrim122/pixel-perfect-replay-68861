@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Brain, Timer, CalendarDays, Hexagon, ListChecks, Settings, Swords, User, Volume2, VolumeX } from "lucide-react";
 import { SystemProvider, buzz, useSystem } from "@/lib/store";
-import { completeFocusBreaths, completeFocusRegain, failFocusBreaths, failFocusRegain, FOCUS_REGAIN_STEPS, isWeeklyQuestScheduled, rankOf } from "@/lib/system";
+import { completeFocusBreaths, completeFocusRegain, failFocusBreaths, failFocusRegain, FOCUS_REGAIN_FAILURE_HP, FOCUS_REGAIN_STEPS, isWeeklyQuestScheduled, rankOf } from "@/lib/system";
 import { StatusTab } from "./StatusTab";
 import { playSound, setSoundEnabled } from "@/lib/sound";
 import { QuestsTab } from "./QuestsTab";
@@ -122,7 +122,7 @@ function EmergencyOverlay() {
           <SysButton disabled={secondsLeft > 0} className="rounded-sm" onClick={() => act((s, alerts) => completeFocusRegain(s, alerts))}>Objective complete</SysButton>
           <SysButton variant="danger" className="rounded-sm" onClick={() => act((s, alerts) => failFocusRegain(s, alerts))}>Failed</SysButton>
         </div>
-        <p className="system-window-warning mt-4"><span>Failure penalty</span><span>-20 HP · half Discipline and Perception practice</span></p>
+        <p className="system-window-warning mt-4"><span>Failure penalty</span><span>-{FOCUS_REGAIN_FAILURE_HP} HP · all Discipline and Perception practice</span></p>
       </div>
     </div>
   );
