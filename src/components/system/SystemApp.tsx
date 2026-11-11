@@ -190,7 +190,9 @@ function Shell() {
     state.weeklyQuests.filter((quest) => isWeeklyQuestScheduled(quest, state.lastDay) && !quest.doneDates.includes(state.lastDay)).length;
   const remainingTodoTasks = state.todos.filter((task) => !task.done && task.due === state.lastDay).length;
 
-  useEffect(() => { document.documentElement.dataset["tier"] = rank.tier; }, [rank.tier]);
+  useEffect(() => {
+    document.documentElement.dataset["tier"] = state.level >= 100 ? "shadow-monarch" : rank.tier;
+  }, [rank.tier, state.level]);
 
   return (
     <div className="mx-auto flex min-h-screen max-w-md flex-col">

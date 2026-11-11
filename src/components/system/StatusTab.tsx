@@ -6,12 +6,12 @@ import { FlaskConical, Gift, Package, X } from "lucide-react";
 import { AddIconButton, AttributeIcon, Bar, DiffBadge, ItemOptionsMenu, Panel, SysButton } from "./ui";
 import { cn } from "@/lib/utils";
 
-const ATTRIBUTE_TITLES: Record<(typeof ATTRS)[number]["key"], string> = {
-  strength: "The Iron Vanguard",
-  discipline: "The Unbroken",
-  intelligence: "The Tactician",
-  perception: "The Keen Observer",
-  vitality: "The Everlasting",
+const ATTRIBUTE_TITLES: Record<(typeof ATTRS)[number]["key"], readonly string[]> = {
+  strength: ["The Iron Vanguard", "The Steel Vanguard", "The Battleforged", "The Warborn", "The Colossus", "The Titan", "The Cataclysm", "The Worldbreaker"],
+  discipline: ["The Unbroken", "The Resolute", "The Iron Will", "The Unyielding", "The Unshakable", "The Indomitable", "The Absolute", "The Sovereign Will"],
+  intelligence: ["The Tactician", "The Strategist", "The Mastermind", "The Grand Tactician", "The Arch Strategist", "The Oracle", "The Omniscient", "The World Architect"],
+  perception: ["The Keen Observer", "The True Sight", "The Seer", "The Farseeing", "The All-Seeing", "The Awakened Eye", "The Omnivisionary", "The Worldseer"],
+  vitality: ["The Everlasting", "The Tireless", "The Unfading", "The Deathless", "The Eternal", "The Undying", "The Immortal", "The Eternal Monarch"],
 };
 
 export function StatusTab() {
@@ -63,7 +63,7 @@ export function StatusTab() {
         <div className="mb-4 border-b border-border pb-3">
           <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Player</p>
           <p className="text-2xl font-bold uppercase tracking-wider text-foreground">{state.playerName || "Player"}</p>
-          <p className="mt-0.5 font-mono text-xs uppercase tracking-[0.2em] text-primary">{ATTRIBUTE_TITLES[highestAttribute.key]}</p>
+          <p className="mt-0.5 font-mono text-xs uppercase tracking-[0.2em] text-primary">{ATTRIBUTE_TITLES[highestAttribute.key][ri]}</p>
           <p className="mt-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Player Since · {new Date(`${state.playerSince}T00:00:00`).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })}</p>
         </div>
         <div className="flex items-end justify-between">

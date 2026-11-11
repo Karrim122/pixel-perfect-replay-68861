@@ -81,7 +81,7 @@ export function BonusPenaltySection() {
                     {habit.description && <p className="text-xs text-muted-foreground">{habit.description}</p>}
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
-                    <StreakBadge count={streak} label={positive ? `${streak} day good habit streak` : `${streak} clean days without ${habit.name}`} />
+                    <StreakBadge count={streak} completedToday={positive ? habit.streakDate === state.lastDay : habit.penaltyDate !== state.lastDay} color={positive ? "success" : "primary"} label={positive ? `${streak} day good habit streak` : `${streak} clean days without ${habit.name}`} />
                     <ItemOptionsMenu itemName={habit.name} info={`${habit.description || "No description."}\nType: ${positive ? "Good habit" : "Bad habit"}\nRank: ${habit.diff}\nAttributes: ${habit.attrs.join(", ")}\nLogged: ${habit.count} times`} onEdit={() => edit(habit.id)} canMoveUp={index > 0} canMoveDown={index < state.bonusPenaltyHabits.length - 1}
                       onMoveUp={() => act((s) => moveItem(s.bonusPenaltyHabits, habit.id, state.bonusPenaltyHabits[index - 1]!.id))}
                       onMoveDown={() => act((s) => moveItem(s.bonusPenaltyHabits, habit.id, state.bonusPenaltyHabits[index + 1]!.id))}

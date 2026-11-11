@@ -72,6 +72,18 @@
   --background: oklch(0.1 0.01 60);
   --card: oklch(0.15 0.015 60);
 }
+[data-tier="shadow-monarch"] {
+  --primary: oklch(0.78 0.2 300);
+  --glow: oklch(0.58 0.25 285);
+  --primary-foreground: oklch(0.12 0.025 285);
+  --accent: oklch(0.25 0.08 295);
+  --background: oklch(0.1 0.025 285);
+  --card: oklch(0.15 0.035 290);
+  --popover: oklch(0.15 0.035 290);
+  --hp: oklch(0.68 0.22 300);
+  --success: oklch(0.78 0.18 300);
+  --destructive: oklch(0.62 0.24 325);
+}
 
 @layer base {
   * { border-color: var(--color-border); }
@@ -107,6 +119,26 @@
   background: linear-gradient(90deg, var(--destructive), var(--hp));
   box-shadow: 0 0 10px var(--hp);
 }
+
+.system-status-bar {
+  position: relative;
+  height: 12px;
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid color-mix(in oklab, var(--primary) 55%, transparent);
+  background: color-mix(in oklab, var(--secondary) 85%, black);
+  clip-path: polygon(0 0, calc(100% - 9px) 0, 100% 50%, calc(100% - 9px) 100%, 0 100%, 7px 50%);
+}
+.system-status-bar-fill {
+  position: relative;
+  height: 100%;
+  min-width: 0;
+  clip-path: polygon(0 0, calc(100% - 7px) 0, 100% 50%, calc(100% - 7px) 100%, 0 100%, 5px 50%);
+}
+.system-status-bar-xp { box-shadow: 0 0 9px color-mix(in oklab, var(--primary) 35%, transparent), inset 0 0 5px color-mix(in oklab, var(--primary) 24%, transparent); }
+.system-status-bar-hp { border-color: color-mix(in oklab, var(--hp) 70%, transparent); box-shadow: 0 0 9px color-mix(in oklab, var(--hp) 38%, transparent), inset 0 0 5px color-mix(in oklab, var(--hp) 24%, transparent); }
+.system-status-bar-xp::after,
+.system-status-bar-hp::after { position: absolute; inset: 0; background: repeating-linear-gradient(90deg, transparent 0, transparent calc(10% - 1px), color-mix(in oklab, var(--background) 80%, transparent) calc(10% - 1px), color-mix(in oklab, var(--background) 80%, transparent) 10%); content: ""; pointer-events: none; }
 
 @keyframes sys-pulse { 0%,100% { opacity: 1 } 50% { opacity: .55 } }
 @keyframes sys-shatter { 0% { transform: scale(.6); opacity: 0; filter: blur(8px) } 60% { transform: scale(1.08); opacity: 1 } 100% { transform: scale(1); filter: blur(0) } }
@@ -200,6 +232,7 @@
 .status-rank-5 { color: #fb7185; text-shadow: 0 0 9px #f43f5e, 0 0 24px #be123c; animation: rank-glow-pulse 2s ease-in-out infinite; }
 .status-rank-6 { color: #fef08a; text-shadow: 0 0 8px #facc15, 0 0 20px #f97316, 0 0 32px #ea580c; animation: rank-glow-pulse 1.6s ease-in-out infinite; }
 .status-rank-7 { color: #e9d5ff; background: linear-gradient(100deg, #c084fc, #f0abfc 45%, #a78bfa 70%, #c084fc); background-size: 220% auto; background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: none; filter: drop-shadow(0 0 7px #a855f7) drop-shadow(0 0 17px #7e22ce); animation: monarch-shimmer 3s linear infinite; }
+[data-tier="shadow-monarch"] .status-rank-6 { color: #e9d5ff; text-shadow: 0 0 8px #c084fc, 0 0 20px #7e22ce, 0 0 30px #581c87; animation: rank-glow-pulse 1.6s ease-in-out infinite; }
 @keyframes monarch-shimmer { to { background-position: 220% center; } }
 @keyframes rank-glow-pulse { 0%,100% { filter: brightness(1); } 50% { filter: brightness(1.45); } }
 .sys-view-enter { animation: sys-enter .3s ease-out both; }

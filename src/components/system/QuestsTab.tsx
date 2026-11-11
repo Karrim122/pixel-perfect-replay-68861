@@ -69,7 +69,7 @@ export function QuestsTab() {
 
   return (
     <div className="space-y-4">
-      <Panel title="Daily" actions={<div className="flex items-center gap-2"><StreakBadge count={dailyStreak} label={`${dailyStreak} day streak completing the gate and every Daily quest`} /><AddIconButton label="Add daily quest" onClick={() => { setEditingId(null); setEditingWeeklyId(null); setName(""); setDescription(""); setBaseDifficulty("Easy"); setAttrs(["discipline"]); setReminder(""); setOpen(true); }} /></div>}>
+      <Panel title="Daily" actions={<div className="flex items-center gap-2"><StreakBadge count={dailyStreak} completedToday={state.dailyQuestStreakDate === state.lastDay} label={`${dailyStreak} day streak completing the gate and every Daily quest`} /><AddIconButton label="Add daily quest" onClick={() => { setEditingId(null); setEditingWeeklyId(null); setName(""); setDescription(""); setBaseDifficulty("Easy"); setAttrs(["discipline"]); setReminder(""); setOpen(true); }} /></div>}>
         <ul className="space-y-3">
           <li className="flex items-center gap-3 border-b border-border/40 pb-3">
             <button type="button" role="checkbox" aria-checked={dailyDone} aria-label="Close a quest gate" disabled
