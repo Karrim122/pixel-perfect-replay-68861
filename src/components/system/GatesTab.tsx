@@ -1,39 +1,64 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, Plus, X } from "lucide-react";
+import { createPortal } from "react-dom";
+import { Check } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
 import { playSound } from "@/lib/sound";
 import { BASE_DIFFICULTIES, baseDifficultyForDiff, changeStats, completeDailyGateQuest, completeTodo, completeWeeklyQuest, FOCUS_REWARD_INTERVAL_MINUTES, FOCUS_REWARD_PRACTICE, GATE_ATTRIBUTE_PRACTICE, GATE_BREAK_DAMAGE, isWeeklyQuestScheduled, takeDamage, uid, type Alert, type GameState, type GateObjective } from "@/lib/system";
-import { Panel, SysButton, inputCls } from "./ui";
+import { AddIconButton, ItemOptionsMenu, Panel, SysButton, inputCls } from "./ui";
 
 const BREAK_DMG = GATE_BREAK_DAMAGE;
 
 function GateObjectives({ editable = false }: { editable?: boolean }) {
   const { state, act } = useSystem();
   const [draft, setDraft] = useState("");
-  const objectives = state.activeGate?.objectives ?? [];
-  const add = () => {
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const objectives = [...(state.activeGate?.objectives ?? [])].sort((a, b) => Number(a.done) - Number(b.done));
+  const add = (event: React.FormEvent) => {
+    event.preventDefault();
     const text = draft.trim();
     if (!text) return;
-    act((s) => { if (s.activeGate) s.activeGate.objectives = [...(s.activeGate.objectives ?? []), { id: uid(), text, done: false }]; });
+    act((s) => {
+      if (!s.activeGate) return;
+      if (editingId) {
+        const objective = s.activeGate.objectives?.find((entry) => entry.id === editingId);
+        if (objective) objective.text = text;
+      } else {
+        s.activeGate.objectives = [...(s.activeGate.objectives ?? []), { id: uid(), text, done: false }];
+      }
+    });
     setDraft("");
+    setEditingId(null);
+    setEditorOpen(false);
   };
   if (!editable && objectives.length === 0) return null;
   return (
     <section className="w-full max-w-md border border-primary/30 bg-card/70 p-3 text-left shadow-[0_0_18px_-12px_var(--primary)]">
-      <p className="mb-2 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-primary">Gate Objectives // {objectives.filter((objective) => objective.done).length}/{objectives.length}</p>
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-primary">Gate Objectives · {objectives.filter((objective) => !objective.done).length} active</p>
+        {editable && <AddIconButton label="Add gate objective" onClick={() => { setEditingId(null); setDraft(""); setEditorOpen(true); }} />}
+      </div>
       {objectives.length > 0 && <ul className="space-y-1.5">
-        {objectives.map((objective) => <li key={objective.id} className="flex items-center gap-2">
-          {editable ? <button type="button" role="checkbox" aria-checked={objective.done} aria-label={`${objective.done ? "Uncomplete" : "Complete"} objective: ${objective.text}`} onClick={() => act((s) => { const item = s.activeGate?.objectives?.find((entry) => entry.id === objective.id); if (item) item.done = !item.done; })} className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md border ${objective.done ? "border-primary bg-primary/20 text-primary" : "border-border text-muted-foreground"}`}>{objective.done && <Check className="h-4 w-4" />}</button>
+        {objectives.map((objective) => <li key={objective.id} className="flex items-center gap-3 border-b border-border/40 pb-2">
+          {editable ? <button type="button" role="checkbox" aria-checked={objective.done} aria-label={`Complete ${objective.text}`} onClick={() => {
+            if (objective.done) return;
+            buzz(); playSound("done");
+            act((s) => { const item = s.activeGate?.objectives?.find((entry) => entry.id === objective.id); if (item) item.done = true; });
+          }} className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md border ${objective.done ? "border-primary bg-primary/20 text-primary" : "border-border text-muted-foreground"}`}>{objective.done && <Check className="h-5 w-5" />}</button>
             : <span className={`h-2 w-2 shrink-0 border ${objective.done ? "border-primary bg-primary" : "border-muted-foreground"}`} />}
-          {editable ? <input aria-label="Edit gate objective" className="min-w-0 flex-1 border-b border-border/60 bg-transparent py-1 text-sm outline-none focus:border-primary" value={objective.text} onChange={(event) => { const value = event.target.value; act((s) => { const item = s.activeGate?.objectives?.find((entry) => entry.id === objective.id); if (item) item.text = value; }); }} />
-            : <span className={`text-sm ${objective.done ? "text-muted-foreground line-through" : "text-foreground"}`}>{objective.text}</span>}
-          {editable && <button type="button" aria-label={`Remove objective: ${objective.text}`} onClick={() => act((s) => { if (s.activeGate) s.activeGate.objectives = (s.activeGate.objectives ?? []).filter((entry) => entry.id !== objective.id); })} className="p-1 text-muted-foreground hover:text-destructive"><X className="h-3.5 w-3.5" /></button>}
+          <p className={`min-w-0 flex-1 pr-2 text-sm ${objective.done ? "text-muted-foreground line-through" : "text-foreground"}`}>{objective.text}</p>
+          {editable && <ItemOptionsMenu itemName={objective.text} info="Gate objective" onEdit={() => { setEditingId(objective.id); setDraft(objective.text); setEditorOpen(true); }} onDelete={() => act((s) => { if (s.activeGate) s.activeGate.objectives = (s.activeGate.objectives ?? []).filter((entry) => entry.id !== objective.id); })} />}
         </li>)}
       </ul>}
-      {editable && <form className="mt-2 flex gap-2" onSubmit={(event) => { event.preventDefault(); add(); }}>
-        <input aria-label="New gate objective" className="min-w-0 flex-1 border border-border bg-background/70 px-2 py-2 text-sm outline-none focus:border-primary" maxLength={100} placeholder="Add a small objective" value={draft} onChange={(event) => setDraft(event.target.value)} />
-        <button type="submit" aria-label="Add gate objective" disabled={!draft.trim()} className="flex h-10 w-10 shrink-0 items-center justify-center border border-primary/50 text-primary disabled:opacity-40"><Plus className="h-4 w-4" /></button>
-      </form>}
+      {editorOpen && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-end bg-background/80 backdrop-blur-md" onClick={() => setEditorOpen(false)}>
+          <form role="dialog" aria-modal="true" aria-label={editingId ? "Edit gate objective" : "Add gate objective"} onClick={(event) => event.stopPropagation()} onSubmit={add} className="sys-panel mx-auto w-full max-w-md space-y-3 p-5 animate-in slide-in-from-bottom">
+            <h3 className="font-mono text-xs uppercase tracking-[0.3em] text-primary">{editingId ? "Edit Gate Objective" : "Add Gate Objective"}</h3>
+            <input autoFocus required maxLength={100} className={inputCls} placeholder="Objective" value={draft} onChange={(event) => setDraft(event.target.value)} />
+            <div className="flex gap-2"><SysButton type="submit" className="flex-1">{editingId ? "Save Changes" : "Add Objective"}</SysButton><SysButton type="button" variant="ghost" onClick={() => setEditorOpen(false)}>Cancel</SysButton></div>
+          </form>
+        </div>, document.body,
+      )}
     </section>
   );
 }
@@ -45,6 +70,8 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
   const [details, setDetails] = useState("");
   const [objectivesDraft, setObjectivesDraft] = useState<GateObjective[]>([]);
   const [newObjective, setNewObjective] = useState("");
+  const [objectiveDraftOpen, setObjectiveDraftOpen] = useState(false);
+  const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
   const [endAt, setEndAt] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now());
   const [timerKind, setTimerKind] = useState<"focus" | "rest" | null>(null);
@@ -319,13 +346,18 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
         <label className="mb-1 mt-4 block font-mono text-xs text-muted-foreground" htmlFor="gate-details">Gate details</label>
         <textarea id="gate-details" className={`${inputCls} min-h-14 py-2`} maxLength={160} placeholder="Short focus description (optional)" value={details} onChange={(event) => setDetails(event.target.value)} />
         <div className="mt-4 border border-primary/30 bg-card/70 p-3">
-          <p className="mb-2 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-primary">Gate Objectives // {objectivesDraft.length}</p>
-          {objectivesDraft.length > 0 && <ul className="mb-2 space-y-1">{objectivesDraft.map((objective) => <li key={objective.id} className="flex items-center gap-2 text-sm"><span className="h-2 w-2 border border-primary" /><span className="flex-1">{objective.text}</span><button type="button" aria-label={`Remove objective: ${objective.text}`} onClick={() => setObjectivesDraft((items) => items.filter((item) => item.id !== objective.id))} className="p-1 text-muted-foreground hover:text-destructive"><X className="h-3.5 w-3.5" /></button></li>)}</ul>}
-          <form className="flex gap-2" onSubmit={(event) => { event.preventDefault(); const text = newObjective.trim(); if (!text) return; setObjectivesDraft((items) => [...items, { id: uid(), text, done: false }]); setNewObjective(""); }}>
-            <input aria-label="New gate objective" className="min-w-0 flex-1 border border-border bg-background/70 px-2 py-2 text-sm outline-none focus:border-primary" maxLength={100} placeholder="Add a small objective" value={newObjective} onChange={(event) => setNewObjective(event.target.value)} />
-            <button type="submit" aria-label="Add gate objective" disabled={!newObjective.trim()} className="flex h-10 w-10 shrink-0 items-center justify-center border border-primary/50 text-primary disabled:opacity-40"><Plus className="h-4 w-4" /></button>
-          </form>
+          <div className="mb-2 flex items-center justify-between gap-2"><p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-primary">Gate Objectives · {objectivesDraft.length} active</p><AddIconButton label="Add gate objective" onClick={() => { setEditingDraftId(null); setNewObjective(""); setObjectiveDraftOpen(true); }} /></div>
+          {objectivesDraft.length > 0 && <ul className="space-y-1.5">{objectivesDraft.map((objective) => <li key={objective.id} className="flex items-center gap-3 border-b border-border/40 pb-2"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-border" /><p className="min-w-0 flex-1 pr-2 text-sm">{objective.text}</p><ItemOptionsMenu itemName={objective.text} info="Gate objective" onEdit={() => { setEditingDraftId(objective.id); setNewObjective(objective.text); setObjectiveDraftOpen(true); }} onDelete={() => setObjectivesDraft((items) => items.filter((item) => item.id !== objective.id))} /></li>)}</ul>}
         </div>
+        {objectiveDraftOpen && createPortal(
+          <div className="fixed inset-0 z-[100] flex items-end bg-background/80 backdrop-blur-md" onClick={() => setObjectiveDraftOpen(false)}>
+            <form role="dialog" aria-modal="true" aria-label={editingDraftId ? "Edit gate objective" : "Add gate objective"} onClick={(event) => event.stopPropagation()} onSubmit={(event) => { event.preventDefault(); const text = newObjective.trim(); if (!text) return; setObjectivesDraft((items) => editingDraftId ? items.map((item) => item.id === editingDraftId ? { ...item, text } : item) : [...items, { id: uid(), text, done: false }]); setNewObjective(""); setEditingDraftId(null); setObjectiveDraftOpen(false); }} className="sys-panel mx-auto w-full max-w-md space-y-3 p-5 animate-in slide-in-from-bottom">
+              <h3 className="font-mono text-xs uppercase tracking-[0.3em] text-primary">{editingDraftId ? "Edit Gate Objective" : "Add Gate Objective"}</h3>
+              <input autoFocus required maxLength={100} className={inputCls} placeholder="Objective" value={newObjective} onChange={(event) => setNewObjective(event.target.value)} />
+              <div className="flex gap-2"><SysButton type="submit" className="flex-1">{editingDraftId ? "Save Changes" : "Add Objective"}</SysButton><SysButton type="button" variant="ghost" onClick={() => setObjectiveDraftOpen(false)}>Cancel</SysButton></div>
+            </form>
+          </div>, document.body,
+        )}
         <p className="mb-1 mt-4 font-mono text-xs text-muted-foreground">Duration</p>
         {options.find((option) => option.id === target)?.focusMinutes && <p className="mb-2 font-mono text-[10px] text-primary">Assigned duration: {options.find((option) => option.id === target)?.focusMinutes} minutes</p>}
         <label className="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Minutes · minimum 10
