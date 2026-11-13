@@ -83,8 +83,9 @@ export interface BonusPenaltyHabit { id: string; name: string; description?: str
 export type TodoReward = { type: "potion" } | { type: "gift"; name: string; description?: string | undefined };
 export interface InventoryGift { id: string; name: string; description?: string | undefined; rank: Diff; sourceTask: string; earnedAt: string; }
 export interface Todo { id: string; name: string; description?: string | undefined; due?: string; time?: string | undefined; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; skillId?: string | undefined; focusMinutes?: number | undefined; done: boolean; notified?: boolean; reward?: TodoReward | undefined; emergency?: boolean; emergencyDeadline?: number; emergencyFailed?: boolean; }
-export interface Session { id: string; date: string; minutes: number; success: boolean; label: string; details?: string; paused?: boolean; }
-export interface ActiveGate { startedAt: number; label: string; details?: string; }
+export interface GateObjective { id: string; text: string; done: boolean; }
+export interface Session { id: string; date: string; minutes: number; success: boolean; label: string; details?: string; objectives?: GateObjective[]; paused?: boolean; }
+export interface ActiveGate { startedAt: number; label: string; details?: string; objectives?: GateObjective[]; }
 export interface FocusAnalysisCorrection {
   used: boolean; todayMinutes: number; todayDate: string; totalMinutes: number; closedGates: number; efficiency: number;
 }
@@ -198,7 +199,7 @@ export function failInterruptedGate(s: GameState, alerts: Alert[]) {
   const gate = s.activeGate;
   if (!gate) return;
   s.activeGate = null;
-  s.sessions.unshift({ id: uid(), date: s.lastDay, minutes: 0, success: false, label: gate.label, ...(gate.details ? { details: gate.details } : {}) });
+  s.sessions.unshift({ id: uid(), date: s.lastDay, minutes: 0, success: false, label: gate.label, ...(gate.details ? { details: gate.details } : {}), ...(gate.objectives ? { objectives: gate.objectives } : {}) });
   log(s, `Gate Break Failure (System closed during gate). -${GATE_BREAK_DAMAGE} HP`, "warn");
   alerts.push({ kind: "penalty", title: "[System Alert] Gate Break Failure", body: `The System was closed while the Gate was active. -${GATE_BREAK_DAMAGE} HP.` });
   takeDamage(s, GATE_BREAK_DAMAGE, alerts);

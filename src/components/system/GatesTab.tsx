@@ -1,16 +1,50 @@
 import { useEffect, useRef, useState } from "react";
+import { Check, Plus, X } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
 import { playSound } from "@/lib/sound";
-import { BASE_DIFFICULTIES, baseDifficultyForDiff, changeStats, completeDailyGateQuest, completeTodo, completeWeeklyQuest, FOCUS_REWARD_INTERVAL_MINUTES, FOCUS_REWARD_PRACTICE, GATE_ATTRIBUTE_PRACTICE, GATE_BREAK_DAMAGE, isWeeklyQuestScheduled, takeDamage, uid, type Alert, type GameState } from "@/lib/system";
+import { BASE_DIFFICULTIES, baseDifficultyForDiff, changeStats, completeDailyGateQuest, completeTodo, completeWeeklyQuest, FOCUS_REWARD_INTERVAL_MINUTES, FOCUS_REWARD_PRACTICE, GATE_ATTRIBUTE_PRACTICE, GATE_BREAK_DAMAGE, isWeeklyQuestScheduled, takeDamage, uid, type Alert, type GameState, type GateObjective } from "@/lib/system";
 import { Panel, SysButton, inputCls } from "./ui";
 
 const BREAK_DMG = GATE_BREAK_DAMAGE;
+
+function GateObjectives({ editable = false }: { editable?: boolean }) {
+  const { state, act } = useSystem();
+  const [draft, setDraft] = useState("");
+  const objectives = state.activeGate?.objectives ?? [];
+  const add = () => {
+    const text = draft.trim();
+    if (!text) return;
+    act((s) => { if (s.activeGate) s.activeGate.objectives = [...(s.activeGate.objectives ?? []), { id: uid(), text, done: false }]; });
+    setDraft("");
+  };
+  if (!editable && objectives.length === 0) return null;
+  return (
+    <section className="w-full max-w-md border border-primary/30 bg-card/70 p-3 text-left shadow-[0_0_18px_-12px_var(--primary)]">
+      <p className="mb-2 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-primary">Gate Objectives // {objectives.filter((objective) => objective.done).length}/{objectives.length}</p>
+      {objectives.length > 0 && <ul className="space-y-1.5">
+        {objectives.map((objective) => <li key={objective.id} className="flex items-center gap-2">
+          {editable ? <button type="button" aria-label={`${objective.done ? "Uncomplete" : "Complete"} objective: ${objective.text}`} aria-pressed={objective.done} onClick={() => act((s) => { const item = s.activeGate?.objectives?.find((entry) => entry.id === objective.id); if (item) item.done = !item.done; })} className={`flex h-6 w-6 shrink-0 items-center justify-center border ${objective.done ? "border-primary bg-primary/20 text-primary" : "border-border text-muted-foreground"}`}><Check className="h-3.5 w-3.5" /></button>
+            : <span className={`h-2 w-2 shrink-0 border ${objective.done ? "border-primary bg-primary" : "border-muted-foreground"}`} />}
+          {editable ? <input aria-label="Edit gate objective" className="min-w-0 flex-1 border-b border-border/60 bg-transparent py-1 text-sm outline-none focus:border-primary" value={objective.text} onChange={(event) => { const value = event.target.value; act((s) => { const item = s.activeGate?.objectives?.find((entry) => entry.id === objective.id); if (item) item.text = value; }); }} />
+            : <span className={`text-sm ${objective.done ? "text-muted-foreground line-through" : "text-foreground"}`}>{objective.text}</span>}
+          {editable && <button type="button" aria-label={`Remove objective: ${objective.text}`} onClick={() => act((s) => { if (s.activeGate) s.activeGate.objectives = (s.activeGate.objectives ?? []).filter((entry) => entry.id !== objective.id); })} className="p-1 text-muted-foreground hover:text-destructive"><X className="h-3.5 w-3.5" /></button>}
+        </li>)}
+      </ul>}
+      {editable && <form className="mt-2 flex gap-2" onSubmit={(event) => { event.preventDefault(); add(); }}>
+        <input aria-label="New gate objective" className="min-w-0 flex-1 border border-border bg-background/70 px-2 py-2 text-sm outline-none focus:border-primary" maxLength={100} placeholder="Add a small objective" value={draft} onChange={(event) => setDraft(event.target.value)} />
+        <button type="submit" aria-label="Add gate objective" disabled={!draft.trim()} className="flex h-10 w-10 shrink-0 items-center justify-center border border-primary/50 text-primary disabled:opacity-40"><Plus className="h-4 w-4" /></button>
+      </form>}
+    </section>
+  );
+}
 
 export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
   const { state, act } = useSystem();
   const [minutes, setMinutes] = useState("25");
   const [target, setTarget] = useState("");
   const [details, setDetails] = useState("");
+  const [objectivesDraft, setObjectivesDraft] = useState<GateObjective[]>([]);
+  const [newObjective, setNewObjective] = useState("");
   const [endAt, setEndAt] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now());
   const [timerKind, setTimerKind] = useState<"focus" | "rest" | null>(null);
@@ -21,6 +55,7 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
   const [restsUsed, setRestsUsed] = useState(0);
   const [gateActive, setGateActive] = useState(false);
   const [entering, setEntering] = useState(false);
+  const lastAlarmMilestone = useRef(0);
   const meta = useRef({ label: "", target: "", details: "" });
   const entryTimeout = useRef<number | null>(null);
 
@@ -39,8 +74,9 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
     entryTimeout.current = null; setEntering(false);
     setEndAt(null); setTimerKind(null); setGateActive(false); onLock(false); buzz([100, 50, 100]);
     act((s, a) => {
+      const objectives = s.activeGate?.objectives;
       s.activeGate = null;
-      s.sessions.unshift({ id: uid(), date: s.lastDay, minutes: totalFocusMinutes, success: false, label: meta.current.label, ...(meta.current.details ? { details: meta.current.details } : {}) });
+      s.sessions.unshift({ id: uid(), date: s.lastDay, minutes: totalFocusMinutes, success: false, label: meta.current.label, ...(meta.current.details ? { details: meta.current.details } : {}), ...(objectives ? { objectives } : {}) });
       s.log.unshift({ id: uid(), ts: Date.now(), text: `Gate Break Failure (${totalFocusMinutes}m focus saved). -${BREAK_DMG} HP`, kind: "warn" });
       a.push({ kind: "penalty", title: "⚠️ [System Alert] Gate Break Failure", body: `${reason} -${BREAK_DMG} HP.` });
       takeDamage(s, BREAK_DMG, a);
@@ -54,14 +90,15 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
     entryTimeout.current = null; setEntering(false);
     setEndAt(null); setTimerKind(null); setGateActive(false); onLock(false); buzz([40, 40, 40]);
     act((s: GameState, a: Alert[]) => {
-      s.activeGate = null;
       const { label, target: assignedTarget, details: gateDetails } = meta.current;
+      const objectives = s.activeGate?.objectives;
+      s.activeGate = null;
       const completedFocusBefore = s.sessions.reduce((total, session) => total + (session.success && !session.paused ? session.minutes : 0), 0);
       const previousMilestones = Math.floor(completedFocusBefore / FOCUS_REWARD_INTERVAL_MINUTES);
       const newMilestones = Math.floor((completedFocusBefore + totalFocusMinutes) / FOCUS_REWARD_INTERVAL_MINUTES) - previousMilestones;
       const focusBonus = newMilestones * FOCUS_REWARD_PRACTICE;
       const totalAttributePractice = GATE_ATTRIBUTE_PRACTICE + focusBonus;
-      s.sessions.unshift({ id: uid(), date: s.lastDay, minutes: totalFocusMinutes, success: true, label, ...(gateDetails ? { details: gateDetails } : {}) });
+      s.sessions.unshift({ id: uid(), date: s.lastDay, minutes: totalFocusMinutes, success: true, label, ...(gateDetails ? { details: gateDetails } : {}), ...(objectives ? { objectives } : {}) });
       const levelAtStart = s.level;
       changeStats(s, ["discipline", "perception"], totalAttributePractice);
       if (assignedTarget.startsWith("t:")) {
@@ -112,6 +149,18 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [endAt, gateActive]);
 
+  useEffect(() => {
+    if (timerKind !== "focus" || endAt === null || !gateActive) return;
+    const startedAt = endAt - timerMinutes * 60000;
+    const elapsed = Math.max(0, Math.min(timerMinutes, (now - startedAt) / 60000));
+    const milestone = Math.floor((focusMinutes + elapsed) / FOCUS_REWARD_INTERVAL_MINUTES);
+    if (milestone > lastAlarmMilestone.current) {
+      lastAlarmMilestone.current = milestone;
+      buzz([180, 80, 180]);
+      playSound("warning");
+    }
+  }, [endAt, focusMinutes, gateActive, now, timerKind, timerMinutes]);
+
   useEffect(() => () => {
     if (entryTimeout.current !== null) window.clearTimeout(entryTimeout.current);
   }, []);
@@ -136,9 +185,12 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
   const start = () => {
     const selected = options.find((option) => option.id === target);
     meta.current = { target: selected?.id ?? "", label: selected?.label ?? "Free focus", details: details.trim() };
-    act((s) => { s.activeGate = { startedAt: Date.now(), label: meta.current.label, ...(meta.current.details ? { details: meta.current.details } : {}) }; });
+    const objectives = objectivesDraft.map((objective) => ({ ...objective }));
+    act((s) => { s.activeGate = { startedAt: Date.now(), label: meta.current.label, ...(meta.current.details ? { details: meta.current.details } : {}), objectives }; });
+    setObjectivesDraft([]);
     const initialDuration = selected?.focusMinutes ?? Math.max(10, Number(minutes) || 10);
     setRestLimit(Math.floor(initialDuration / 25)); setRestsUsed(0); setResumeFocusMinutes(null);
+    lastAlarmMilestone.current = 0;
     setFocusMinutes(0); setGateActive(true); onLock(true); buzz(60);
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
       setEntering(false); startTimer("focus", initialDuration); return;
@@ -209,11 +261,13 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
         {meta.current.details && <p className="gate-timer-details max-w-sm text-sm text-muted-foreground">{meta.current.details}</p>}
         {focusMinutes > 0 && <p className="font-mono text-xs text-muted-foreground">Completed focus: {focusMinutes} min</p>}
         {timerKind === "rest" && resumeFocusMinutes !== null && <p className="font-mono text-xs text-primary">Rest ends, then your remaining {Math.ceil(resumeFocusMinutes)} focus minutes resume automatically.</p>}
+        {timerKind === "focus" && <p className="font-mono text-[10px] uppercase tracking-wider text-primary/80">System alarm sounds every {FOCUS_REWARD_INTERVAL_MINUTES} focus minutes</p>}
         {timerKind === "focus" && <div className="gate-timer-rest-controls space-y-2 text-center">
           <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Take a rest · focus time will pause and resume afterward</p>
           <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Rests used: {restsUsed}/{restLimit} · one rest per 25 minutes assigned</p>
           {restsUsed < restLimit && <div className="flex justify-center gap-2">{[5, 10, 15].map((duration) => <SysButton key={duration} variant="ghost" onClick={() => takeRest(duration)}>Rest {duration}m</SysButton>)}</div>}
         </div>}
+        <GateObjectives editable />
         <div className="gate-timer-exit flex gap-2">
           <SysButton variant="danger" onClick={() => fail("You abandoned the Gate.")}>Exit Gate (−{BREAK_DMG} HP)</SysButton>
         </div>
@@ -232,6 +286,7 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
           <p className="mt-1 font-mono text-xs text-muted-foreground">Completed focus: {focusMinutes} min</p>
           <p className="mt-1 font-mono text-xs text-muted-foreground">Rests used: {restsUsed}/{restLimit} · one rest per 25 minutes assigned</p>
           <p className="mt-2 font-mono text-xs text-primary">Timer complete. Continue with another focus or rest session, close the gate, or leave.</p>
+          <GateObjectives editable />
           <p className="mt-4 font-mono text-xs uppercase tracking-wider text-primary">Choose your next step</p>
           <label className="mb-2 mt-3 block font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Another focus timer · minimum 10 minutes
             <div className="mt-2 flex gap-2"><input aria-label="Next focus timer duration in minutes" type="number" min={10} step={1} inputMode="numeric" className={inputCls} value={minutes} onChange={(event) => setMinutes(event.target.value)} /><SysButton onClick={() => startTimer("focus", Math.max(10, Number(minutes) || 10))}>Start</SysButton></div>
@@ -263,6 +318,14 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
         </select>
         <label className="mb-1 mt-4 block font-mono text-xs text-muted-foreground" htmlFor="gate-details">Gate details</label>
         <textarea id="gate-details" className={`${inputCls} min-h-20 py-2`} maxLength={500} placeholder="What do you plan to focus on? (optional)" value={details} onChange={(event) => setDetails(event.target.value)} />
+        <div className="mt-4 border border-primary/30 bg-card/70 p-3">
+          <p className="mb-2 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-primary">Gate Objectives // {objectivesDraft.length}</p>
+          {objectivesDraft.length > 0 && <ul className="mb-2 space-y-1">{objectivesDraft.map((objective) => <li key={objective.id} className="flex items-center gap-2 text-sm"><span className="h-2 w-2 border border-primary" /><span className="flex-1">{objective.text}</span><button type="button" aria-label={`Remove objective: ${objective.text}`} onClick={() => setObjectivesDraft((items) => items.filter((item) => item.id !== objective.id))} className="p-1 text-muted-foreground hover:text-destructive"><X className="h-3.5 w-3.5" /></button></li>)}</ul>}
+          <form className="flex gap-2" onSubmit={(event) => { event.preventDefault(); const text = newObjective.trim(); if (!text) return; setObjectivesDraft((items) => [...items, { id: uid(), text, done: false }]); setNewObjective(""); }}>
+            <input aria-label="New gate objective" className="min-w-0 flex-1 border border-border bg-background/70 px-2 py-2 text-sm outline-none focus:border-primary" maxLength={100} placeholder="Add a small objective" value={newObjective} onChange={(event) => setNewObjective(event.target.value)} />
+            <button type="submit" aria-label="Add gate objective" disabled={!newObjective.trim()} className="flex h-10 w-10 shrink-0 items-center justify-center border border-primary/50 text-primary disabled:opacity-40"><Plus className="h-4 w-4" /></button>
+          </form>
+        </div>
         <p className="mb-1 mt-4 font-mono text-xs text-muted-foreground">Duration</p>
         {options.find((option) => option.id === target)?.focusMinutes && <p className="mb-2 font-mono text-[10px] text-primary">Assigned duration: {options.find((option) => option.id === target)?.focusMinutes} minutes</p>}
         <label className="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Minutes · minimum 10
