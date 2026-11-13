@@ -13,7 +13,7 @@ function GateObjectives({ editable = false }: { editable?: boolean }) {
   const [draft, setDraft] = useState("");
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const objectives = [...(state.activeGate?.objectives ?? [])].sort((a, b) => Number(a.done) - Number(b.done));
+  const objectives = state.activeGate?.objectives ?? [];
   const add = (event: React.FormEvent) => {
     event.preventDefault();
     const text = draft.trim();
