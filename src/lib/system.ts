@@ -120,7 +120,10 @@ export const FOCUS_REGAIN_STEPS = [
   { title: "Physical Shock: Cold Water Wudoo", description: "Perform wudoo with cold water in preparation for prayer.", durationSeconds: 0 },
   { title: "Prayer", description: "Pray now. Give this moment your full attention.", durationSeconds: 0 },
 ] as const;
-export const FOCUS_REGAIN_FAILURE_HP = 40;
+export const FOCUS_REGAIN_FAILURE_HP_PERCENT = 33;
+export const FOCUS_REGAIN_FAILURE_DISCIPLINE_PERCENT = 67;
+export const FOCUS_REGAIN_DISCIPLINE_BONUS_PERCENT = 50;
+export const FOCUS_REGAIN_XP_BONUS_PERCENT = 25;
 export const FOCUS_BREATH_DURATION_SECONDS = 5 * 60;
 
 export function moveItem<T extends { id: string }>(items: T[], id: string, targetId: string) {
@@ -393,24 +396,25 @@ export function completeFocusRegain(s: GameState, alerts: Alert[]) {
   }
   s.focusRegainDeadline = null;
   s.focusRegainStep = 0;
-  const earnedXp = DIFF_XP[resolveDifficulty("Very Hard", s.level)];
+  const baseXp = DIFF_XP[resolveDifficulty("Very Hard", s.level)];
+  const earnedXp = Math.round(baseXp * (1 + FOCUS_REGAIN_XP_BONUS_PERCENT / 100));
   const progress = attributeProgressForXp(earnedXp, s.level);
+  s.stats.discipline = Math.round(s.stats.discipline * (1 + FOCUS_REGAIN_DISCIPLINE_BONUS_PERCENT / 100));
   gainXp(s, earnedXp, alerts);
   changeStats(s, ["discipline"], progress);
-  log(s, `Focus Regain complete (+${earnedXp} XP, +${progress}% Discipline progress)`, "level");
-  alerts.push({ kind: "info", title: "[SYSTEM] You Showed Up!", body: `You paused, completed wudoo, and made time for prayer. That is real discipline. Carry this calm and momentum into your next step. +${earnedXp} XP and +${progress}% Discipline progress.` });
+  log(s, `Focus Regain complete (+${earnedXp} XP, +${FOCUS_REGAIN_XP_BONUS_PERCENT}% XP, +${FOCUS_REGAIN_DISCIPLINE_BONUS_PERCENT}% Discipline)`, "level");
+  alerts.push({ kind: "info", title: "[SYSTEM] You Showed Up!", body: `You paused, completed wudoo, and made time for prayer. That is real discipline. Carry this calm and momentum into your next step. Rewards: +${earnedXp} XP (+${FOCUS_REGAIN_XP_BONUS_PERCENT}%) and +${FOCUS_REGAIN_DISCIPLINE_BONUS_PERCENT}% Discipline.` });
 }
 
 export function failFocusRegain(s: GameState, alerts: Alert[]) {
   if (s.focusRegainDeadline === null) return;
   s.focusRegainDeadline = null;
   s.focusRegainStep = 0;
-  const damage = FOCUS_REGAIN_FAILURE_HP;
-  (["discipline", "perception"] as const).forEach((attr) => {
-    s.statProgress[attr] = Math.min(0, s.statProgress[attr]);
-  });
-  log(s, `Focus Regain failed. -${damage} HP and all positive Discipline and Perception practice progress.`, "warn");
-  alerts.push({ kind: "penalty", title: "[SYSTEM] Focus Regain Failed", body: `Focus was not regained. -${damage} HP and all positive Discipline and Perception practice progress was lost.` });
+  const disciplineBefore = s.stats.discipline;
+  s.stats.discipline = Math.max(1, Math.round(disciplineBefore * (1 - FOCUS_REGAIN_FAILURE_DISCIPLINE_PERCENT / 100)));
+  const damage = Math.max(1, Math.round(s.hp * FOCUS_REGAIN_FAILURE_HP_PERCENT / 100));
+  log(s, `Focus Regain failed. Discipline reduced by ${FOCUS_REGAIN_FAILURE_DISCIPLINE_PERCENT}% and HP reduced by ${FOCUS_REGAIN_FAILURE_HP_PERCENT}%.`, "warn");
+  alerts.push({ kind: "penalty", title: "[SYSTEM] Focus Regain Failed", body: `Quest failed. Discipline fell from ${disciplineBefore} to ${s.stats.discipline} (-${FOCUS_REGAIN_FAILURE_DISCIPLINE_PERCENT}%). -${damage} HP (-${FOCUS_REGAIN_FAILURE_HP_PERCENT}%).` });
   takeDamage(s, damage, alerts);
 }
 
