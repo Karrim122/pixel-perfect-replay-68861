@@ -21,7 +21,7 @@ const TABS = [
 ] as const;
 type Tab = (typeof TABS)[number]["key"];
 
-function AlertDetails({ body }: { body: string }) {
+function AlertDetails({ body, motivatingText }: { body: string; motivatingText?: string }) {
   const integerBody = body.replace(/([+\-−]?\s*)(\d+)\.(\d+)/g, (_match, sign: string, whole: string, fraction: string) => {
     const prefix = sign.trim();
     const value = Number(`${prefix === "−" ? "-" : prefix}${whole}.${fraction}`);
@@ -32,9 +32,13 @@ function AlertDetails({ body }: { body: string }) {
   return (
     <div className="mt-4 space-y-2 border border-border/70 bg-background/60 p-4 text-left">
       {sentences.map((sentence, index) => (
-        <p key={`${index}-${sentence}`} className="text-sm leading-relaxed text-foreground/90">
+        <p key={`${index}-${sentence}`} className={cn("text-sm leading-relaxed", motivatingText?.includes(sentence) ? "text-primary sys-glow-text" : "text-foreground/90")}>
           {sentence.split(/([+−-]?\s?\d+(?:\.\d+)?(?:%|\/\d+(?:\.\d+)?%?)?(?:\s?(?:XP|HP|minutes?|m|attribute progress))?)/gi).map((part, partIndex) => {
-            if (!/\d/.test(part)) return part;
+            if (!/\d/.test(part)) return part.split(/(\b(?:strength|discipline|intelligence|perception|vitality)\b)/gi).map((word, wordIndex) =>
+              /^(?:strength|discipline|intelligence|perception|vitality)$/i.test(word)
+                ? <span key={`${partIndex}-${wordIndex}`} className="font-bold text-primary sys-glow-text">{word}</span>
+                : word,
+            );
             const trimmed = part.trimStart();
             const color = /^[−-]/.test(trimmed) ? "text-destructive" : trimmed.startsWith("+") ? "text-success" : "text-primary";
             return <span key={`${partIndex}-${part}`} className={`font-bold tabular-nums ${color}`}>{part}</span>;
@@ -58,12 +62,13 @@ function AlertModal() {
   if (!a) return null;
   const danger = a.kind === "exhausted" || a.kind === "penalty" || a.kind === "lowHp";
   const epic = a.kind === "awaken" || a.kind === "monarch";
+  const motivatingText = a.title === "[SYSTEM] You Showed Up!" ? a.body.split(" Rewards:")[0] : undefined;
   return (
     <div className={cn("fixed inset-0 z-50 flex items-center justify-center p-6 backdrop-blur-md", danger ? "bg-destructive/25" : "bg-background/80")}>
       <div role="alertdialog" aria-modal="true" aria-label={a.title} className={cn("sys-panel w-full max-w-sm p-6 text-center animate-sys-shatter", danger && "sys-danger animate-sys-shake")}>
         <p className={cn("font-mono text-[10px] uppercase tracking-[0.4em]", danger ? "text-destructive" : "text-primary")}>[ Notification ]</p>
         <h2 className={cn("mt-3 text-2xl font-bold uppercase", danger ? "text-destructive" : "text-primary sys-glow-text", epic && "text-3xl animate-sys-pulse")}>{a.title}</h2>
-        <AlertDetails body={a.body} />
+        <AlertDetails body={a.body} motivatingText={motivatingText} />
         <SysButton variant={danger ? "danger" : "primary"} className="mt-6 w-full" onClick={dismiss}>Acknowledge</SysButton>
       </div>
     </div>
