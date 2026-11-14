@@ -90,6 +90,7 @@ function EmergencyOverlay() {
   if (deadline === null) return null;
   const stepIndex = Math.max(0, Math.min(FOCUS_REGAIN_STEPS.length - 1, state.focusRegainStep));
   const step = FOCUS_REGAIN_STEPS[stepIndex]!;
+  const stepHasTimer = step.durationSeconds > 0;
   const minutes = String(Math.floor(secondsLeft / 60)).padStart(2, "0");
   const seconds = String(secondsLeft % 60).padStart(2, "0");
 
@@ -113,13 +114,15 @@ function EmergencyOverlay() {
           <h3 className="mt-2 text-2xl font-black uppercase tracking-wide text-foreground">{step.title}</h3>
           <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{step.description}</p>
         </section>
-        <p className="mt-6 text-center font-mono text-[9px] font-bold uppercase tracking-[0.35em] text-muted-foreground">Time remaining</p>
-        <div role="timer" className="system-window-timer my-1" aria-label={`Urgent quest timer: ${minutes}:${seconds}`}>
-          <p className="relative z-10 font-mono text-6xl font-bold tabular-nums text-primary sys-glow-text" aria-live="off">{minutes}:{seconds}</p>
-        </div>
-        <p className="text-center font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-primary">{secondsLeft === 0 ? "Timer complete · confirm objective" : "Breathe slowly · complete the objective"}</p>
+        {stepHasTimer ? <>
+          <p className="mt-6 text-center font-mono text-[9px] font-bold uppercase tracking-[0.35em] text-muted-foreground">One minute · time remaining</p>
+          <div role="timer" className="system-window-timer my-1" aria-label={`Urgent quest timer: ${minutes}:${seconds}`}>
+            <p className="relative z-10 font-mono text-6xl font-bold tabular-nums text-primary sys-glow-text" aria-live="off">{minutes}:{seconds}</p>
+          </div>
+          <p className="text-center font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-primary">{secondsLeft === 0 ? "Minute complete · continue when ready" : "Stand up · breathe deeply"}</p>
+        </> : <p className="mt-6 text-center font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-primary">Take the time you need · confirm when complete</p>}
         <div className="mt-5 grid grid-cols-2 gap-2">
-          <SysButton disabled={secondsLeft > 0} className="rounded-sm" onClick={() => act((s, alerts) => completeFocusRegain(s, alerts))}>Objective complete</SysButton>
+          <SysButton disabled={stepHasTimer && secondsLeft > 0} className="rounded-sm" onClick={() => act((s, alerts) => completeFocusRegain(s, alerts))}>{stepIndex === FOCUS_REGAIN_STEPS.length - 1 ? "Prayer complete" : "Objective complete"}</SysButton>
           <SysButton variant="danger" className="rounded-sm" onClick={() => act((s, alerts) => failFocusRegain(s, alerts))}>Failed</SysButton>
         </div>
         <p className="system-window-warning mt-4"><span>Failure penalty</span><span>-{FOCUS_REGAIN_FAILURE_HP} HP · all Discipline and Perception practice</span></p>

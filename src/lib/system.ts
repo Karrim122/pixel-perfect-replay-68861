@@ -116,9 +116,9 @@ export const today = () => {
 export const uid = () => Math.random().toString(36).slice(2, 10);
 
 export const FOCUS_REGAIN_STEPS = [
-  { title: "Physical Shock", description: "Stand up, move, wash your face.", durationSeconds: 60 },
-  { title: "Deep Breaths", description: "Take slow, steady breaths.", durationSeconds: 120 },
-  { title: "Write Something on Paper", description: "Write anything that comes to mind.", durationSeconds: 300 },
+  { title: "Pause & Breathe", description: "Pause. Stand up, and breathe deeply for one minute.", durationSeconds: 60 },
+  { title: "Physical Shock: Cold Water Wudoo", description: "Perform wudoo with cold water in preparation for prayer.", durationSeconds: 0 },
+  { title: "Prayer", description: "Pray now. Give this moment your full attention.", durationSeconds: 0 },
 ] as const;
 export const FOCUS_REGAIN_FAILURE_HP = 40;
 export const FOCUS_BREATH_DURATION_SECONDS = 5 * 60;
@@ -398,7 +398,7 @@ export function completeFocusRegain(s: GameState, alerts: Alert[]) {
   gainXp(s, earnedXp, alerts);
   changeStats(s, ["discipline"], progress);
   log(s, `Focus Regain complete (+${earnedXp} XP, +${progress}% Discipline progress)`, "level");
-  alerts.push({ kind: "info", title: "[SYSTEM] Focus Regained!", body: `Nice work getting back on track. +${earnedXp} XP and +${progress}% Discipline progress.` });
+  alerts.push({ kind: "info", title: "[SYSTEM] You Showed Up!", body: `You paused, completed wudoo, and made time for prayer. That is real discipline. Carry this calm and momentum into your next step. +${earnedXp} XP and +${progress}% Discipline progress.` });
 }
 
 export function failFocusRegain(s: GameState, alerts: Alert[]) {
