@@ -82,7 +82,7 @@ export interface DailyQuest { id: string; name: string; description?: string | u
 export interface BonusPenaltyHabit { id: string; name: string; description?: string | undefined; kind: "bonus" | "penalty"; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; count: number; penaltyCount?: number; penaltyDate?: string; lastRewardDate?: string; rewardCount?: number; lastPracticeDate?: string; streakCount?: number; streakDate?: string | null; }
 export type TodoReward = { type: "potion" } | { type: "gift"; name: string; description?: string | undefined };
 export interface InventoryGift { id: string; name: string; description?: string | undefined; rank: Diff; sourceTask: string; earnedAt: string; }
-export interface Todo { id: string; name: string; description?: string | undefined; due?: string; time?: string | undefined; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; skillId?: string | undefined; focusMinutes?: number | undefined; done: boolean; notified?: boolean; reward?: TodoReward | undefined; emergency?: boolean; emergencyDeadline?: number; emergencyFailed?: boolean; }
+export interface Todo { id: string; name: string; description?: string | undefined; due?: string; time?: string | undefined; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; skillId?: string | undefined; focusMinutes?: number | undefined; awardXp?: boolean; done: boolean; notified?: boolean; reward?: TodoReward | undefined; emergency?: boolean; emergencyDeadline?: number; emergencyFailed?: boolean; }
 export interface GateObjective { id: string; text: string; done: boolean; }
 export interface Session { id: string; date: string; minutes: number; success: boolean; label: string; details?: string; objectives?: GateObjective[]; paused?: boolean; }
 export interface ActiveGate { startedAt: number; label: string; details?: string; objectives?: GateObjective[]; }
@@ -334,25 +334,29 @@ export function completeTodo(s: GameState, id: string, alerts: Alert[]) {
   task.done = true;
   const earnedXp = DIFF_XP[task.diff];
   const progress = attributeProgressForXp(earnedXp, s.level);
-  gainXp(s, earnedXp, alerts);
-  awardSkillXp(s, task.skillId, earnedXp);
+  const awardsXp = task.awardXp !== false;
+  if (awardsXp) {
+    gainXp(s, earnedXp, alerts);
+    awardSkillXp(s, task.skillId, earnedXp);
+  }
   changeStats(s, task.attrs, progress);
-  log(s, `Quest cleared: ${task.name} (+${earnedXp} XP)`, "info");
+  const xpMessage = awardsXp ? `+${earnedXp} XP` : "no XP";
+  log(s, `Quest cleared: ${task.name} (${xpMessage}, +${progress}% attribute progress)`, "info");
   if (task.reward?.type === "potion") {
     if (task.baseDifficulty === "Hard" || task.baseDifficulty === "Very Hard") {
       s.potions += 1;
       log(s, `Task reward received: Healing Potion (${task.name})`, "level");
-      alerts.push({ kind: "info", title: "[SYSTEM] Task Complete!", body: `${task.name} complete. +${earnedXp} XP, +${progress}% attribute progress for ${task.attrs.join(", ")}, and +1 Healing Potion.` });
+      alerts.push({ kind: "info", title: "[SYSTEM] Task Complete!", body: `${task.name} complete. ${awardsXp ? `+${earnedXp} XP` : "No XP"}, +${progress}% attribute progress for ${task.attrs.join(", ")}, and +1 Healing Potion.` });
     } else {
       log(s, `Healing Potion reward not earned: ${task.name} is not Hard or Very Hard`, "info");
-      alerts.push({ kind: "info", title: "[SYSTEM] Task Complete!", body: `${task.name} complete. +${earnedXp} XP and +${progress}% attribute progress for ${task.attrs.join(", ")}. Potion rewards require a Hard or Very Hard task.` });
+      alerts.push({ kind: "info", title: "[SYSTEM] Task Complete!", body: `${task.name} complete. ${awardsXp ? `+${earnedXp} XP` : "No XP"} and +${progress}% attribute progress for ${task.attrs.join(", ")}. Potion rewards require a Hard or Very Hard task.` });
     }
   } else if (task.reward?.type === "gift") {
     s.inventoryGifts.unshift({ id: uid(), name: task.reward.name, ...(task.reward.description ? { description: task.reward.description } : {}), rank: task.diff, sourceTask: task.name, earnedAt: s.lastDay });
     log(s, `Task reward received: ${task.reward.name} (${task.diff}-Rank Gift)`, "level");
-    alerts.push({ kind: "info", title: "[SYSTEM] Task Complete!", body: `${task.name} complete. +${earnedXp} XP, +${progress}% attribute progress for ${task.attrs.join(", ")}, and ${task.reward.name} (${task.diff}-Rank) was added to your inventory.` });
+    alerts.push({ kind: "info", title: "[SYSTEM] Task Complete!", body: `${task.name} complete. ${awardsXp ? `+${earnedXp} XP` : "No XP"}, +${progress}% attribute progress for ${task.attrs.join(", ")}, and ${task.reward.name} (${task.diff}-Rank) was added to your inventory.` });
   } else {
-    alerts.push({ kind: "info", title: "[SYSTEM] Task Complete!", body: `${task.name} complete. +${earnedXp} XP and +${progress}% attribute progress for ${task.attrs.join(", ")}.` });
+    alerts.push({ kind: "info", title: "[SYSTEM] Task Complete!", body: `${task.name} complete. ${awardsXp ? `+${earnedXp} XP` : "No XP"} and +${progress}% attribute progress for ${task.attrs.join(", ")}.` });
   }
 }
 

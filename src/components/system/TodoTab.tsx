@@ -16,6 +16,7 @@ export function TodoTab() {
   const [time, setTime] = useState("");
   const [baseDifficulty, setBaseDifficulty] = useState<BaseDifficulty>("Easy");
   const [attrs, setAttrs] = useState<Attr[]>(["intelligence"]);
+  const [awardXp, setAwardXp] = useState(true);
   const [skillId, setSkillId] = useState<string>();
   const [focusMinutes, setFocusMinutes] = useState("");
   const [rewardType, setRewardType] = useState<"none" | "potion" | "gift">("none");
@@ -44,12 +45,12 @@ export function TodoTab() {
         : rewardType === "gift"
           ? { type: "gift", name: rewardName.trim(), description: rewardDescription.trim() || undefined }
           : undefined;
-      const values = { name: name.trim(), description: description.trim() || undefined, due: due || undefined, time: time || undefined, diff, baseDifficulty, attrs, skillId, focusMinutes: focusMinutes ? Number(focusMinutes) : undefined, reward };
+      const values = { name: name.trim(), description: description.trim() || undefined, due: due || undefined, time: time || undefined, diff, baseDifficulty, attrs, awardXp, skillId: awardXp ? skillId : undefined, focusMinutes: focusMinutes ? Number(focusMinutes) : undefined, reward };
       if (todo) Object.assign(todo, values);
       else s.todos.push({ id: uid(), ...values, done: false });
     });
     if (time && typeof Notification !== "undefined" && Notification.permission === "default") Notification.requestPermission();
-    setName(""); setDescription(""); setDue(""); setTime(""); setAttrs(["intelligence"]); setSkillId(undefined); setFocusMinutes(""); setBaseDifficulty("Easy"); setRewardType("none"); setRewardName(""); setRewardDescription(""); setEditingId(null); setOpen(false);
+    setName(""); setDescription(""); setDue(""); setTime(""); setAttrs(["intelligence"]); setAwardXp(true); setSkillId(undefined); setFocusMinutes(""); setBaseDifficulty("Easy"); setRewardType("none"); setRewardName(""); setRewardDescription(""); setEditingId(null); setOpen(false);
   };
 
   const edit = (id: string) => {
@@ -57,7 +58,7 @@ export function TodoTab() {
     if (!task) return;
     setEditingId(id); setName(task.name); setDescription(task.description ?? ""); setDue(task.due ?? ""); setTime(task.time ?? "");
     const taskBaseDifficulty = task.baseDifficulty ?? baseDifficultyForDiff(task.diff, state.level);
-    setBaseDifficulty(taskBaseDifficulty); setAttrs(task.attrs); setSkillId(task.skillId); setFocusMinutes(task.focusMinutes ? String(task.focusMinutes) : "");
+    setBaseDifficulty(taskBaseDifficulty); setAttrs(task.attrs); setAwardXp(task.awardXp !== false); setSkillId(task.skillId); setFocusMinutes(task.focusMinutes ? String(task.focusMinutes) : "");
     setRewardType(task.reward?.type === "potion" && taskBaseDifficulty !== "Hard" && taskBaseDifficulty !== "Very Hard" ? "none" : task.reward?.type ?? "none"); setRewardName(task.reward?.type === "gift" ? task.reward.name : "");
     setRewardDescription(task.reward?.type === "gift" ? task.reward.description ?? "" : ""); setOpen(true);
   };
@@ -79,7 +80,7 @@ export function TodoTab() {
           <SysButton variant={filter === "today" ? "primary" : "ghost"} onClick={() => setFilter("today")}>Today's Tasks</SysButton>
           <SysButton variant={filter === "all" ? "primary" : "ghost"} onClick={() => setFilter("all")}>All Tasks</SysButton>
         </div>
-        <AddIconButton label="Add task" onClick={() => { setEditingId(null); setName(""); setDescription(""); setDue(""); setTime(""); setBaseDifficulty("Easy"); setAttrs(["intelligence"]); setSkillId(undefined); setFocusMinutes(""); setRewardType("none"); setRewardName(""); setRewardDescription(""); setOpen(true); }} />
+        <AddIconButton label="Add task" onClick={() => { setEditingId(null); setName(""); setDescription(""); setDue(""); setTime(""); setBaseDifficulty("Easy"); setAttrs(["intelligence"]); setAwardXp(true); setSkillId(undefined); setFocusMinutes(""); setRewardType("none"); setRewardName(""); setRewardDescription(""); setOpen(true); }} />
       </div>
       <Panel>
         <div className="mb-3 flex items-center justify-between">
@@ -135,7 +136,11 @@ export function TodoTab() {
               if (value !== "Hard" && value !== "Very Hard") setRewardType((current) => current === "potion" ? "none" : current);
             }} playerLevel={state.level} />
             <AttrPicker value={attrs} onChange={setAttrs} />
-            <SkillPicker skills={state.skills} value={skillId} onChange={setSkillId} />
+            <label className="flex cursor-pointer items-start gap-2 border border-border/60 px-3 py-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+              <input type="checkbox" className="mt-0.5 accent-primary" checked={!awardXp} onChange={(event) => setAwardXp(!event.target.checked)} />
+              <span><span className="block text-foreground">Attributes only (no XP)</span><span className="mt-1 block normal-case tracking-normal">Completion adds attribute progress without character or skill XP.</span></span>
+            </label>
+            {awardXp && <SkillPicker skills={state.skills} value={skillId} onChange={setSkillId} />}
             <label className="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Assigned gate focus time
               <input type="number" min={10} step={1} inputMode="numeric" placeholder="Optional · minimum 10 minutes" className={`${inputCls} mt-1`} value={focusMinutes} onChange={(event) => setFocusMinutes(event.target.value)} />
             </label>
