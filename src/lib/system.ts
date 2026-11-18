@@ -38,7 +38,6 @@ export function baseDifficultyForDiff(diff: Diff, playerLevel: number): BaseDiff
 export const POTION_HP = 20;
 export const POTION_MANA = 25;
 export const DAILY_REST_HP = 20;
-export const DAILY_REST_MANA = 20;
 export const statMaxHp = (vitality: number) => 100 + vitality * 10;
 export const statMaxMana = (intelligence: number) => 50 + intelligence * 10;
 export const questManaCost = (diff: Diff, skillCount = 1) => (5 + DIFF_HP[diff] * 5) * Math.max(1, skillCount);
@@ -452,8 +451,8 @@ export function rollover(s: GameState, alerts: Alert[]) {
   const recovered = Math.min(DAILY_REST_HP, s.maxHp - s.hp);
   s.hp += recovered;
   if (recovered > 0) log(s, `Rest recovery. +${recovered} HP`, "info");
-  const manaRecovered = Math.min(DAILY_REST_MANA, s.maxMana - s.mana);
-  s.mana += manaRecovered;
+  const manaRecovered = s.maxMana - s.mana;
+  s.mana = s.maxMana;
   if (manaRecovered > 0) log(s, `Daily recovery. +${manaRecovered} MP`, "info");
   s.dailyQuests.forEach((quest) => {
     if (quest.doneDate === s.lastDay) return;
