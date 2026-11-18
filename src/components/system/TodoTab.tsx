@@ -108,7 +108,7 @@ export function TodoTab() {
                   {t.startedAt && !t.done && <CriticalTimer startedAt={t.startedAt} seconds={speedWindowSeconds((t.focusMinutes ?? 25) * 60, state.stats.agility)} />}
                   {t.startedAt && !t.done && <button type="button" className="mt-1 font-mono text-[9px] uppercase text-destructive" onClick={() => act((s, alerts) => useLabHelp(s, t.id, alerts))}>Get help · HP cost</button>}
                 </div>
-                <DiffBadge d={t.diff} />
+                <DiffBadge d={t.diff} baseDifficulty={t.baseDifficulty ?? baseDifficultyForDiff(t.diff, state.level)} />
                 <ItemOptionsMenu itemName={t.name} info={`${t.description || "No description."}\nDue: ${t.due || "not set"}\nFocus time: ${t.focusMinutes ? `${t.focusMinutes} minutes` : "not assigned"}`} onEdit={!t.emergency ? () => edit(t.id) : undefined}
                   canMoveUp={index > 0 && list[index - 1]!.done === t.done} canMoveDown={index < list.length - 1 && list[index + 1]!.done === t.done}
                   onMoveUp={() => act((s) => moveItem(s.todos, t.id, list[index - 1]!.id))} onMoveDown={() => act((s) => moveItem(s.todos, t.id, list[index + 1]!.id))}

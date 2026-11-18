@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { CriticalTimer, DiffBadge, SysButton } from "./ui";
-import { speedWindowSeconds, type Diff } from "@/lib/system";
+import { speedWindowSeconds, type BaseDifficulty, type Diff } from "@/lib/system";
 import { cn } from "@/lib/utils";
 
 export interface QuestInfo {
   name: string;
   description?: string;
   diff: Diff;
+  baseDifficulty?: BaseDifficulty;
   focusMinutes?: number;
   startedAt: number;
 }
@@ -48,7 +49,7 @@ export function QuestInfoDialog({
             <h2 className="mt-1 font-mono text-xs font-bold uppercase tracking-[0.3em] text-primary sys-glow-text">Quest info</h2>
             <h2 className="mt-1 text-lg font-bold">{quest.name}</h2>
           </div>
-          <DiffBadge d={quest.diff} />
+          <DiffBadge d={quest.diff} baseDifficulty={quest.baseDifficulty} />
         </div>
         <p className="whitespace-pre-wrap text-sm text-muted-foreground">{quest.description || "No additional details."}</p>
         <div className="border border-primary/30 bg-primary/5 p-3">

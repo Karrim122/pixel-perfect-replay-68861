@@ -137,7 +137,7 @@ export function QuestsTab() {
                     {quest.startedAt && !done && <CriticalTimer startedAt={quest.startedAt} seconds={speedWindowSeconds((quest.focusMinutes ?? 25) * 60, state.stats.agility)} />}
                     {quest.startedAt && !done && <button type="button" className="mt-1 font-mono text-[9px] uppercase text-destructive" onClick={() => act((s, alerts) => useLabHelp(s, quest.id, alerts))}>Get help · HP cost</button>}
                   </div>
-                  <DiffBadge d={quest.diff} />
+                  <DiffBadge d={quest.diff} baseDifficulty={quest.baseDifficulty ?? baseDifficultyForDiff(quest.diff, state.level)} />
                   <ItemOptionsMenu itemName={quest.name} info={`${quest.description || "No description."}\nRank: ${quest.diff}\nFocus time: ${quest.focusMinutes ? `${quest.focusMinutes} minutes` : "not assigned"}\nRepeat: ${quest.daysOfWeek.length} days per week`} onEdit={() => editWeekly(quest.id)} canMoveUp={index > 0} canMoveDown={index < todayQuests.length - 1}
                     onMoveUp={() => act((s) => moveItem(s.weeklyQuests, quest.id, todayQuests[index - 1]!.id))}
                     onMoveDown={() => act((s) => moveItem(s.weeklyQuests, quest.id, todayQuests[index + 1]!.id))}

@@ -183,8 +183,11 @@ export function SkillPicker({ skills, value, onChange }: { skills: { id: CyberSk
   </fieldset>;
 }
 
-export function DiffBadge({ d }: { d: Diff }) {
+export function DiffBadge({ d, baseDifficulty = "Medium" }: { d: Diff; baseDifficulty?: BaseDifficulty }) {
   const label = d === "N" ? "NL" : d === "M" ? "SM" : `${d}-Rank`;
   const rank = RANKS[DIFFS.indexOf(d)]!;
-  return <span title={rank.name} aria-label={rank.name} className="inline-flex h-6 min-w-6 items-center justify-center border border-primary/60 px-1 font-mono text-[10px] font-bold text-primary">{label}</span>;
+  const color = baseDifficulty === "Very Easy" || baseDifficulty === "Easy"
+    ? "text-yellow-300"
+    : baseDifficulty === "Medium" ? "text-orange-400" : "text-red-400";
+  return <span title={`${rank.name} · ${baseDifficulty}`} aria-label={`${rank.name}, ${baseDifficulty} difficulty`} className={cn("inline-flex items-center font-mono text-[10px] font-bold", color)}>{label}</span>;
 }

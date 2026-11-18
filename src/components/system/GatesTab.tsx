@@ -87,7 +87,7 @@ export function GatesTab() {
                       <p className={cn("font-bold", project.done && "text-muted-foreground line-through")}>{project.name}</p>
                       {project.description && <p className="mt-1 whitespace-pre-wrap text-xs text-muted-foreground">{project.description}</p>}
                       <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                        <DiffBadge d={project.diff} />
+                        <DiffBadge d={project.diff} baseDifficulty={project.baseDifficulty ?? baseDifficultyForDiff(project.diff, state.level)} />
                         {skillNames.map((skillName) => <span key={skillName} className="rounded border border-primary/30 px-1.5 py-0.5 font-mono text-[9px] text-primary">{skillName}</span>)}
                       </div>
                       {project.done && project.completedAt && <p className="mt-1 font-mono text-[9px] text-muted-foreground">Completed {project.completedAt}</p>}
