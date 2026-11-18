@@ -93,19 +93,21 @@ export function StatusTab() {
             <Bar value={state.xp} max={xpToNext(state.level)} kind="xp" />
           </div>
         </div>
-        <div className="mt-4 flex justify-between border-t border-border pt-3 font-mono text-xs">
-          <span className="text-muted-foreground">Attribute points · +3 per level</span>
-          <span className="font-bold text-primary">{state.points}</span>
-        </div>
       </Panel>
 
       <Panel title="Attributes">
         <div className="grid grid-cols-2 gap-x-6 gap-y-2 font-mono text-sm">
           {ATTRS.map((a) => (
-            <div key={a.key} className="flex items-center justify-between border-b border-border/50 py-1">
-              <span className="flex items-center gap-1.5 uppercase text-muted-foreground"><AttributeIcon attr={a.key} className="h-3.5 w-3.5 text-primary" />{a.label.slice(0, 3)}</span>
-              <span className="font-bold text-foreground">{state.stats[a.key]}</span>
-              <button aria-label={`Add point to ${a.label}`} disabled={state.points < 1} onClick={() => act((s) => { allocateAttributePoint(s, a.key); })} className="text-primary disabled:opacity-30">+</button>
+            <div key={a.key} className="border-b border-border/50 py-1">
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-1.5 uppercase text-muted-foreground"><AttributeIcon attr={a.key} className="h-3.5 w-3.5 text-primary" />{a.label.slice(0, 3)}</span>
+                <span className="font-bold text-foreground">{state.stats[a.key]}</span>
+                <button aria-label={`Add point to ${a.label}`} disabled={state.points < 1} onClick={() => act((s) => { allocateAttributePoint(s, a.key); })} className="text-primary disabled:opacity-30">+</button>
+              </div>
+              {a.key === "agility" && <div className="mt-2 flex items-center gap-2 border-t border-primary/20 pt-1.5">
+                <span className="font-mono text-xl font-bold leading-none text-primary">{state.points}</span>
+                <span className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground">Available attribute points</span>
+              </div>}
             </div>
           ))}
         </div>
