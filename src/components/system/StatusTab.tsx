@@ -106,7 +106,7 @@ export function StatusTab() {
               </div>
             </div>
           ))}
-          <div className="flex items-center justify-center gap-2 border border-primary/30 bg-primary/5 p-2">
+          <div className="flex items-center justify-center gap-2 p-2">
             <span className="font-mono text-xl font-bold leading-none text-primary">{state.points}</span>
             <span className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground">Available attribute points</span>
           </div>
