@@ -66,8 +66,12 @@ export function rankIndex(level: number) {
   return i;
 }
 export const rankOf = (level: number) => RANKS[rankIndex(level)]!;
-/** XP requirements grow quadratically with level to make later ranks harder to reach. */
-export const xpToNext = (level: number) => Math.round(100 + 25 * level + 5 * level * level);
+/** Ease the E-rank start, then ramp back to the previous quadratic curve by level 60. */
+export const xpToNext = (level: number) => {
+  if (level <= 10) return 20 + 3 * level;
+  const postELevel = level - 10;
+  return Math.round(50 + 8 * postELevel + 8 * postELevel * postELevel);
+};
 export const skillXpToNext = (level: number) => xpToNext(level) * 3;
 
 export interface Skill { id: CyberSkill; name: string; description?: string | undefined; level: number; xp: number; }
@@ -85,7 +89,7 @@ export interface FocusAnalysisCorrection {
 export interface LogEntry { id: string; ts: number; text: string; kind: "info" | "warn" | "level"; }
 
 export interface GameState {
-  level: number; xp: number; hp: number; maxHp: number; mana: number; maxMana: number; points: number; potions: number; manaPotions: number; skipPotions: number;
+  level: number; xp: number; xpCurveVersion: number; hp: number; maxHp: number; mana: number; maxMana: number; points: number; potions: number; manaPotions: number; skipPotions: number;
   stats: Record<Attr, number>;
   dailyQuests: DailyQuest[]; weeklyQuests: WeeklyQuest[]; skills: Skill[]; todos: Todo[]; inventoryGifts: InventoryGift[]; sessions: Session[]; log: LogEntry[];
   focusAnalysisCorrection: FocusAnalysisCorrection;
@@ -112,7 +116,7 @@ export function moveItem<T extends { id: string }>(items: T[], id: string, targe
 }
 
 export const initialState = (): GameState => ({
-  level: 1, xp: 0, hp: 110, maxHp: 110, mana: 60, maxMana: 60, points: 0, potions: 0, manaPotions: 0, skipPotions: 0,
+  level: 1, xp: 0, xpCurveVersion: 2, hp: 110, maxHp: 110, mana: 60, maxMana: 60, points: 0, potions: 0, manaPotions: 0, skipPotions: 0,
   stats: { strength: 1, agility: 1, intelligence: 1, perception: 1, vitality: 1 },
   dailyQuests: [], weeklyQuests: [], skills: CYBER_SKILLS.map(({ id, name }) => ({ id, name, level: 1, xp: 0 })), todos: [], inventoryGifts: [], sessions: [], log: [], focusAnalysisCorrection: { used: false, todayMinutes: 0, todayDate: today(), totalMinutes: 0, closedGates: 0, efficiency: 0 }, startingStatsAdjusted: true, lastDay: today(), dailyGateQuestDoneDate: null, dailyQuestRewardDay: null, weeklyQuestRewardDays: [], dailyQuestStreak: 0, dailyQuestStreakDate: null, activeGate: null, playerName: "", playerSince: today(),
 });
@@ -525,6 +529,13 @@ export function hydrateState(raw: string): GameState {
     focusBreathUses?: unknown;
   };
   const base = initialState();
+  const savedLevel = Math.max(1, Math.floor(saved.level ?? 1));
+  const currentXpThreshold = xpToNext(savedLevel);
+  const oldXpThreshold = Math.round(100 + 25 * savedLevel + 5 * savedLevel * savedLevel);
+  const savedXp = Math.max(0, saved.xp ?? 0);
+  const xp = saved.xpCurveVersion === 2
+    ? Math.min(currentXpThreshold - 1, savedXp)
+    : Math.min(currentXpThreshold - 1, Math.round((savedXp / oldXpThreshold) * currentXpThreshold));
   const weeklyQuests = saved.weeklyQuests ?? (saved.dailies ?? []).map((daily) => ({
     id: daily.id,
     name: daily.name,
@@ -549,7 +560,13 @@ export function hydrateState(raw: string): GameState {
   };
   const skills = CYBER_SKILLS.map(({ id, name }) => {
     const old = saved.skills?.find((item) => item.id === id || item.name.toLowerCase() === name.toLowerCase());
-    return { id, name, level: old?.level ?? 1, xp: old?.xp ?? 0 };
+    const skillLevel = Math.max(1, old?.level ?? 1);
+    const oldSkillThreshold = Math.round(100 + 25 * skillLevel + 5 * skillLevel * skillLevel) * 3;
+    const currentSkillThreshold = skillXpToNext(skillLevel);
+    const skillXp = saved.xpCurveVersion === 2
+      ? Math.min(currentSkillThreshold - 1, Math.max(0, old?.xp ?? 0))
+      : Math.min(currentSkillThreshold - 1, Math.round((Math.max(0, old?.xp ?? 0) / oldSkillThreshold) * currentSkillThreshold));
+    return { id, name, level: skillLevel, xp: skillXp };
   });
   const maxHp = statMaxHp(stats.vitality);
   const maxMana = statMaxMana(stats.intelligence);
@@ -565,5 +582,5 @@ export function hydrateState(raw: string): GameState {
   ].filter((date) => /^\d{4}-\d{2}-\d{2}$/.test(date)).sort();
   const playerSince = saved.playerSince ?? legacyActivityDates[0] ?? saved.lastDay ?? today();
   const focusAnalysisCorrection = saved.focusAnalysisCorrection ?? base.focusAnalysisCorrection;
-  return { ...base, ...current, level: saved.level ?? 1, points: Math.max(0, (saved.points ?? 0) + Math.max(0, (saved.level ?? 1) - 1) * 3), hp: Math.min(maxHp, saved.hp ?? maxHp), maxHp, mana: Math.min(maxMana, saved.mana ?? maxMana), maxMana, manaPotions: saved.manaPotions ?? 0, skipPotions: saved.skipPotions ?? 0, todos: (saved.todos ?? []).filter((task) => !task.emergency), skills, focusAnalysisCorrection, startingStatsAdjusted: true, stats, playerSince, dailyQuests: saved.dailyQuests ?? [], weeklyQuests: weeklyQuests.map((quest) => ({ ...quest, daysOfWeek: Array.isArray(quest.daysOfWeek) ? quest.daysOfWeek.filter((day) => Number.isInteger(day) && day >= 0 && day <= 6) : [], doneDates: Array.isArray(quest.doneDates) ? quest.doneDates : [], rewardedDates: Array.isArray(quest.rewardedDates) ? quest.rewardedDates : Array.isArray(quest.doneDates) ? quest.doneDates : [], masteryLevel: Math.max(1, quest.masteryLevel ?? 1), masteryXp: Math.max(0, quest.masteryXp ?? 0) })), inventoryGifts: saved.inventoryGifts ?? [], dailyGateQuestDoneDate: saved.dailyGateQuestDoneDate ?? null, dailyQuestRewardDay: saved.dailyQuestRewardDay ?? null, dailyQuestStreak: Math.max(0, Math.floor(saved.dailyQuestStreak ?? 0)), dailyQuestStreakDate: saved.dailyQuestStreakDate ?? null, activeGate: saved.activeGate ?? null, weeklyQuestRewardDays: saved.weeklyQuestRewardDays ?? (saved.weeklyQuestRewardDay ? [saved.weeklyQuestRewardDay] : []) } as GameState;
+  return { ...base, ...current, level: savedLevel, xp, xpCurveVersion: 2, points: Math.max(0, (saved.points ?? 0) + Math.max(0, savedLevel - 1) * 3), hp: Math.min(maxHp, saved.hp ?? maxHp), maxHp, mana: Math.min(maxMana, saved.mana ?? maxMana), maxMana, manaPotions: saved.manaPotions ?? 0, skipPotions: saved.skipPotions ?? 0, todos: (saved.todos ?? []).filter((task) => !task.emergency), skills, focusAnalysisCorrection, startingStatsAdjusted: true, stats, playerSince, dailyQuests: saved.dailyQuests ?? [], weeklyQuests: weeklyQuests.map((quest) => ({ ...quest, daysOfWeek: Array.isArray(quest.daysOfWeek) ? quest.daysOfWeek.filter((day) => Number.isInteger(day) && day >= 0 && day <= 6) : [], doneDates: Array.isArray(quest.doneDates) ? quest.doneDates : [], rewardedDates: Array.isArray(quest.rewardedDates) ? quest.rewardedDates : Array.isArray(quest.doneDates) ? quest.doneDates : [], masteryLevel: Math.max(1, quest.masteryLevel ?? 1), masteryXp: Math.max(0, quest.masteryXp ?? 0) })), inventoryGifts: saved.inventoryGifts ?? [], dailyGateQuestDoneDate: saved.dailyGateQuestDoneDate ?? null, dailyQuestRewardDay: saved.dailyQuestRewardDay ?? null, dailyQuestStreak: Math.max(0, Math.floor(saved.dailyQuestStreak ?? 0)), dailyQuestStreakDate: saved.dailyQuestStreakDate ?? null, activeGate: saved.activeGate ?? null, weeklyQuestRewardDays: saved.weeklyQuestRewardDays ?? (saved.weeklyQuestRewardDay ? [saved.weeklyQuestRewardDay] : []) } as GameState;
 }
