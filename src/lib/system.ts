@@ -292,14 +292,9 @@ export function triggerBonusPenaltyHabit(s: GameState, id: string, alerts: Alert
       habit.rewardCount = 1;
     }
     const dailyCompletions = habit.rewardCount ?? 0;
-    if (dailyCompletions >= 2) {
-      log(s, `Bonus habit logged: ${habit.name} (×${occurrence}). Daily XP limit reached.`, "info");
-      alerts.push({ kind: "info", title: "[SYSTEM] Good Habit Logged", body: `${habit.name} recorded. You have earned today's rewards for this habit. You can earn rewards from it again tomorrow.` });
-      return;
-    }
     habit.rewardCount = (habit.rewardCount ?? 0) + 1;
     const isFirstCompletionToday = dailyCompletions === 0;
-    const xp = isFirstCompletionToday ? DIFF_XP[habit.diff] : 0;
+    const xp = DIFF_XP[habit.diff];
     const fullProgress = attributeProgressForXp(DIFF_XP[habit.diff], s.level);
     const progress = isFirstCompletionToday ? fullProgress : Math.round(fullProgress / 2 * 10) / 10;
     if (xp > 0) gainXp(s, xp, alerts);
@@ -310,7 +305,7 @@ export function triggerBonusPenaltyHabit(s: GameState, id: string, alerts: Alert
       changeStats(s, habit.attrs, progress);
     }
     log(s, `Bonus habit: ${habit.name} (×${occurrence}).${xp > 0 ? ` +${xp} XP` : " No XP"}${gainedPractice ? `, +${progress}% attribute progress` : ""}`, "info");
-    const xpMessage = xp > 0 ? ` +${xp} XP.` : " No XP on repeat completions.";
+    const xpMessage = ` +${xp} XP.`;
     const practiceMessage = gainedPractice ? ` +${progress}% attribute progress${isFirstCompletionToday ? "" : " (half the first completion)"} for ${habit.attrs.join(", ")}.` : " Daily attribute progress was already earned.";
     alerts.push({ kind: "info", title: "[SYSTEM] Good Habit Complete!", body: `${habit.name} complete.${xpMessage}${practiceMessage} Keep your streak of good choices going.` });
   } else {
