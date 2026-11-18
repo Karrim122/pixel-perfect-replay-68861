@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { Check } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
 import { playSound } from "@/lib/sound";
-import { awardRandomReward, BASE_DIFFICULTIES, baseDifficultyForDiff, canAccessDifficulty, completeDailyGateQuest, completeTodo, completeWeeklyQuest, DIFF_HP, DIFF_XP, difficultyForRankIndex, FOCUS_REWARD_INTERVAL_MINUTES, isWeeklyQuestScheduled, questManaCost, rankIndex, requiredStrengthFor, resolveDifficulty, spendMana, speedWindowSeconds, takeDamage, uid, useGateHelp, gainXp, type Alert, type GameState, type GateObjective } from "@/lib/system";
+import { awardRandomReward, baseDifficultyForDiff, canAccessDifficulty, completeTodo, completeWeeklyQuest, DIFF_HP, DIFF_XP, difficultyForRankIndex, FOCUS_REWARD_INTERVAL_MINUTES, isWeeklyQuestScheduled, questManaCost, rankIndex, requiredStrengthFor, resolveDifficulty, spendMana, speedWindowSeconds, takeDamage, uid, useGateHelp, gainXp, type Alert, type GameState, type GateObjective } from "@/lib/system";
 import { AddIconButton, CriticalTimer, ItemOptionsMenu, Panel, SysButton, inputCls } from "./ui";
 
 function GateObjectives({ editable = false }: { editable?: boolean }) {
@@ -129,15 +129,11 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
       const levelAtStart = s.level;
       if (assignedTarget.startsWith("t:")) {
         const task = s.todos.find((item) => item.id === assignedTarget.slice(2));
-        const taskDifficulty = task?.baseDifficulty ?? (task ? baseDifficultyForDiff(task.diff, levelAtStart) : undefined);
-        const qualifiesForDailyGate = Boolean(task && !task.done && taskDifficulty && BASE_DIFFICULTIES.indexOf(taskDifficulty) >= BASE_DIFFICULTIES.indexOf("Medium"));
         if (task) completeTodo(s, task.id, a);
-        if (qualifiesForDailyGate && task) completeDailyGateQuest(s, a);
       }
       if (assignedTarget.startsWith("w:")) {
-        if (completeWeeklyQuest(s, assignedTarget.slice(2), a)) completeDailyGateQuest(s, a);
+        completeWeeklyQuest(s, assignedTarget.slice(2), a);
       }
-      completeDailyGateQuest(s, a);
       const labDiff = selectedLab?.diff ?? resolveDifficulty("Medium", levelAtStart);
       const gateXp = gainXp(s, DIFF_XP[labDiff], a);
       const elapsedSeconds = (Date.now() - meta.current.startedAt) / 1000;
@@ -346,7 +342,7 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
         </Panel>
         <SysButton disabled={!focusMinutes} className="h-14 w-full" onClick={clear}>Clear Gate</SysButton>
         <SysButton variant="danger" className="w-full" onClick={() => fail("You left the gate quest.")}>Leave Gate</SysButton>
-        <p className="text-center font-mono text-[10px] text-muted-foreground">Clearing this gate completes today's project objective. Leaving causes rank-scaled HP damage, reduced by STR.</p>
+        <p className="text-center font-mono text-[10px] text-muted-foreground">Leaving causes rank-scaled HP damage, reduced by STR.</p>
       </div>
     );
   }

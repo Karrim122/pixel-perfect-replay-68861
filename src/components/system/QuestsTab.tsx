@@ -9,7 +9,6 @@ import { cn } from "@/lib/utils";
 
 export function QuestsTab() {
   const { state, act } = useSystem();
-  const dailyDone = state.dailyGateQuestDoneDate === state.lastDay;
   const dailyStreak = dailyQuestStreakFor(state);
   const todayQuests = state.weeklyQuests.filter((quest) => isWeeklyQuestScheduled(quest, state.lastDay));
   const [open, setOpen] = useState(false);
@@ -78,18 +77,8 @@ export function QuestsTab() {
 
   return (
     <div className="space-y-4">
-      <Panel title="Daily Quests" actions={<div className="flex items-center gap-2"><StreakBadge count={dailyStreak} completedToday={state.dailyQuestStreakDate === state.lastDay} label={`${dailyStreak} day streak clearing the project objective and every Daily quest`} /><AddIconButton label="Add daily quest" onClick={() => { setEditingId(null); setEditingWeeklyId(null); setName(""); setDescription(""); setBaseDifficulty("Easy"); setAttrs(["agility"]); setSkillIds(["security"]); setFocusMinutes("25"); setReminder(""); setOpen(true); }} /></div>}>
+      <Panel title="Daily Quests" actions={<div className="flex items-center gap-2"><StreakBadge count={dailyStreak} completedToday={state.dailyQuestStreakDate === state.lastDay} label={`${dailyStreak} day streak clearing every Daily quest`} /><AddIconButton label="Add daily quest" onClick={() => { setEditingId(null); setEditingWeeklyId(null); setName(""); setDescription(""); setBaseDifficulty("Easy"); setAttrs(["agility"]); setSkillIds(["security"]); setFocusMinutes("25"); setReminder(""); setOpen(true); }} /></div>}>
         <ul className="space-y-3">
-          <li className="flex items-center gap-3 border-b border-border/40 pb-3">
-            <button type="button" role="checkbox" aria-checked={dailyDone} aria-label="Clear a project gate" disabled
-              className={cn("flex h-10 w-10 shrink-0 cursor-not-allowed items-center justify-center rounded-md border", dailyDone ? "border-success bg-success/20 text-success" : "border-primary/60 text-primary")}>
-              {dailyDone && <Check className="h-5 w-5" />}
-            </button>
-            <div className="min-w-0 flex-1 pr-3">
-              <p className={cn("text-lg", dailyDone && "text-muted-foreground line-through")}>Clear a project gate</p>
-              <p className="font-mono text-[10px] text-muted-foreground">Clear a gate or finish a qualifying quest inside one.</p>
-            </div>
-          </li>
           {state.dailyQuests.map((quest, index) => {
             const done = quest.doneDate === state.lastDay;
             return (

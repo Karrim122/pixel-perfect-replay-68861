@@ -94,7 +94,7 @@ export interface GameState {
   dailyQuests: DailyQuest[]; weeklyQuests: WeeklyQuest[]; skills: Skill[]; todos: Todo[]; inventoryGifts: InventoryGift[]; sessions: Session[]; log: LogEntry[];
   focusAnalysisCorrection: FocusAnalysisCorrection;
   startingStatsAdjusted: boolean;
-  lastDay: string; dailyGateQuestDoneDate: string | null; dailyQuestRewardDay: string | null; weeklyQuestRewardDays: string[];
+  lastDay: string; dailyQuestRewardDay: string | null; weeklyQuestRewardDays: string[];
   dailyQuestStreak: number; dailyQuestStreakDate: string | null;
   activeGate: ActiveGate | null;
   playerName: string; playerSince: string;
@@ -118,7 +118,7 @@ export function moveItem<T extends { id: string }>(items: T[], id: string, targe
 export const initialState = (): GameState => ({
   level: 1, xp: 0, xpCurveVersion: 2, hp: 110, maxHp: 110, mana: 60, maxMana: 60, points: 0, potions: 0, manaPotions: 0, skipPotions: 0,
   stats: { strength: 1, agility: 1, intelligence: 1, perception: 1, vitality: 1 },
-  dailyQuests: [], weeklyQuests: [], skills: CYBER_SKILLS.map(({ id, name }) => ({ id, name, level: 1, xp: 0 })), todos: [], inventoryGifts: [], sessions: [], log: [], focusAnalysisCorrection: { used: false, todayMinutes: 0, todayDate: today(), totalMinutes: 0, closedGates: 0, efficiency: 0 }, startingStatsAdjusted: true, lastDay: today(), dailyGateQuestDoneDate: null, dailyQuestRewardDay: null, weeklyQuestRewardDays: [], dailyQuestStreak: 0, dailyQuestStreakDate: null, activeGate: null, playerName: "", playerSince: today(),
+  dailyQuests: [], weeklyQuests: [], skills: CYBER_SKILLS.map(({ id, name }) => ({ id, name, level: 1, xp: 0 })), todos: [], inventoryGifts: [], sessions: [], log: [], focusAnalysisCorrection: { used: false, todayMinutes: 0, todayDate: today(), totalMinutes: 0, closedGates: 0, efficiency: 0 }, startingStatsAdjusted: true, lastDay: today(), dailyQuestRewardDay: null, weeklyQuestRewardDays: [], dailyQuestStreak: 0, dailyQuestStreakDate: null, activeGate: null, playerName: "", playerSince: today(),
 });
 
 export type Alert = { kind: "info" | "penalty" | "level" | "awaken" | "exhausted" | "monarch" | "lowHp"; title: string; body: string };
@@ -137,7 +137,7 @@ export function dailyQuestStreakFor(s: Pick<GameState, "dailyQuestStreak" | "dai
 }
 
 function allDailyQuestsComplete(s: GameState, date: string) {
-  return s.dailyGateQuestDoneDate === date && s.dailyQuests.every((quest) => quest.doneDate === date);
+  return s.dailyQuests.every((quest) => quest.doneDate === date);
 }
 
 function updateDailyQuestStreak(s: GameState) {
@@ -158,7 +158,7 @@ export function failInterruptedGate(s: GameState, alerts: Alert[]) {
 }
 
 function awardDailyPotionIfComplete(s: GameState, alerts: Alert[]) {
-  if (s.dailyQuestRewardDay === s.lastDay || s.dailyGateQuestDoneDate !== s.lastDay) return;
+  if (s.dailyQuestRewardDay === s.lastDay) return;
   if (!s.dailyQuests.every((quest) => quest.doneDate === s.lastDay)) return;
   const todaysWeeklyQuests = s.weeklyQuests.filter((quest) => isWeeklyQuestScheduled(quest, s.lastDay));
   if (!todaysWeeklyQuests.every((quest) => quest.doneDates.includes(s.lastDay))) return;
@@ -166,7 +166,7 @@ function awardDailyPotionIfComplete(s: GameState, alerts: Alert[]) {
   s.dailyQuestRewardDay = s.lastDay;
   s.potions += 1;
   log(s, "All daily and today's weekly quests complete. +1 Healing Potion", "level");
-  alerts.push({ kind: "info", title: "[SYSTEM] Daily Quests Complete!", body: "You cleared a gate, all Daily Quests, and all Recurring Quests scheduled for today. Reward: +1 Health Potion." });
+  alerts.push({ kind: "info", title: "[SYSTEM] Daily Quests Complete!", body: "You completed all Daily Quests and Recurring Quests scheduled for today. Reward: +1 Health Potion." });
 }
 
 function awardWeeklyCompletionGift(s: GameState, quest: WeeklyQuest, date: string, alerts: Alert[]) {
@@ -321,14 +321,6 @@ export function completeTodo(s: GameState, id: string, alerts: Alert[]) {
   delete task.startedAt;
 }
 
-export function completeDailyGateQuest(s: GameState, alerts: Alert[]) {
-  if (s.dailyGateQuestDoneDate === s.lastDay) return;
-  s.dailyGateQuestDoneDate = s.lastDay;
-  updateDailyQuestStreak(s);
-  log(s, "Daily objective complete: Clear a gate", "level");
-  awardDailyPotionIfComplete(s, alerts);
-}
-
 export function usePotion(s: GameState) {
   if (s.potions < 1 || s.hp >= s.maxHp) return;
   const restored = Math.min(POTION_HP, s.maxHp - s.hp);
@@ -466,7 +458,7 @@ export function allocateAttributePoint(s: GameState, attr: Attr) {
   return true;
 }
 
-/** Reset daily progress, recover HP, and apply the missed gate penalty. */
+/** Reset daily progress, recover HP, and apply missed quest penalties. */
 export function rollover(s: GameState, alerts: Alert[]) {
   const t = today();
   if (s.lastDay === t) return;
@@ -485,13 +477,6 @@ export function rollover(s: GameState, alerts: Alert[]) {
     takeDamage(s, damage, alerts);
     delete quest.startedAt;
   });
-  if (s.dailyGateQuestDoneDate !== s.lastDay) {
-    const diff = difficultyForRankIndex(rankIndex(s.level));
-    const damage = 25 + DIFF_HP[diff] * 10;
-    log(s, `Daily project objective failed. -${damage} HP`, "warn");
-    alerts.push({ kind: "penalty", title: "[SYSTEM] Daily Project Objective Failed", body: `A gate was not cleared today. -${damage} HP. STR reduces damage taken.` });
-    takeDamage(s, damage, alerts);
-  }
   s.weeklyQuests.forEach((quest) => {
     if (!quest.startedAt || quest.doneDates.includes(s.lastDay)) return;
     const damage = 20 + DIFF_HP[quest.diff] * 10;
@@ -514,6 +499,7 @@ export function rollover(s: GameState, alerts: Alert[]) {
 
 export function hydrateState(raw: string): GameState {
   const saved = JSON.parse(raw) as Partial<GameState> & {
+    dailyGateQuestDoneDate?: string | null;
     statProgress?: Partial<Record<Attr, number>>;
     dailies?: { id: string; name: string; description?: string; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; doneDate: string | null; reminder?: string }[];
     penaltyHabits?: { id: string; name: string; description?: string; diff: Diff; baseDifficulty?: BaseDifficulty; attrs: Attr[]; count: number; streakCount?: number; streakDate?: string | null }[];
@@ -570,7 +556,7 @@ export function hydrateState(raw: string): GameState {
   });
   const maxHp = statMaxHp(stats.vitality);
   const maxMana = statMaxMana(stats.intelligence);
-  const { dailies: _dailies, habits: _habits, penaltyHabits: _penaltyHabits, bonusPenaltyHabits: _bonusPenaltyHabits, statProgress: _statProgress, focusAnalysisOverrides: _focusAnalysisOverrides, weeklyQuestRewardDay: _weeklyQuestRewardDay, attributeProgressRepairApplied: _attributeProgressRepairApplied, focusRegainDeadline: _focusRegainDeadline, focusRegainStep: _focusRegainStep, focusBreathDeadline: _focusBreathDeadline, focusBreathUsesDate: _focusBreathUsesDate, focusBreathUses: _focusBreathUses, ...current } = saved;
+  const { dailyGateQuestDoneDate: _dailyGateQuestDoneDate, dailies: _dailies, habits: _habits, penaltyHabits: _penaltyHabits, bonusPenaltyHabits: _bonusPenaltyHabits, statProgress: _statProgress, focusAnalysisOverrides: _focusAnalysisOverrides, weeklyQuestRewardDay: _weeklyQuestRewardDay, attributeProgressRepairApplied: _attributeProgressRepairApplied, focusRegainDeadline: _focusRegainDeadline, focusRegainStep: _focusRegainStep, focusBreathDeadline: _focusBreathDeadline, focusBreathUsesDate: _focusBreathUsesDate, focusBreathUses: _focusBreathUses, ...current } = saved;
   const legacyActivityDates = [
     ...(saved.log ?? []).map(({ ts }) => {
       const date = new Date(ts);
@@ -582,5 +568,5 @@ export function hydrateState(raw: string): GameState {
   ].filter((date) => /^\d{4}-\d{2}-\d{2}$/.test(date)).sort();
   const playerSince = saved.playerSince ?? legacyActivityDates[0] ?? saved.lastDay ?? today();
   const focusAnalysisCorrection = saved.focusAnalysisCorrection ?? base.focusAnalysisCorrection;
-  return { ...base, ...current, level: savedLevel, xp, xpCurveVersion: 2, points: Math.max(0, (saved.points ?? 0) + Math.max(0, savedLevel - 1) * 3), hp: Math.min(maxHp, saved.hp ?? maxHp), maxHp, mana: Math.min(maxMana, saved.mana ?? maxMana), maxMana, manaPotions: saved.manaPotions ?? 0, skipPotions: saved.skipPotions ?? 0, todos: (saved.todos ?? []).filter((task) => !task.emergency), skills, focusAnalysisCorrection, startingStatsAdjusted: true, stats, playerSince, dailyQuests: saved.dailyQuests ?? [], weeklyQuests: weeklyQuests.map((quest) => ({ ...quest, daysOfWeek: Array.isArray(quest.daysOfWeek) ? quest.daysOfWeek.filter((day) => Number.isInteger(day) && day >= 0 && day <= 6) : [], doneDates: Array.isArray(quest.doneDates) ? quest.doneDates : [], rewardedDates: Array.isArray(quest.rewardedDates) ? quest.rewardedDates : Array.isArray(quest.doneDates) ? quest.doneDates : [], masteryLevel: Math.max(1, quest.masteryLevel ?? 1), masteryXp: Math.max(0, quest.masteryXp ?? 0) })), inventoryGifts: saved.inventoryGifts ?? [], dailyGateQuestDoneDate: saved.dailyGateQuestDoneDate ?? null, dailyQuestRewardDay: saved.dailyQuestRewardDay ?? null, dailyQuestStreak: Math.max(0, Math.floor(saved.dailyQuestStreak ?? 0)), dailyQuestStreakDate: saved.dailyQuestStreakDate ?? null, activeGate: saved.activeGate ?? null, weeklyQuestRewardDays: saved.weeklyQuestRewardDays ?? (saved.weeklyQuestRewardDay ? [saved.weeklyQuestRewardDay] : []) } as GameState;
+  return { ...base, ...current, level: savedLevel, xp, xpCurveVersion: 2, points: Math.max(0, (saved.points ?? 0) + Math.max(0, savedLevel - 1) * 3), hp: Math.min(maxHp, saved.hp ?? maxHp), maxHp, mana: Math.min(maxMana, saved.mana ?? maxMana), maxMana, manaPotions: saved.manaPotions ?? 0, skipPotions: saved.skipPotions ?? 0, todos: (saved.todos ?? []).filter((task) => !task.emergency), skills, focusAnalysisCorrection, startingStatsAdjusted: true, stats, playerSince, dailyQuests: saved.dailyQuests ?? [], weeklyQuests: weeklyQuests.map((quest) => ({ ...quest, daysOfWeek: Array.isArray(quest.daysOfWeek) ? quest.daysOfWeek.filter((day) => Number.isInteger(day) && day >= 0 && day <= 6) : [], doneDates: Array.isArray(quest.doneDates) ? quest.doneDates : [], rewardedDates: Array.isArray(quest.rewardedDates) ? quest.rewardedDates : Array.isArray(quest.doneDates) ? quest.doneDates : [], masteryLevel: Math.max(1, quest.masteryLevel ?? 1), masteryXp: Math.max(0, quest.masteryXp ?? 0) })), inventoryGifts: saved.inventoryGifts ?? [], dailyQuestRewardDay: saved.dailyQuestRewardDay ?? null, dailyQuestStreak: Math.max(0, Math.floor(saved.dailyQuestStreak ?? 0)), dailyQuestStreakDate: saved.dailyQuestStreakDate ?? null, activeGate: saved.activeGate ?? null, weeklyQuestRewardDays: saved.weeklyQuestRewardDays ?? (saved.weeklyQuestRewardDay ? [saved.weeklyQuestRewardDay] : []) } as GameState;
 }

@@ -83,7 +83,6 @@ function Shell() {
   const [settings, setSettings] = useState(false);
   const rank = rankOf(state.level);
   const remainingToday =
-    Number(state.dailyGateQuestDoneDate !== state.lastDay) +
     state.dailyQuests.filter((quest) => quest.doneDate !== state.lastDay).length +
     state.weeklyQuests.filter((quest) => isWeeklyQuestScheduled(quest, state.lastDay) && !quest.doneDates.includes(state.lastDay)).length;
   const remainingTodoTasks = state.todos.filter((task) => !task.done && task.due === state.lastDay).length;
