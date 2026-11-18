@@ -104,12 +104,12 @@ export function StatusTab() {
                 <span className="font-bold text-foreground">{state.stats[a.key]}</span>
                 <button aria-label={`Add point to ${a.label}`} disabled={state.points < 1} onClick={() => act((s) => { allocateAttributePoint(s, a.key); })} className="text-primary disabled:opacity-30">+</button>
               </div>
-              {a.key === "agility" && <div className="mt-2 flex items-center gap-2 border-t border-primary/20 pt-1.5">
-                <span className="font-mono text-xl font-bold leading-none text-primary">{state.points}</span>
-                <span className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground">Available attribute points</span>
-              </div>}
             </div>
           ))}
+          <div className="flex items-center justify-center gap-2 border border-primary/30 bg-primary/5 p-2">
+            <span className="font-mono text-xl font-bold leading-none text-primary">{state.points}</span>
+            <span className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground">Available attribute points</span>
+          </div>
         </div>
       </Panel>
 
