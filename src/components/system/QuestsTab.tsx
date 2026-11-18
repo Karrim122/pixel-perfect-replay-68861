@@ -6,6 +6,7 @@ import { baseDifficultyForDiff, completeDailyQuest, completeWeeklyQuest, dailyQu
 import { playSound } from "@/lib/sound";
 import { AddIconButton, BaseDifficultyPicker, CriticalTimer, DiffBadge, ItemOptionsMenu, Panel, SkillPicker, StreakBadge, SysButton, inputCls } from "./ui";
 import { cn } from "@/lib/utils";
+import { QuestInfoDialog } from "./QuestInfoDialog";
 
 export function QuestsTab() {
   const { state, act } = useSystem();
@@ -21,6 +22,7 @@ export function QuestsTab() {
   const [reminder, setReminder] = useState("");
   const [skillIds, setSkillIds] = useState<CyberSkill[]>(["security"]);
   const [focusMinutes, setFocusMinutes] = useState("25");
+  const [activeQuest, setActiveQuest] = useState<{ kind: "daily" | "weekly"; id: string } | null>(null);
 
   const closeEditor = () => {
     setOpen(false); setEditingId(null); setEditingWeeklyId(null); setName(""); setDescription("");
@@ -63,7 +65,7 @@ export function QuestsTab() {
     const quest = state.dailyQuests.find((item) => item.id === id);
     if (!quest) return;
     buzz();
-    if (!quest.startedAt) act((s, alerts) => { startDailyQuest(s, id, alerts); });
+    if (!quest.startedAt) { act((s, alerts) => { startDailyQuest(s, id, alerts); }); setActiveQuest({ kind: "daily", id }); }
     else { playSound("done"); act((s, alerts) => completeDailyQuest(s, id, alerts)); }
   };
 
@@ -71,8 +73,21 @@ export function QuestsTab() {
     const quest = state.weeklyQuests.find((item) => item.id === id);
     if (!quest) return;
     buzz();
-    if (!quest.startedAt) act((s, alerts) => { startWeeklyQuest(s, id, alerts); });
+    if (!quest.startedAt) { act((s, alerts) => { startWeeklyQuest(s, id, alerts); }); setActiveQuest({ kind: "weekly", id }); }
     else { playSound("done"); act((s, alerts) => completeWeeklyQuest(s, id, alerts)); }
+  };
+
+  const dialogQuest = activeQuest?.kind === "daily"
+    ? state.dailyQuests.find((quest) => quest.id === activeQuest.id)
+    : activeQuest?.kind === "weekly" ? state.weeklyQuests.find((quest) => quest.id === activeQuest.id) : undefined;
+  const completeDialogQuest = () => {
+    if (!activeQuest) return;
+    buzz();
+    playSound("done");
+    act((s, alerts) => activeQuest.kind === "daily"
+      ? completeDailyQuest(s, activeQuest.id, alerts)
+      : completeWeeklyQuest(s, activeQuest.id, alerts, s.lastDay));
+    setActiveQuest(null);
   };
 
   return (
@@ -153,6 +168,10 @@ export function QuestsTab() {
         </div>,
         document.body,
       )}
+      <QuestInfoDialog quest={dialogQuest?.startedAt ? dialogQuest : null} kind={activeQuest?.kind === "weekly" ? "Weekly Quest" : "Daily Quest"} agility={state.stats.agility} onClose={() => setActiveQuest(null)} onComplete={completeDialogQuest} onHelp={() => {
+        if (!activeQuest) return;
+        act((s, alerts) => useLabHelp(s, activeQuest.id, alerts));
+      }} />
     </div>
   );
 }

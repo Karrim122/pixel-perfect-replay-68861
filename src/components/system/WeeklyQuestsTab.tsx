@@ -6,6 +6,7 @@ import { baseDifficultyForDiff, completeWeeklyQuest, isWeeklyQuestScheduled, mov
 import { playSound } from "@/lib/sound";
 import { AddIconButton, BaseDifficultyPicker, CriticalTimer, DiffBadge, ItemOptionsMenu, Panel, SkillPicker, SysButton, inputCls } from "./ui";
 import { cn } from "@/lib/utils";
+import { QuestInfoDialog } from "./QuestInfoDialog";
 
 const WEEKDAYS = [
   { value: 6, label: "Saturday" }, { value: 0, label: "Sunday" }, { value: 1, label: "Monday" },
@@ -31,6 +32,7 @@ export function WeeklyQuestsTab() {
   const [reminder, setReminder] = useState("");
   const [skillIds, setSkillIds] = useState<CyberSkill[]>(["security"]);
   const [focusMinutes, setFocusMinutes] = useState("");
+  const [activeQuest, setActiveQuest] = useState<{ id: string; date: string } | null>(null);
 
   const closeEditor = () => {
     setOpen(false); setEditingId(null); setName(""); setDescription(""); setBaseDifficulty("Easy");
@@ -61,8 +63,16 @@ export function WeeklyQuestsTab() {
 
   const toggleComplete = (id: string, done: boolean, date: string) => {
     buzz(); playSound(done ? "warning" : "done");
-    act((s, alerts) => done ? uncompleteWeeklyQuest(s, id, date) : s.weeklyQuests.find((quest) => quest.id === id)?.startedAt ? completeWeeklyQuest(s, id, alerts, date) : startWeeklyQuest(s, id, alerts));
+    const quest = state.weeklyQuests.find((item) => item.id === id);
+    if (!done && quest && !quest.startedAt) {
+      act((s, alerts) => startWeeklyQuest(s, id, alerts));
+      setActiveQuest({ id, date });
+      return;
+    }
+    act((s, alerts) => done ? uncompleteWeeklyQuest(s, id, date) : completeWeeklyQuest(s, id, alerts, date));
   };
+
+  const activeQuestInfo = state.weeklyQuests.find((quest) => quest.id === activeQuest?.id);
 
   const toggleDay = (day: number) => setDaysOfWeek((selected) => selected.includes(day) ? selected.filter((value) => value !== day) : [...selected, day]);
 
@@ -134,6 +144,12 @@ export function WeeklyQuestsTab() {
         </div>,
         document.body,
       )}
+      <QuestInfoDialog quest={activeQuestInfo?.startedAt ? activeQuestInfo : null} kind="Weekly Quest" agility={state.stats.agility} onClose={() => setActiveQuest(null)} onComplete={() => {
+        if (activeQuest) { buzz(); playSound("done"); act((s, alerts) => completeWeeklyQuest(s, activeQuest.id, alerts, activeQuest.date)); }
+        setActiveQuest(null);
+      }} onHelp={() => {
+        if (activeQuest) act((s, alerts) => useLabHelp(s, activeQuest.id, alerts));
+      }} />
     </div>
   );
 }

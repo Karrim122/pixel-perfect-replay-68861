@@ -6,6 +6,7 @@ import { playSound } from "@/lib/sound";
 import { baseDifficultyForDiff, completeTodo, DIFFS, moveItem, questManaCost, RANKS, resolveDifficulty, speedWindowSeconds, startTodo, useLabHelp, today, uid, type Attr, type BaseDifficulty, type CyberSkill, type TodoReward } from "@/lib/system";
 import { AddIconButton, BaseDifficultyPicker, CriticalTimer, DiffBadge, ItemOptionsMenu, Panel, SkillPicker, SysButton, inputCls } from "./ui";
 import { cn } from "@/lib/utils";
+import { QuestInfoDialog } from "./QuestInfoDialog";
 
 export function TodoTab() {
   const { state, act } = useSystem();
@@ -23,6 +24,7 @@ export function TodoTab() {
   const [rewardDescription, setRewardDescription] = useState("");
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [activeQuestId, setActiveQuestId] = useState<string | null>(null);
   const potionRewardAllowed = baseDifficulty === "Hard" || baseDifficulty === "Very Hard";
   const list = state.todos
     .filter((t) => filter === "today" ? !t.due || t.due === state.lastDay : !t.done)
@@ -65,11 +67,14 @@ export function TodoTab() {
     buzz();
     if (!current.startedAt) {
       act((s, alerts) => { startTodo(s, id, alerts); });
+      setActiveQuestId(id);
     } else {
       playSound("done");
       act((s, alerts) => completeTodo(s, id, alerts));
     }
   };
+
+  const activeQuest = state.todos.find((task) => task.id === activeQuestId);
 
   return (
     <div className="space-y-4">
@@ -150,6 +155,12 @@ export function TodoTab() {
         </div>,
         document.body,
       )}
+      <QuestInfoDialog quest={activeQuest?.startedAt && !activeQuest.done ? activeQuest : null} kind="To-Do Quest" agility={state.stats.agility} onClose={() => setActiveQuestId(null)} onComplete={() => {
+        if (activeQuestId) complete(activeQuestId);
+        setActiveQuestId(null);
+      }} onHelp={() => {
+        if (activeQuestId) act((s, alerts) => useLabHelp(s, activeQuestId, alerts));
+      }} />
     </div>
   );
 }
