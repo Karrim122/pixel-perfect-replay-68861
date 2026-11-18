@@ -337,7 +337,7 @@ export function spendMana(s: GameState, amount: number, alerts: Alert[] = []) {
 
 export function awardRandomReward(s: GameState, alerts: Alert[], source: string, diff: Diff) {
   if (Math.random() >= randomRewardChance(s.stats.perception)) return;
-  const reward = Math.floor(Math.random() * 4);
+  const reward = Math.floor(Math.random() * 5);
   if (reward === 0) {
     const xp = gainXp(s, DIFF_XP[diff], alerts);
     log(s, `Perception reward: +${xp} bonus XP (${source})`, "level");
@@ -350,10 +350,14 @@ export function awardRandomReward(s: GameState, alerts: Alert[], source: string,
     s.potions += 1;
     log(s, `Perception reward: Health Potion (${source})`, "level");
     alerts.push({ kind: "info", title: "[SYSTEM] Hidden Reward", body: "Perception found a Health Potion." });
-  } else {
+  } else if (reward === 3) {
     s.skipPotions += 1;
     log(s, `Perception reward: Quest Skip Potion (${source})`, "level");
     alerts.push({ kind: "info", title: "[SYSTEM] Hidden Reward", body: "Perception found a Quest Skip Potion." });
+  } else {
+    s.points += 1;
+    log(s, `Perception reward: +1 attribute point (${source})`, "level");
+    alerts.push({ kind: "info", title: "[SYSTEM] Hidden Reward", body: "Perception found 1 available attribute point." });
   }
 }
 
