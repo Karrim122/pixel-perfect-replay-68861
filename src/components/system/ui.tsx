@@ -153,7 +153,7 @@ export function BaseDifficultyPicker({ value, onChange, playerLevel }: { value: 
           </SysButton>
         ))}
       </div>
-      <p className="font-mono text-[10px] text-primary">Final quest rank: {resolvedRank.name}</p>
+      <p className="font-mono text-[10px] text-primary">Final rank: {resolvedRank.name}</p>
     </div>
   );
 }
@@ -175,7 +175,7 @@ export function AttrPicker({ value, onChange }: { value: Attr[]; onChange: (a: A
 }
 
 export function SkillPicker({ skills, value, onChange }: { skills: { id: CyberSkill; name: string }[]; value?: CyberSkill[]; onChange: (ids: CyberSkill[]) => void }) {
-  return <fieldset className="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground"><legend>Skills used · more skills cost more mana</legend>
+  return <fieldset className="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground"><legend>Skills that earn XP</legend>
     <div className="mt-2 grid grid-cols-2 gap-1">{skills.map((skill) => {
       const selected = value?.includes(skill.id) ?? false;
       return <button type="button" key={skill.id} aria-pressed={selected} onClick={() => onChange(selected ? (value ?? []).filter((id) => id !== skill.id) : [...(value ?? []), skill.id])} className={cn("min-h-9 border px-2 text-left", selected ? "border-primary bg-primary/15 text-primary" : "border-border text-muted-foreground")}>{skill.name}</button>;

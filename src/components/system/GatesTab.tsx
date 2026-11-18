@@ -1,405 +1,119 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { createPortal } from "react-dom";
-import { Check } from "lucide-react";
+import { Check, FolderKanban } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
+import { baseDifficultyForDiff, completeProject, projectXpReward, resolveDifficulty, uid, type BaseDifficulty, type CyberSkill } from "@/lib/system";
+import { AddIconButton, BaseDifficultyPicker, DiffBadge, ItemOptionsMenu, Panel, SkillPicker, SysButton, inputCls } from "./ui";
 import { playSound } from "@/lib/sound";
-import { awardRandomReward, baseDifficultyForDiff, canAccessDifficulty, completeTodo, completeWeeklyQuest, DIFF_HP, DIFF_XP, difficultyForRankIndex, FOCUS_REWARD_INTERVAL_MINUTES, isWeeklyQuestScheduled, questManaCost, rankIndex, requiredStrengthFor, resolveDifficulty, spendMana, speedWindowSeconds, takeDamage, uid, useGateHelp, gainXp, type Alert, type GameState, type GateObjective } from "@/lib/system";
-import { AddIconButton, CriticalTimer, ItemOptionsMenu, Panel, SysButton, inputCls } from "./ui";
+import { cn } from "@/lib/utils";
 
-function GateObjectives({ editable = false }: { editable?: boolean }) {
+export function GatesTab() {
   const { state, act } = useSystem();
-  const [draft, setDraft] = useState("");
-  const [editorOpen, setEditorOpen] = useState(false);
+  const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const objectives = state.activeGate?.objectives ?? [];
-  const add = (event: React.FormEvent) => {
-    event.preventDefault();
-    const text = draft.trim();
-    if (!text) return;
-    act((s) => {
-      if (!s.activeGate) return;
-      if (editingId) {
-        const objective = s.activeGate.objectives?.find((entry) => entry.id === editingId);
-        if (objective) objective.text = text;
-      } else {
-        s.activeGate.objectives = [...(s.activeGate.objectives ?? []), { id: uid(), text, done: false }];
-      }
-    });
-    setDraft("");
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [baseDifficulty, setBaseDifficulty] = useState<BaseDifficulty>("Medium");
+  const [skillIds, setSkillIds] = useState<CyberSkill[]>(["security"]);
+  const rewardDiff = resolveDifficulty(baseDifficulty, state.level);
+  const rewardXp = Math.max(1, Math.round(projectXpReward(rewardDiff) * (1 + state.stats.intelligence * 0.01)));
+  const openProjects = state.projects.filter((project) => !project.done);
+  const orderedProjects = [...state.projects].sort((a, b) => Number(a.done) - Number(b.done));
+
+  const resetEditor = () => {
+    setOpen(false);
     setEditingId(null);
-    setEditorOpen(false);
+    setName("");
+    setDescription("");
+    setBaseDifficulty("Medium");
+    setSkillIds(["security"]);
   };
-  if (!editable && objectives.length === 0) return null;
-  return (
-    <section className="w-full max-w-md border border-primary/30 bg-card/70 p-3 text-left shadow-[0_0_18px_-12px_var(--primary)]">
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-primary">Gate Objectives · {objectives.filter((objective) => !objective.done).length} active</p>
-        {editable && state.activeGate && <SysButton type="button" variant="danger" className="h-8 min-h-8 px-2 text-[9px]" onClick={() => act((s, alerts) => useGateHelp(s, alerts))}>Use help · HP</SysButton>}
-        {editable && <AddIconButton label="Add gate objective" onClick={() => { setEditingId(null); setDraft(""); setEditorOpen(true); }} />}
-      </div>
-      {objectives.length > 0 && <ul className="space-y-1.5">
-        {objectives.map((objective) => <li key={objective.id} className="flex items-center gap-3 border-b border-border/40 pb-2">
-          {editable ? <button type="button" role="checkbox" aria-checked={objective.done} aria-label={`Complete ${objective.text}`} onClick={() => {
-            if (objective.done) return;
-            buzz(); playSound("done");
-            act((s) => { const item = s.activeGate?.objectives?.find((entry) => entry.id === objective.id); if (item) item.done = true; });
-          }} className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md border ${objective.done ? "border-primary bg-primary/20 text-primary" : "border-border text-muted-foreground"}`}>{objective.done && <Check className="h-4 w-4" />}</button>
-            : <span className={`h-2 w-2 shrink-0 border ${objective.done ? "border-primary bg-primary" : "border-muted-foreground"}`} />}
-          <p className={`min-w-0 flex-1 pr-2 text-sm ${objective.done ? "text-muted-foreground line-through" : "text-foreground"}`}>{objective.text}</p>
-          {editable && <ItemOptionsMenu itemName={objective.text} info="Gate objective" onEdit={() => { setEditingId(objective.id); setDraft(objective.text); setEditorOpen(true); }} onDelete={() => act((s) => { if (s.activeGate) s.activeGate.objectives = (s.activeGate.objectives ?? []).filter((entry) => entry.id !== objective.id); })} />}
-        </li>)}
-      </ul>}
-      {editorOpen && createPortal(
-        <div className="fixed inset-0 z-[100] flex items-end bg-background/80 backdrop-blur-md" onClick={() => setEditorOpen(false)}>
-          <form role="dialog" aria-modal="true" aria-label={editingId ? "Edit gate objective" : "Add gate objective"} onClick={(event) => event.stopPropagation()} onSubmit={add} className="sys-panel mx-auto w-full max-w-md space-y-3 p-5 animate-in slide-in-from-bottom">
-            <h3 className="font-mono text-xs uppercase tracking-[0.3em] text-primary">{editingId ? "Edit Gate Objective" : "Add Gate Objective"}</h3>
-            <input autoFocus required maxLength={100} className={inputCls} placeholder="Objective" value={draft} onChange={(event) => setDraft(event.target.value)} />
-            <div className="flex gap-2"><SysButton type="submit" className="flex-1">{editingId ? "Save Changes" : "Add Objective"}</SysButton><SysButton type="button" variant="ghost" onClick={() => setEditorOpen(false)}>Cancel</SysButton></div>
-          </form>
-        </div>, document.body,
-      )}
-    </section>
-  );
-}
 
-export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
-  const { state, act } = useSystem();
-  const [minutes, setMinutes] = useState("25");
-  const [target, setTarget] = useState("");
-  const [details, setDetails] = useState("");
-  const [objectivesDraft, setObjectivesDraft] = useState<GateObjective[]>([]);
-  const [newObjective, setNewObjective] = useState("");
-  const [objectiveDraftOpen, setObjectiveDraftOpen] = useState(false);
-  const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
-  const [endAt, setEndAt] = useState<number | null>(null);
-  const [now, setNow] = useState(Date.now());
-  const [timerKind, setTimerKind] = useState<"focus" | "rest" | null>(null);
-  const [timerMinutes, setTimerMinutes] = useState(25);
-  const [resumeFocusMinutes, setResumeFocusMinutes] = useState<number | null>(null);
-  const [focusMinutes, setFocusMinutes] = useState(0);
-  const [restLimit, setRestLimit] = useState(1);
-  const [restsUsed, setRestsUsed] = useState(0);
-  const [gateActive, setGateActive] = useState(false);
-  const [entering, setEntering] = useState(false);
-  const lastAlarmMilestone = useRef(0);
-  const meta = useRef({ label: "", target: "", details: "", startedAt: 0, speedTargetSeconds: 0 });
-  const entryTimeout = useRef<number | null>(null);
+  const edit = (id: string) => {
+    const project = state.projects.find((item) => item.id === id);
+    if (!project) return;
+    setEditingId(id);
+    setName(project.name);
+    setDescription(project.description ?? "");
+    setBaseDifficulty(project.baseDifficulty ?? baseDifficultyForDiff(project.diff, state.level));
+    setSkillIds(project.skillIds);
+    setOpen(true);
+  };
 
-  const todoOptions = state.todos.filter((task) => !task.done).map((task) => ({ id: `t:${task.id}`, label: task.name, focusMinutes: task.focusMinutes }));
-  const weeklyOptions = state.weeklyQuests
-    .filter((quest) => isWeeklyQuestScheduled(quest, state.lastDay) && !quest.doneDates.includes(state.lastDay))
-    .map((quest) => ({ id: `w:${quest.id}`, label: quest.name, focusMinutes: quest.focusMinutes }));
-  const options = [...todoOptions, ...weeklyOptions];
-  const selectedLab = target.startsWith("t:") ? state.todos.find((task) => task.id === target.slice(2)) : target.startsWith("w:") ? state.weeklyQuests.find((quest) => quest.id === target.slice(2)) : undefined;
-  const gateManaCost = 10 + questManaCost(selectedLab?.diff ?? difficultyForRankIndex(rankIndex(state.level)), selectedLab?.skillIds?.length || (selectedLab?.skillId ? 1 : 0));
-  const gateDiff = selectedLab?.diff ?? difficultyForRankIndex(rankIndex(state.level));
-  const gateDurationMinutes = selectedLab?.focusMinutes ?? Math.max(10, Number(minutes) || 10);
-
-  const fail = (reason: string) => {
-    const timerElapsedMinutes = timerKind === "focus" && endAt
-      ? Math.max(0, Math.min(timerMinutes, (Date.now() - (endAt - timerMinutes * 60000)) / 60000))
-      : 0;
-    const totalFocusMinutes = Math.round((focusMinutes + timerElapsedMinutes) * 10) / 10;
-    if (entryTimeout.current !== null) window.clearTimeout(entryTimeout.current);
-    entryTimeout.current = null; setEntering(false);
-    setEndAt(null); setTimerKind(null); setGateActive(false); onLock(false); buzz([100, 50, 100]);
-    act((s, a) => {
-      const objectives = s.activeGate?.objectives;
-      const damage = 20 + DIFF_HP[s.activeGate?.diff ?? difficultyForRankIndex(rankIndex(s.level))] * 10;
-      s.activeGate = null;
-      s.sessions.unshift({ id: uid(), date: s.lastDay, minutes: totalFocusMinutes, success: false, label: meta.current.label, ...(meta.current.details ? { details: meta.current.details } : {}), ...(objectives ? { objectives } : {}) });
-      s.log.unshift({ id: uid(), ts: Date.now(), text: `Gate failed (${totalFocusMinutes}m recorded). -${damage} HP`, kind: "warn" });
-      a.push({ kind: "penalty", title: "[SYSTEM] Gate Failed", body: `${reason} -${damage} HP. STR reduces damage taken.` });
-      takeDamage(s, damage, a);
+  const save = (event: React.FormEvent) => {
+    event.preventDefault();
+    const projectName = name.trim();
+    if (!projectName || !skillIds.length) return;
+    act((s) => {
+      const diff = resolveDifficulty(baseDifficulty, s.level);
+      const project = s.projects.find((item) => item.id === editingId);
+      const values = { name: projectName, description: description.trim() || undefined, diff, baseDifficulty, skillIds };
+      if (project) Object.assign(project, values);
+      else s.projects.push({ id: uid(), ...values, done: false });
     });
+    resetEditor();
   };
 
-  const clear = () => {
-    const liveFocusMinutes = timerKind === "focus" && endAt ? Math.max(0, (Date.now() - (endAt - timerMinutes * 60000)) / 60000) : 0;
-    const totalFocusMinutes = Math.round((focusMinutes + liveFocusMinutes) * 10) / 10;
-    if (!totalFocusMinutes) return;
-    if (entryTimeout.current !== null) window.clearTimeout(entryTimeout.current);
-    entryTimeout.current = null; setEntering(false);
-    setEndAt(null); setTimerKind(null); setGateActive(false); onLock(false); buzz([40, 40, 40]);
-    act((s: GameState, a: Alert[]) => {
-      const { label, target: assignedTarget, details: gateDetails } = meta.current;
-      const objectives = s.activeGate?.objectives;
-      s.activeGate = null;
-      s.sessions.unshift({ id: uid(), date: s.lastDay, minutes: totalFocusMinutes, success: true, label, ...(gateDetails ? { details: gateDetails } : {}), ...(objectives ? { objectives } : {}) });
-      const levelAtStart = s.level;
-      if (assignedTarget.startsWith("t:")) {
-        const task = s.todos.find((item) => item.id === assignedTarget.slice(2));
-        if (task) completeTodo(s, task.id, a);
-      }
-      if (assignedTarget.startsWith("w:")) {
-        completeWeeklyQuest(s, assignedTarget.slice(2), a);
-      }
-      const labDiff = selectedLab?.diff ?? resolveDifficulty("Medium", levelAtStart);
-      const gateXp = gainXp(s, DIFF_XP[labDiff], a);
-      const elapsedSeconds = (Date.now() - meta.current.startedAt) / 1000;
-      if (elapsedSeconds <= meta.current.speedTargetSeconds) {
-        const bonus = gainXp(s, Math.max(1, Math.round(DIFF_XP[labDiff] * 0.5)), a);
-        a.push({ kind: "info", title: "[SYSTEM] Speed Clear", body: `Gate cleared inside your ${meta.current.speedTargetSeconds}s critical window. +${bonus} bonus XP.` });
-      }
-      awardRandomReward(s, a, label, labDiff);
-      s.log.unshift({ id: uid(), ts: Date.now(), text: `Gate cleared (${totalFocusMinutes}m). +${gateXp} XP.`, kind: "level" });
-      a.push({ kind: "info", title: "[SYSTEM] Gate Cleared", body: `Gate cleared after ${totalFocusMinutes} focus minutes. +${gateXp} XP. Completed: ${label}.` });
-    });
-  };
-
-  const startTimer = (kind: "focus" | "rest", duration: number) => {
-    setTimerMinutes(duration); setTimerKind(kind); setNow(Date.now()); setEndAt(Date.now() + duration * 60000); buzz(60);
-  };
-
-  const startRestTimer = (duration: number, resumeFocus: number | null = null) => {
-    if (restsUsed >= restLimit) return;
-    setRestsUsed((used) => used + 1);
-    setResumeFocusMinutes(resumeFocus);
-    startTimer("rest", duration);
-  };
-
-  const takeRest = (duration: number) => {
-    if (timerKind !== "focus" || endAt === null || restsUsed >= restLimit) return;
-    const startedAt = endAt - timerMinutes * 60000;
-    const elapsed = Math.max(0, Math.min(timerMinutes, (Date.now() - startedAt) / 60000));
-    const remaining = Math.max(0, timerMinutes - elapsed);
-    if (remaining < 0.01) return;
-    setFocusMinutes((total) => Math.round((total + elapsed) * 10) / 10);
-    startRestTimer(duration, remaining);
-  };
-
-  useEffect(() => {
-    if (!gateActive) return;
-    const t = endAt ? setInterval(() => setNow(Date.now()), 250) : null;
-    // Mobile browsers suspend background timers while the screen is locked.
-    // Keep the gate active and resync from the deadline when the page returns.
-    const vis = () => { if (document.visibilityState === "visible") setNow(Date.now()); };
-    document.addEventListener("visibilitychange", vis);
-    return () => { if (t) clearInterval(t); document.removeEventListener("visibilitychange", vis); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [endAt, gateActive]);
-
-  useEffect(() => {
-    if (timerKind !== "focus" || endAt === null || !gateActive) return;
-    const startedAt = endAt - timerMinutes * 60000;
-    const elapsed = Math.max(0, Math.min(timerMinutes, (now - startedAt) / 60000));
-    const milestone = Math.floor((focusMinutes + elapsed) / FOCUS_REWARD_INTERVAL_MINUTES);
-    if (milestone > lastAlarmMilestone.current) {
-      lastAlarmMilestone.current = milestone;
-      buzz([180, 80, 180]);
-      playSound("warning");
-    }
-  }, [endAt, focusMinutes, gateActive, now, timerKind, timerMinutes]);
-
-  useEffect(() => () => {
-    if (entryTimeout.current !== null) window.clearTimeout(entryTimeout.current);
-  }, []);
-
-  useEffect(() => {
-    if (!endAt || now < endAt) return;
-    setEndAt(null);
-    if (timerKind === "focus") {
-      setFocusMinutes((total) => total + timerMinutes);
-      setTimerKind(null);
-    } else if (timerKind === "rest" && resumeFocusMinutes !== null) {
-      const remaining = resumeFocusMinutes;
-      setResumeFocusMinutes(null);
-      setTimerMinutes(remaining); setTimerKind("focus"); setNow(Date.now()); setEndAt(Date.now() + remaining * 60000); buzz(60);
-    } else {
-      setTimerKind(null);
-    }
-    buzz([40, 40, 40]);
+  const complete = (id: string) => {
+    buzz();
     playSound("done");
-  }, [now, endAt, timerKind, timerMinutes, resumeFocusMinutes]);
-
-  const start = () => {
-    const selected = options.find((option) => option.id === target);
-    if (!canAccessDifficulty(state.stats.strength, gateDiff)) {
-      act((_s, alerts) => alerts.push({ kind: "info", title: "[SYSTEM] STR too low", body: `This gate requires STR ${requiredStrengthFor(gateDiff)}.` }));
-      return;
-    }
-    if (state.mana < gateManaCost) {
-      act((_s, alerts) => alerts.push({ kind: "info", title: "[SYSTEM] Mana too low", body: `This gate costs ${gateManaCost} MP.` }));
-      return;
-    }
-    const startedAt = Date.now();
-    const speedTargetSeconds = speedWindowSeconds(gateDurationMinutes * 60, state.stats.agility);
-    meta.current = { target: selected?.id ?? "", label: selected?.label ?? "Gate Quest", details: details.trim(), startedAt, speedTargetSeconds };
-    const objectives = objectivesDraft.map((objective) => ({ ...objective }));
-    act((s, alerts) => { if (!spendMana(s, gateManaCost, alerts)) return; s.activeGate = { startedAt, label: meta.current.label, diff: gateDiff, ...(meta.current.details ? { details: meta.current.details } : {}), objectives }; });
-    setObjectivesDraft([]);
-    const initialDuration = gateDurationMinutes;
-    setRestLimit(Math.floor(initialDuration / 25)); setRestsUsed(0); setResumeFocusMinutes(null);
-    lastAlarmMilestone.current = 0;
-    setFocusMinutes(0); setGateActive(true); onLock(true); buzz(60);
-    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
-      setEntering(false); startTimer("focus", initialDuration); return;
-    }
-    setEntering(true);
-    entryTimeout.current = window.setTimeout(() => {
-      entryTimeout.current = null; setEntering(false); startTimer("focus", initialDuration);
-    }, 1900);
+    act((s, alerts) => { completeProject(s, id, alerts); });
   };
-
-  const today = state.sessions.filter((s) => s.date === state.lastDay);
-  const total = state.sessions.reduce((n, s) => n + s.minutes, 0);
-  const completedSessions = state.sessions.filter((s) => s.success && !s.paused);
-  const measurableSessions = state.sessions.filter((s) => !s.paused);
-  const ok = completedSessions.length;
-  const eff = measurableSessions.length ? Math.round((ok / measurableSessions.length) * 100) : 0;
-  const correction = state.focusAnalysisCorrection;
-  const rawTodayMinutes = today.reduce((n, s) => n + s.minutes, 0);
-  const analysis = {
-    todayMinutes: Math.max(0, Math.round((rawTodayMinutes + (correction.todayDate === state.lastDay ? correction.todayMinutes : 0)) * 10) / 10),
-    totalMinutes: Math.max(0, Math.round((total + correction.totalMinutes) * 10) / 10),
-    closedGates: Math.max(0, Math.round(ok + correction.closedGates)),
-    efficiency: Math.max(0, Math.min(100, Math.round(eff + correction.efficiency))),
-  };
-
-  if (gateActive && entering) {
-    return (
-      <div className="gate-entry-screen" aria-live="polite">
-        <div className="gate-entry-portal" aria-hidden="true">
-          <div className="gate-entry-flash" />
-          <span className="gate-entry-ring gate-entry-ring-outer" />
-          <span className="gate-entry-ring gate-entry-ring-middle" />
-          <span className="gate-entry-ring gate-entry-ring-inner" />
-          <span className="gate-entry-core" />
-        </div>
-        <p className="gate-entry-title">Entering Gate</p>
-        <p className="font-mono text-xs text-muted-foreground">{meta.current.label}</p>
-        {meta.current.details && <p className="max-w-sm text-sm text-foreground/80">{meta.current.details}</p>}
-      </div>
-    );
-  }
-
-  if (gateActive && endAt) {
-    const left = Math.max(0, endAt - now);
-    const pct = 1 - left / (timerMinutes * 60000);
-    const mm = String(Math.floor(left / 60000)).padStart(2, "0");
-    const ss = String(Math.floor((left % 60000) / 1000)).padStart(2, "0");
-    return (
-      <div className="gate-timer-screen">
-        <div className="gate-timer-visual">
-        <p className="gate-timer-label font-mono text-xs uppercase tracking-[0.4em] text-primary animate-sys-pulse">{timerKind === "rest" ? "Rest Timer" : "Gate Active"}</p>
-        <div className="relative flex h-64 w-64 items-center justify-center">
-          <div className={timerKind === "rest" ? "gate-animation gate-animation-rest" : "gate-animation"} aria-hidden="true">
-            <div className="gate-animation-rim gate-animation-rim-outer" />
-            <div className="gate-animation-rim gate-animation-rim-inner" />
-          </div>
-          <svg className="absolute inset-0 z-10 -rotate-90" viewBox="0 0 100 100">
-            <circle cx="50" cy="50" r="46" fill="none" stroke="var(--secondary)" strokeWidth="3" />
-            <circle cx="50" cy="50" r="46" fill="none" stroke="var(--primary)" strokeWidth="3" strokeDasharray={289} strokeDashoffset={289 * (1 - pct)} style={{ filter: "drop-shadow(0 0 6px var(--primary))" }} />
-          </svg>
-          <span className="gate-timer-clock relative z-10 font-mono text-6xl font-bold text-primary sys-glow-text">{mm}:{ss}</span>
-        </div>
-        </div>
-        <div className="gate-timer-content">
-        <p className="gate-timer-task text-lg">{timerKind === "rest" ? "Rest and recover" : meta.current.label}</p>
-        {timerKind === "focus" && <CriticalTimer startedAt={meta.current.startedAt} seconds={meta.current.speedTargetSeconds} />}
-        {meta.current.details && <p className="gate-timer-details max-w-sm text-sm text-muted-foreground">{meta.current.details}</p>}
-        {focusMinutes > 0 && <p className="font-mono text-xs text-muted-foreground">Completed focus: {focusMinutes} min</p>}
-        {timerKind === "rest" && resumeFocusMinutes !== null && <p className="font-mono text-xs text-primary">Rest ends, then your remaining {Math.ceil(resumeFocusMinutes)} focus minutes resume automatically.</p>}
-        {timerKind === "focus" && <p className="font-mono text-[10px] uppercase tracking-wider text-primary/80">System alarm sounds every {FOCUS_REWARD_INTERVAL_MINUTES} focus minutes</p>}
-        {timerKind === "focus" && <div className="gate-timer-rest-controls space-y-2 text-center">
-          <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Take a rest · focus time will pause and resume afterward</p>
-          <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Rests used: {restsUsed}/{restLimit} · one rest per 25 minutes assigned</p>
-          {restsUsed < restLimit && <div className="flex justify-center gap-2">{[5, 10, 15].map((duration) => <SysButton key={duration} variant="ghost" onClick={() => takeRest(duration)}>Rest {duration}m</SysButton>)}</div>}
-        </div>}
-        <GateObjectives editable />
-        {timerKind === "focus" && <SysButton className="w-full" onClick={clear}>Gate cleared · submit quest</SysButton>}
-        <div className="gate-timer-exit flex gap-2">
-          <SysButton variant="danger" onClick={() => fail("You abandoned the gate quest.")}>Exit Gate</SysButton>
-        </div>
-        <p className="gate-timer-warning max-w-xs font-mono text-[10px] text-muted-foreground">Leaving this screen or switching apps counts as fleeing the gate.</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (gateActive) {
-    return (
-      <div className="space-y-4">
-        <Panel title="Gate In Progress">
-          <p className="font-bold">{meta.current.label}</p>
-          {meta.current.details && <p className="mt-1 text-sm text-muted-foreground">{meta.current.details}</p>}
-          <p className="mt-1 font-mono text-xs text-muted-foreground">Completed focus: {focusMinutes} min</p>
-          <p className="mt-1 font-mono text-xs text-muted-foreground">Rests used: {restsUsed}/{restLimit} · one rest per 25 minutes assigned</p>
-          <p className="mt-2 font-mono text-xs text-primary">Timer complete. Continue with another focus or rest session, close the gate, or leave.</p>
-          <GateObjectives editable />
-          <p className="mt-4 font-mono text-xs uppercase tracking-wider text-primary">Choose your next step</p>
-          <label className="mb-2 mt-3 block font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Another focus timer · minimum 10 minutes
-            <div className="mt-2 flex gap-2"><input aria-label="Next focus timer duration in minutes" type="number" min={10} step={1} inputMode="numeric" className={inputCls} value={minutes} onChange={(event) => setMinutes(event.target.value)} /><SysButton onClick={() => startTimer("focus", Math.max(10, Number(minutes) || 10))}>Start</SysButton></div>
-          </label>
-          <p className="mb-2 mt-4 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Rest timer</p>
-          {restsUsed < restLimit
-            ? <div className="grid grid-cols-3 gap-2">
-              {[5, 10, 15].map((duration) => (
-                <SysButton key={duration} variant="ghost" onClick={() => startRestTimer(duration)}>{duration}m Rest</SysButton>
-              ))}
-            </div>
-            : <p className="font-mono text-xs text-muted-foreground">No rests remaining for this assigned duration.</p>}
-        </Panel>
-        <SysButton disabled={!focusMinutes} className="h-14 w-full" onClick={clear}>Clear Gate</SysButton>
-        <SysButton variant="danger" className="w-full" onClick={() => fail("You left the gate quest.")}>Leave Gate</SysButton>
-        <p className="text-center font-mono text-[10px] text-muted-foreground">Leaving causes rank-scaled HP damage, reduced by STR.</p>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-4">
-      <Panel title="Open a Gate">
-        <label className="mb-1 block font-mono text-xs text-muted-foreground">Assigned objective</label>
-        <select className={inputCls} value={target} onChange={(e) => { const value = e.target.value; setTarget(value); const selected = options.find((option) => option.id === value); if (selected?.focusMinutes) setMinutes(String(selected.focusMinutes)); }}>
-          <option value="">Free focus</option>
-          {todoOptions.length > 0 && <optgroup label="To-Do Quests">{todoOptions.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</optgroup>}
-          {weeklyOptions.length > 0 && <optgroup label="Recurring Quests">{weeklyOptions.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</optgroup>}
-        </select>
-        <label className="mb-1 mt-4 block font-mono text-xs text-muted-foreground" htmlFor="gate-details">Gate details</label>
-        <textarea id="gate-details" className={`${inputCls} min-h-14 py-2`} maxLength={160} placeholder="Short focus description (optional)" value={details} onChange={(event) => setDetails(event.target.value)} />
-        <div className="mt-4 border border-primary/30 bg-card/70 p-3">
-          <div className="mb-2 flex items-center justify-between gap-2"><p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-primary">Gate Objectives · {objectivesDraft.length} active</p><AddIconButton label="Add gate objective" onClick={() => { setEditingDraftId(null); setNewObjective(""); setObjectiveDraftOpen(true); }} /></div>
-          {objectivesDraft.length > 0 && <ul className="space-y-1.5">{objectivesDraft.map((objective) => <li key={objective.id} className="flex items-center gap-3 border-b border-border/40 pb-2"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-border" /><p className="min-w-0 flex-1 pr-2 text-sm">{objective.text}</p><ItemOptionsMenu itemName={objective.text} info="Gate objective" onEdit={() => { setEditingDraftId(objective.id); setNewObjective(objective.text); setObjectiveDraftOpen(true); }} onDelete={() => setObjectivesDraft((items) => items.filter((item) => item.id !== objective.id))} /></li>)}</ul>}
-        </div>
-        {objectiveDraftOpen && createPortal(
-          <div className="fixed inset-0 z-[100] flex items-end bg-background/80 backdrop-blur-md" onClick={() => setObjectiveDraftOpen(false)}>
-            <form role="dialog" aria-modal="true" aria-label={editingDraftId ? "Edit gate objective" : "Add gate objective"} onClick={(event) => event.stopPropagation()} onSubmit={(event) => { event.preventDefault(); const text = newObjective.trim(); if (!text) return; setObjectivesDraft((items) => editingDraftId ? items.map((item) => item.id === editingDraftId ? { ...item, text } : item) : [...items, { id: uid(), text, done: false }]); setNewObjective(""); setEditingDraftId(null); setObjectiveDraftOpen(false); }} className="sys-panel mx-auto w-full max-w-md space-y-3 p-5 animate-in slide-in-from-bottom">
-              <h3 className="font-mono text-xs uppercase tracking-[0.3em] text-primary">{editingDraftId ? "Edit Gate Objective" : "Add Gate Objective"}</h3>
-              <input autoFocus required maxLength={100} className={inputCls} placeholder="Objective" value={newObjective} onChange={(event) => setNewObjective(event.target.value)} />
-              <div className="flex gap-2"><SysButton type="submit" className="flex-1">{editingDraftId ? "Save Changes" : "Add Objective"}</SysButton><SysButton type="button" variant="ghost" onClick={() => setObjectiveDraftOpen(false)}>Cancel</SysButton></div>
-            </form>
-          </div>, document.body,
+      <Panel title="Projects" actions={<AddIconButton label="Add project" onClick={() => { resetEditor(); setOpen(true); }} />}>
+        <p className="mb-3 font-mono text-[11px] text-muted-foreground">Complete a project once to earn a large rank-based XP reward for your overall level and selected skills.</p>
+        {openProjects.length > 0 && <p className="mb-2 font-mono text-[10px] uppercase tracking-wider text-primary">{openProjects.length} active project{openProjects.length === 1 ? "" : "s"}</p>}
+        {orderedProjects.length === 0 ? (
+          <div className="flex flex-col items-center gap-2 border border-dashed border-border p-6 text-center">
+            <FolderKanban className="h-8 w-8 text-primary/70" />
+            <p className="font-bold">No projects yet</p>
+            <p className="font-mono text-xs text-muted-foreground">Add a cybersecurity project to start building your skills.</p>
+          </div>
+        ) : (
+          <ul className="space-y-3">
+            {orderedProjects.map((project) => {
+              const skillNames = project.skillIds.map((id) => state.skills.find((skill) => skill.id === id)?.name).filter(Boolean);
+              const projectReward = Math.max(1, Math.round(projectXpReward(project.diff) * (1 + state.stats.intelligence * 0.01)));
+              return (
+                <li key={project.id} className={cn("border border-border/70 bg-background/30 p-3", project.done && "opacity-65")}>
+                  <div className="flex items-start gap-3">
+                    <button type="button" disabled={project.done} onClick={() => complete(project.id)} aria-label={project.done ? `Completed ${project.name}` : `Complete ${project.name} for ${projectReward} XP`}
+                      className={cn("flex min-h-11 min-w-11 shrink-0 flex-col items-center justify-center gap-0.5 rounded border px-2 font-mono text-[9px] font-bold", project.done ? "border-success/50 bg-success/10 text-success" : "border-primary/60 bg-primary/10 text-primary hover:bg-primary/20")}>
+                      {project.done ? <><Check className="h-4 w-4" /><span>DONE</span></> : <><span>COMPLETE</span><span>+{projectReward} XP</span></>}
+                    </button>
+                    <div className="min-w-0 flex-1">
+                      <p className={cn("font-bold", project.done && "text-muted-foreground line-through")}>{project.name}</p>
+                      {project.description && <p className="mt-1 whitespace-pre-wrap text-xs text-muted-foreground">{project.description}</p>}
+                      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                        <DiffBadge d={project.diff} />
+                        {skillNames.map((skillName) => <span key={skillName} className="rounded border border-primary/30 px-1.5 py-0.5 font-mono text-[9px] text-primary">{skillName}</span>)}
+                      </div>
+                      {project.done && project.completedAt && <p className="mt-1 font-mono text-[9px] text-muted-foreground">Completed {project.completedAt}</p>}
+                    </div>
+                    <ItemOptionsMenu itemName={project.name} info={`Rank: ${project.diff}\nReward: ${projectReward} overall XP and skill XP\nSkills: ${skillNames.join(", ") || "none"}${project.completedAt ? `\nCompleted: ${project.completedAt}` : ""}`} onEdit={() => edit(project.id)} onDelete={() => act((s) => { s.projects = s.projects.filter((item) => item.id !== project.id); })} />
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
         )}
-        <p className="mb-1 mt-4 font-mono text-xs text-muted-foreground">Duration</p>
-        {options.find((option) => option.id === target)?.focusMinutes && <p className="mb-2 font-mono text-[10px] text-primary">Assigned duration: {options.find((option) => option.id === target)?.focusMinutes} minutes</p>}
-        <label className="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Project duration · minutes · minimum 10
-          <input aria-label="Gate focus timer duration in minutes" type="number" min={10} step={1} inputMode="numeric" className={`${inputCls} mt-2`} value={minutes} onChange={(event) => setMinutes(event.target.value)} />
-        </label>
-        <p className="mt-3 font-mono text-[10px] text-primary">Start cost: {gateManaCost} MP · speed clear target: {speedWindowSeconds(gateDurationMinutes * 60, state.stats.agility)}s</p>
-        <SysButton className="mt-2 h-14 w-full text-sm" onClick={start}>Enter Gate</SysButton>
       </Panel>
-      <Panel title="Gate Analysis">
-        <div className="grid grid-cols-2 gap-3 text-center font-mono">
-          <div>
-            <p className="text-2xl font-bold text-primary">{Math.round(analysis.todayMinutes)}</p>
-            <p className="text-[10px] uppercase text-muted-foreground">Min today</p>
-          </div>
-          <div>
-            <p className="text-2xl font-bold text-primary">{Math.round(analysis.totalMinutes)}</p>
-            <p className="text-[10px] uppercase text-muted-foreground">Min total</p>
-          </div>
-          <div>
-            <p className="text-2xl font-bold text-primary">{analysis.closedGates}</p>
-            <p className="text-[10px] uppercase text-muted-foreground">Gates cleared</p>
-          </div>
-          <div>
-            <p className="text-2xl font-bold text-primary">{analysis.efficiency}%</p>
-            <p className="text-[10px] uppercase text-muted-foreground">Efficiency</p>
-          </div>
-        </div>
-        <p className="mt-3 border-t border-border/50 pt-3 text-center font-mono text-[10px] text-muted-foreground">Gates award XP by rank. AGI widens the critical speed clear window.</p>
-      </Panel>
+
+      {open && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-end bg-background/80 p-3 backdrop-blur-md sm:items-center" onClick={resetEditor}>
+          <form role="dialog" aria-modal="true" aria-label={editingId ? "Edit project" : "Add project"} onClick={(event) => event.stopPropagation()} onSubmit={save} className="sys-panel mx-auto max-h-[90dvh] w-full max-w-md space-y-3 overflow-y-auto p-5 animate-in slide-in-from-bottom">
+            <h3 className="font-mono text-xs uppercase tracking-[0.3em] text-primary">{editingId ? "Edit Project" : "New Project"}</h3>
+            <input autoFocus required maxLength={80} className={inputCls} placeholder="Project name" value={name} onChange={(event) => setName(event.target.value)} />
+            <textarea maxLength={500} className={`${inputCls} min-h-24 py-2`} placeholder="Project details (optional)" value={description} onChange={(event) => setDescription(event.target.value)} />
+            <BaseDifficultyPicker value={baseDifficulty} onChange={setBaseDifficulty} playerLevel={state.level} />
+            <SkillPicker skills={state.skills} value={skillIds} onChange={setSkillIds} />
+            <p className="border border-primary/30 bg-primary/5 p-3 text-center font-mono text-xs text-primary">Completion reward: +{rewardXp} overall XP and skill XP</p>
+            <div className="flex gap-2"><SysButton type="submit" className="flex-1" disabled={!name.trim() || !skillIds.length}>{editingId ? "Save Project" : "Add Project"}</SysButton><SysButton type="button" variant="ghost" onClick={resetEditor}>Cancel</SysButton></div>
+          </form>
+        </div>, document.body,
+      )}
     </div>
   );
 }

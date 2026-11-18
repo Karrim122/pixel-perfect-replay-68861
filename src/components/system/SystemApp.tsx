@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CalendarDays, Hexagon, ListChecks, Settings, Swords, User, Volume2, VolumeX } from "lucide-react";
+import { CalendarDays, FolderKanban, Hexagon, ListChecks, Settings, User, Volume2, VolumeX } from "lucide-react";
 import { SystemProvider, buzz, useSystem } from "@/lib/store";
 import { isWeeklyQuestScheduled, rankOf } from "@/lib/system";
 import { StatusTab } from "./StatusTab";
@@ -17,7 +17,7 @@ const TABS = [
   { key: "quests", label: "Daily Quests", icon: Hexagon },
   { key: "weekly", label: "Recurring", icon: CalendarDays },
   { key: "todo", label: "To-Do", icon: ListChecks },
-  { key: "gates", label: "Gates", icon: Swords },
+  { key: "gates", label: "Projects", icon: FolderKanban },
 ] as const;
 type Tab = (typeof TABS)[number]["key"];
 
@@ -78,7 +78,6 @@ function AlertModal() {
 function Shell() {
   const { state, ready } = useSystem();
   const [tab, setTab] = useState<Tab>("status");
-  const [locked, setLocked] = useState(false);
   const [sounds, setSounds] = useState(true);
   const [settings, setSettings] = useState(false);
   const rank = rankOf(state.level);
@@ -119,11 +118,10 @@ function Shell() {
         {tab === "quests" && <QuestsTab />}
         {tab === "weekly" && <WeeklyQuestsTab />}
         {tab === "todo" && <TodoTab />}
-        {tab === "gates" && <GatesTab onLock={setLocked} />}
+        {tab === "gates" && <GatesTab />}
         </div>
       </main>
-      {!locked && (
-        <nav className="fixed inset-x-3 bottom-3 z-30 mx-auto grid max-w-md grid-cols-5 overflow-hidden rounded-2xl border border-border bg-card/95 pb-[env(safe-area-inset-bottom)] shadow-[0_8px_30px_-12px_var(--glow)] backdrop-blur">
+      <nav className="fixed inset-x-3 bottom-3 z-30 mx-auto grid max-w-md grid-cols-5 overflow-hidden rounded-2xl border border-border bg-card/95 pb-[env(safe-area-inset-bottom)] shadow-[0_8px_30px_-12px_var(--glow)] backdrop-blur">
           {TABS.map((t) => {
             const on = tab === t.key;
             const badgeCount = t.key === "quests" ? remainingToday : t.key === "todo" ? remainingTodoTasks : null;
@@ -140,8 +138,7 @@ function Shell() {
               </SysButton>
             );
           })}
-        </nav>
-      )}
+      </nav>
       <AlertModal />
           {settings && <SettingsModal onClose={() => setSettings(false)} />}
       {ready && !state.playerName && <AwakeningModal />}
