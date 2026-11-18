@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { Check } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
-import { baseDifficultyForDiff, completeWeeklyQuest, isWeeklyQuestScheduled, moveItem, resolveDifficulty, speedWindowSeconds, startWeeklyQuest, uid, uncompleteWeeklyQuest, useLabHelp, type Attr, type BaseDifficulty, type CyberSkill } from "@/lib/system";
+import { baseDifficultyForDiff, completeWeeklyQuest, isWeeklyQuestScheduled, moveItem, questManaCost, resolveDifficulty, speedWindowSeconds, startWeeklyQuest, uid, uncompleteWeeklyQuest, useLabHelp, type Attr, type BaseDifficulty, type CyberSkill } from "@/lib/system";
 import { playSound } from "@/lib/sound";
 import { AddIconButton, BaseDifficultyPicker, CriticalTimer, DiffBadge, ItemOptionsMenu, Panel, SkillPicker, SysButton, inputCls } from "./ui";
 import { cn } from "@/lib/utils";
@@ -95,7 +95,7 @@ export function WeeklyQuestsTab() {
                     <li key={quest.id} className="flex items-center gap-2 border-b border-border/40 pb-3">
                       <button type="button" role="checkbox" aria-checked={done} onClick={() => toggleComplete(quest.id, done, date)} aria-label={done ? `Unmark ${quest.name} as complete for ${date}` : quest.startedAt ? `Clear quest ${quest.name}` : `Start quest ${quest.name}`}
                         className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-md border disabled:cursor-default", done ? "border-success bg-success/20 text-success" : "border-primary/60 text-primary")}>
-                        {done && <Check className="h-4 w-4" />}
+                        {done ? <Check className="h-4 w-4" /> : !quest.startedAt && <span className="text-[8px] font-bold">{questManaCost(quest.diff, quest.skillIds?.length || (quest.skillId ? 1 : 0))}MP</span>}
                       </button>
                       <div className="min-w-0 flex-1 pr-3">
                         <p className={cn("truncate text-base", done && "text-muted-foreground line-through")}>{quest.name}</p>

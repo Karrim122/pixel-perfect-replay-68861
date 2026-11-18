@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { Check } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
-import { baseDifficultyForDiff, completeDailyQuest, completeWeeklyQuest, dailyQuestStreakFor, isWeeklyQuestScheduled, moveItem, resolveDifficulty, speedWindowSeconds, startDailyQuest, startWeeklyQuest, uid, useLabHelp, type Attr, type BaseDifficulty, type CyberSkill } from "@/lib/system";
+import { baseDifficultyForDiff, completeDailyQuest, completeWeeklyQuest, dailyQuestStreakFor, isWeeklyQuestScheduled, moveItem, questManaCost, resolveDifficulty, speedWindowSeconds, startDailyQuest, startWeeklyQuest, uid, useLabHelp, type Attr, type BaseDifficulty, type CyberSkill } from "@/lib/system";
 import { playSound } from "@/lib/sound";
 import { AddIconButton, BaseDifficultyPicker, CriticalTimer, DiffBadge, ItemOptionsMenu, Panel, SkillPicker, StreakBadge, SysButton, inputCls } from "./ui";
 import { cn } from "@/lib/utils";
@@ -129,7 +129,7 @@ export function QuestsTab() {
                 <li key={quest.id} className="flex items-center gap-3 border-b border-border/40 pb-3">
                   <button disabled={done} onClick={() => completeWeekly(quest.id)} aria-label={done ? `Completed ${quest.name}` : quest.startedAt ? `Clear quest ${quest.name}` : `Start quest ${quest.name}`}
                     className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-md border disabled:cursor-default", done ? "border-success bg-success/20 text-success" : "border-primary/60 text-primary")}>
-                    {done && <Check className="h-5 w-5" />}
+                    {done ? <Check className="h-5 w-5" /> : !quest.startedAt && <span className="text-[9px] font-bold">{questManaCost(quest.diff, quest.skillIds?.length || (quest.skillId ? 1 : 0))}MP</span>}
                   </button>
                   <div className="min-w-0 flex-1 pr-3">
                     <p className={cn("text-lg leading-tight", done && "text-muted-foreground line-through")}>{quest.name}</p>

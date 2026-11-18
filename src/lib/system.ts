@@ -199,6 +199,7 @@ export function startWeeklyQuest(s: GameState, id: string, alerts: Alert[]) {
   if (!quest || quest.doneDates.includes(s.lastDay) || quest.startedAt) return false;
   if (!canAccessDifficulty(s.stats.strength, quest.diff)) { alerts.push({ kind: "info", title: "[SYSTEM] STR too low", body: `This quest requires STR ${requiredStrengthFor(quest.diff)}.` }); return false; }
   quest.skillIds = quest.skillIds?.length ? quest.skillIds : quest.skillId ? [quest.skillId] : ["security"];
+  if (!spendMana(s, questManaCost(quest.diff, quest.skillIds.length), alerts)) return false;
   quest.startedAt = Date.now();
   log(s, `Quest started: ${quest.name}`);
   return true;
