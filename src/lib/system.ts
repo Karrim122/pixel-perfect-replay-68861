@@ -89,7 +89,7 @@ export interface GameState {
   dailyQuests: DailyQuest[]; weeklyQuests: WeeklyQuest[]; skills: Skill[]; todos: Todo[]; projects: Project[]; inventoryGifts: InventoryGift[]; log: LogEntry[];
   startingStatsAdjusted: boolean;
   lastDay: string; dailyQuestRewardDay: string | null; weeklyQuestRewardDays: string[];
-  dailyQuestStreak: number; dailyQuestStreakDate: string | null;
+  dailyQuestStreak: number; dailyQuestStreakDate: string | null; dailyQuestRecoveryDay: string | null;
   protectedQuestPenalties: string[];
   playerName: string; playerSince: string;
 }
@@ -112,7 +112,7 @@ export function moveItem<T extends { id: string }>(items: T[], id: string, targe
 export const initialState = (): GameState => ({
   level: 1, xp: 0, xpCurveVersion: 2, hp: 110, maxHp: 110, mana: 60, maxMana: 60, points: 0, potions: 0, manaPotions: 0, skipPotions: 0,
   stats: { strength: 1, agility: 1, intelligence: 1, perception: 1, vitality: 1 },
-  dailyQuests: [], weeklyQuests: [], skills: CYBER_SKILLS.map(({ id, name }) => ({ id, name, level: 1, xp: 0 })), todos: [], projects: [], inventoryGifts: [], log: [], startingStatsAdjusted: true, lastDay: today(), dailyQuestRewardDay: null, weeklyQuestRewardDays: [], dailyQuestStreak: 0, dailyQuestStreakDate: null, protectedQuestPenalties: [], playerName: "", playerSince: today(),
+  dailyQuests: [], weeklyQuests: [], skills: CYBER_SKILLS.map(({ id, name }) => ({ id, name, level: 1, xp: 0 })), todos: [], projects: [], inventoryGifts: [], log: [], startingStatsAdjusted: true, lastDay: today(), dailyQuestRewardDay: null, weeklyQuestRewardDays: [], dailyQuestStreak: 0, dailyQuestStreakDate: null, dailyQuestRecoveryDay: null, protectedQuestPenalties: [], playerName: "", playerSince: today(),
 });
 
 export type Alert = { kind: "info" | "penalty" | "level" | "awaken" | "exhausted" | "monarch" | "lowHp"; title: string; body: string };
@@ -150,6 +150,17 @@ function awardDailyPotionIfComplete(s: GameState, alerts: Alert[]) {
   s.potions += 1;
   log(s, "All daily and today's weekly quests complete. +1 Healing Potion", "level");
   alerts.push({ kind: "info", title: "[SYSTEM] Daily Quests Complete!", body: "You completed all Daily Quests and Recurring Quests scheduled for today. Reward: +1 Health Potion." });
+}
+
+function awardDailyRecoveryIfComplete(s: GameState, alerts: Alert[]) {
+  if (s.dailyQuestRecoveryDay === s.lastDay || !s.dailyQuests.length || !allDailyQuestsComplete(s, s.lastDay)) return;
+  s.dailyQuestRecoveryDay = s.lastDay;
+  const recovered = Math.min(Math.round(s.maxHp * 0.25), s.maxHp - s.hp);
+  s.hp += recovered;
+  log(s, `Daily quest recovery: +${recovered} HP`, "level");
+  alerts.push({ kind: "info", title: "[SYSTEM] Daily Quest Recovery", body: recovered > 0
+    ? `All daily quests complete. Recovered ${recovered} HP.`
+    : "All daily quests complete. HP was already full, so no extra recovery was needed." });
 }
 
 function awardWeeklyCompletionGift(s: GameState, quest: WeeklyQuest, date: string, alerts: Alert[]) {
@@ -262,6 +273,7 @@ export function completeDailyQuest(s: GameState, id: string, alerts: Alert[]) {
   awardSpeedClear(s, quest, alerts);
   delete quest.startedAt;
   updateDailyQuestStreak(s);
+  awardDailyRecoveryIfComplete(s, alerts);
   awardDailyPotionIfComplete(s, alerts);
 }
 
