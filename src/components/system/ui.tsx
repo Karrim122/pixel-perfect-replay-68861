@@ -1,6 +1,6 @@
-import { useState, type ReactNode } from "react";
-import { ArrowDown, ArrowUp, Brain, Dumbbell, Eye, HeartPulse, MoreHorizontal, Pencil, Plus, Trash2, Info, ShieldCheck } from "lucide-react";
-import { ATTRS, BASE_DIFFICULTIES, DIFFS, RANKS, rankIndex, resolveDifficulty, type Attr, type BaseDifficulty, type Diff } from "@/lib/system";
+import { useEffect, useState, type ReactNode } from "react";
+import { ArrowDown, ArrowUp, Brain, Dumbbell, Eye, HeartPulse, MoreHorizontal, Pencil, Plus, Trash2, Info, Zap } from "lucide-react";
+import { ATTRS, BASE_DIFFICULTIES, DIFFS, RANKS, rankIndex, resolveDifficulty, type Attr, type BaseDifficulty, type CyberSkill, type Diff } from "@/lib/system";
 import { cn } from "@/lib/utils";
 import { playSound } from "@/lib/sound";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -36,9 +36,19 @@ export function Bar({ value, max, hp, heal }: { value: number; max: number; hp?:
   );
 }
 
+export function CriticalTimer({ startedAt, seconds }: { startedAt: number; seconds: number }) {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+  const remaining = Math.max(0, Math.ceil((startedAt + seconds * 1000 - now) / 1000));
+  return <p role="timer" className={cn("mt-1 font-mono text-[9px] uppercase", remaining > 0 ? "text-primary" : "text-muted-foreground")}>{remaining > 0 ? `Critical speed window · ${remaining}s` : "Speed window closed"}</p>;
+}
+
 const ATTRIBUTE_ICONS = {
   strength: Dumbbell,
-  discipline: ShieldCheck,
+  agility: Zap,
   intelligence: Brain,
   perception: Eye,
   vitality: HeartPulse,
@@ -163,13 +173,13 @@ export function AttrPicker({ value, onChange }: { value: Attr[]; onChange: (a: A
   );
 }
 
-export function SkillPicker({ skills, value, onChange }: { skills: { id: string; name: string }[]; value?: string; onChange: (id: string | undefined) => void }) {
-  return <label className="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Assign to skill
-    <select className={`${inputCls} mt-1`} value={value ?? ""} onChange={(event) => onChange(event.target.value || undefined)}>
-      <option value="">No skill</option>
-      {skills.map((skill) => <option key={skill.id} value={skill.id}>{skill.name}</option>)}
-    </select>
-  </label>;
+export function SkillPicker({ skills, value, onChange }: { skills: { id: CyberSkill; name: string }[]; value?: CyberSkill[]; onChange: (ids: CyberSkill[]) => void }) {
+  return <fieldset className="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground"><legend>Skills used · more skills cost more mana</legend>
+    <div className="mt-2 grid grid-cols-2 gap-1">{skills.map((skill) => {
+      const selected = value?.includes(skill.id) ?? false;
+      return <button type="button" key={skill.id} aria-pressed={selected} onClick={() => onChange(selected ? (value ?? []).filter((id) => id !== skill.id) : [...(value ?? []), skill.id])} className={cn("min-h-9 border px-2 text-left", selected ? "border-primary bg-primary/15 text-primary" : "border-border text-muted-foreground")}>{skill.name}</button>;
+    })}</div>
+  </fieldset>;
 }
 
 export function DiffBadge({ d }: { d: Diff }) {

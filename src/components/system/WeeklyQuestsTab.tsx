@@ -2,9 +2,9 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { Check } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
-import { baseDifficultyForDiff, completeWeeklyQuest, isWeeklyQuestScheduled, moveItem, resolveDifficulty, uid, uncompleteWeeklyQuest, type Attr, type BaseDifficulty } from "@/lib/system";
+import { baseDifficultyForDiff, completeWeeklyQuest, isWeeklyQuestScheduled, moveItem, questManaCost, resolveDifficulty, speedWindowSeconds, startWeeklyQuest, uid, uncompleteWeeklyQuest, useLabHelp, type Attr, type BaseDifficulty, type CyberSkill } from "@/lib/system";
 import { playSound } from "@/lib/sound";
-import { AddIconButton, AttrPicker, BaseDifficultyPicker, DiffBadge, ItemOptionsMenu, Panel, SkillPicker, SysButton, inputCls } from "./ui";
+import { AddIconButton, BaseDifficultyPicker, CriticalTimer, DiffBadge, ItemOptionsMenu, Panel, SkillPicker, SysButton, inputCls } from "./ui";
 import { cn } from "@/lib/utils";
 
 const WEEKDAYS = [
@@ -26,15 +26,15 @@ export function WeeklyQuestsTab() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [baseDifficulty, setBaseDifficulty] = useState<BaseDifficulty>("Easy");
-  const [attrs, setAttrs] = useState<Attr[]>(["discipline"]);
+  const [attrs, setAttrs] = useState<Attr[]>(["agility"]);
   const [daysOfWeek, setDaysOfWeek] = useState<number[]>([new Date(`${state.lastDay}T00:00:00`).getDay()]);
   const [reminder, setReminder] = useState("");
-  const [skillId, setSkillId] = useState<string>();
+  const [skillIds, setSkillIds] = useState<CyberSkill[]>(["security"]);
   const [focusMinutes, setFocusMinutes] = useState("");
 
   const closeEditor = () => {
     setOpen(false); setEditingId(null); setName(""); setDescription(""); setBaseDifficulty("Easy");
-    setAttrs(["discipline"]); setDaysOfWeek([new Date(`${state.lastDay}T00:00:00`).getDay()]); setReminder(""); setSkillId(undefined); setFocusMinutes("");
+    setAttrs(["agility"]); setDaysOfWeek([new Date(`${state.lastDay}T00:00:00`).getDay()]); setReminder(""); setSkillIds(["security"]); setFocusMinutes("");
   };
 
   const save = (event: React.FormEvent) => {
@@ -43,7 +43,7 @@ export function WeeklyQuestsTab() {
     act((s) => {
       const diff = resolveDifficulty(baseDifficulty, s.level);
       const quest = editingId ? s.weeklyQuests.find((item) => item.id === editingId) : undefined;
-      const values = { name: name.trim(), description: description.trim() || undefined, diff, baseDifficulty, attrs, daysOfWeek, skillId, focusMinutes: focusMinutes ? Number(focusMinutes) : undefined, reminder: reminder || undefined };
+      const values = { name: name.trim(), description: description.trim() || undefined, diff, baseDifficulty, attrs, daysOfWeek, skillIds, focusMinutes: focusMinutes ? Number(focusMinutes) : undefined, reminder: reminder || undefined };
       if (quest) Object.assign(quest, values);
       else s.weeklyQuests.push({ id: uid(), ...values, doneDates: [], rewardedDates: [] });
     });
@@ -56,20 +56,20 @@ export function WeeklyQuestsTab() {
     if (!quest) return;
     setEditingId(id); setName(quest.name); setDescription(quest.description ?? "");
     setBaseDifficulty(quest.baseDifficulty ?? baseDifficultyForDiff(quest.diff, state.level));
-    setAttrs(quest.attrs); setDaysOfWeek(quest.daysOfWeek); setReminder(quest.reminder ?? ""); setSkillId(quest.skillId); setFocusMinutes(quest.focusMinutes ? String(quest.focusMinutes) : ""); setOpen(true);
+    setAttrs(quest.attrs); setDaysOfWeek(quest.daysOfWeek); setReminder(quest.reminder ?? ""); setSkillIds(quest.skillIds ?? (quest.skillId ? [quest.skillId] : ["security"])); setFocusMinutes(quest.focusMinutes ? String(quest.focusMinutes) : ""); setOpen(true);
   };
 
   const toggleComplete = (id: string, done: boolean, date: string) => {
     buzz(); playSound(done ? "warning" : "done");
-    act((s, alerts) => done ? uncompleteWeeklyQuest(s, id, date) : completeWeeklyQuest(s, id, alerts, date));
+    act((s, alerts) => done ? uncompleteWeeklyQuest(s, id, date) : s.weeklyQuests.find((quest) => quest.id === id)?.startedAt ? completeWeeklyQuest(s, id, alerts, date) : startWeeklyQuest(s, id, alerts));
   };
 
   const toggleDay = (day: number) => setDaysOfWeek((selected) => selected.includes(day) ? selected.filter((value) => value !== day) : [...selected, day]);
 
   return (
     <div className="space-y-4">
-      <Panel title="Weekly Quests" actions={<AddIconButton label="Add weekly quest" onClick={() => setOpen(true)} />}>
-        <p className="mb-3 font-mono text-[11px] text-muted-foreground">Choose the weekdays when each quest repeats. Mark or unmark quests for any date shown. Complete all quests scheduled for a date to earn a gift; unmarking does not retract rewards already earned.</p>
+      <Panel title="Recurring Labs" actions={<AddIconButton label="Add recurring lab" onClick={() => setOpen(true)} />}>
+        <p className="mb-3 font-mono text-[11px] text-muted-foreground">Choose the weekdays when each lab repeats. Start a lab to spend mana, then clear it for XP and skill progress.</p>
       </Panel>
 
       {WEEKDAYS.map(({ value, label }) => {
@@ -83,13 +83,15 @@ export function WeeklyQuestsTab() {
                   const done = quest.doneDates.includes(date);
                   return (
                     <li key={quest.id} className="flex items-center gap-2 border-b border-border/40 pb-3">
-                      <button type="button" role="checkbox" aria-checked={done} onClick={() => toggleComplete(quest.id, done, date)} aria-label={done ? `Unmark ${quest.name} as complete for ${date}` : `Mark ${quest.name} as complete for ${date}`}
+                      <button type="button" role="checkbox" aria-checked={done} onClick={() => toggleComplete(quest.id, done, date)} aria-label={done ? `Unmark ${quest.name} as complete for ${date}` : quest.startedAt ? `Clear lab ${quest.name}` : `Start lab ${quest.name}`}
                         className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-md border disabled:cursor-default", done ? "border-success bg-success/20 text-success" : "border-primary/60 text-primary")}>
                         {done && <Check className="h-4 w-4" />}
                       </button>
                       <div className="min-w-0 flex-1 pr-3">
                         <p className={cn("truncate text-base", done && "text-muted-foreground line-through")}>{quest.name}</p>
                         {quest.description && <p className="text-xs text-muted-foreground">{quest.description}</p>}
+                        {quest.startedAt && !done && <CriticalTimer startedAt={quest.startedAt} seconds={speedWindowSeconds((quest.focusMinutes ?? 25) * 60, state.stats.agility)} />}
+                        {quest.startedAt && !done && <button type="button" className="mt-1 font-mono text-[9px] uppercase text-destructive" onClick={() => act((s, alerts) => useLabHelp(s, quest.id, alerts))}>Get help · HP cost</button>}
                       </div>
                       <DiffBadge d={quest.diff} />
                       <ItemOptionsMenu itemName={quest.name} info={`${quest.description || "No description."}\nRank: ${quest.diff}\nFocus time: ${quest.focusMinutes ? `${quest.focusMinutes} minutes` : "not assigned"}\nRepeat: ${quest.daysOfWeek.length} days per week`} onEdit={() => edit(quest.id)} canMoveUp={index > 0} canMoveDown={index < quests.length - 1}
@@ -109,8 +111,8 @@ export function WeeklyQuestsTab() {
         <div className="fixed inset-0 z-[100] flex items-end bg-background/80 backdrop-blur-md" onClick={closeEditor}>
           <form role="dialog" aria-modal="true" aria-label={editingId ? "Edit weekly quest" : "Create weekly quest"} onClick={(event) => event.stopPropagation()} onSubmit={save}
             className="sys-panel mx-auto max-h-[90dvh] w-full max-w-md space-y-3 overflow-y-auto p-5 animate-in slide-in-from-bottom">
-            <h3 className="font-mono text-xs uppercase tracking-[0.3em] text-primary">{editingId ? "Edit Weekly Quest" : "New Weekly Quest"}</h3>
-            <input autoFocus required className={inputCls} placeholder="Quest name" value={name} onChange={(event) => setName(event.target.value)} />
+            <h3 className="font-mono text-xs uppercase tracking-[0.3em] text-primary">{editingId ? "Edit Recurring Lab" : "New Recurring Lab"}</h3>
+            <input autoFocus required className={inputCls} placeholder="Lab name" value={name} onChange={(event) => setName(event.target.value)} />
             <textarea className={`${inputCls} min-h-20 py-2`} placeholder="Description (optional)" value={description} onChange={(event) => setDescription(event.target.value)} />
             <div>
               <p className="mb-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Repeat on</p>
@@ -122,13 +124,12 @@ export function WeeklyQuestsTab() {
               </div>
             </div>
             <BaseDifficultyPicker value={baseDifficulty} onChange={setBaseDifficulty} playerLevel={state.level} />
-            <AttrPicker value={attrs} onChange={setAttrs} />
-            <SkillPicker skills={state.skills} value={skillId} onChange={setSkillId} />
-            <label className="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Assigned gate focus time
+            <SkillPicker skills={state.skills} value={skillIds} onChange={setSkillIds} />
+            <label className="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Original lab time · minutes
               <input type="number" min={10} step={1} inputMode="numeric" placeholder="Optional · minimum 10 minutes" className={`${inputCls} mt-1`} value={focusMinutes} onChange={(event) => setFocusMinutes(event.target.value)} />
             </label>
             <label className="block font-mono text-xs text-muted-foreground">Reminder (optional)<input type="time" className={inputCls} value={reminder} onChange={(event) => setReminder(event.target.value)} /></label>
-            <div className="flex gap-2"><SysButton type="submit" className="flex-1" disabled={!daysOfWeek.length}>{editingId ? "Save Changes" : "Create Quest"}</SysButton><SysButton type="button" variant="ghost" onClick={closeEditor}>Cancel</SysButton></div>
+            <div className="flex gap-2"><SysButton type="submit" className="flex-1" disabled={!daysOfWeek.length}>{editingId ? "Save Changes" : "Create Lab"}</SysButton><SysButton type="button" variant="ghost" onClick={closeEditor}>Cancel</SysButton></div>
           </form>
         </div>,
         document.body,

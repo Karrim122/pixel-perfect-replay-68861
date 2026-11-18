@@ -1,14 +1,14 @@
 import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useSystem } from "@/lib/store";
-import { ATTRS, RANKS, rankIndex, xpToNext, usePotion, POTION_HP, isLowHp, uid } from "@/lib/system";
-import { FlaskConical, Gift, Package, X } from "lucide-react";
-import { AddIconButton, AttributeIcon, Bar, DiffBadge, ItemOptionsMenu, Panel, SysButton } from "./ui";
+import { ATTRS, CYBER_SKILLS, RANKS, rankIndex, xpToNext, usePotion, useManaPotion, useQuestSkipPotion, POTION_HP, POTION_MANA, isLowHp, allocateAttributePoint, uid } from "@/lib/system";
+import { FlaskConical, Gift, Package, X, Network, Computer, Shield, Terminal, Droplets, SkipForward } from "lucide-react";
+import { AttributeIcon, Bar, DiffBadge, Panel, SysButton } from "./ui";
 import { cn } from "@/lib/utils";
 
 const ATTRIBUTE_TITLES: Record<(typeof ATTRS)[number]["key"], readonly string[]> = {
   strength: ["The Iron Vanguard", "The Steel Vanguard", "The Battleforged", "The Warborn", "The Colossus", "The Titan", "The Cataclysm", "The Worldbreaker"],
-  discipline: ["The Unbroken", "The Resolute", "The Iron Will", "The Unyielding", "The Unshakable", "The Indomitable", "The Absolute", "The Sovereign Will"],
+  agility: ["The Quick Learner", "The Swift Operator", "The Fast Tracker", "The Ghost Runner", "The Phantom", "The Flashpoint", "The Untouchable", "The Speed Demon"],
   intelligence: ["The Tactician", "The Strategist", "The Mastermind", "The Grand Tactician", "The Arch Strategist", "The Oracle", "The Omniscient", "The World Architect"],
   perception: ["The Keen Observer", "The True Sight", "The Seer", "The Farseeing", "The All-Seeing", "The Awakened Eye", "The Omnivisionary", "The Worldseer"],
   vitality: ["The Everlasting", "The Tireless", "The Unfading", "The Deathless", "The Eternal", "The Undying", "The Immortal", "The Eternal Monarch"],
@@ -17,8 +17,6 @@ const ATTRIBUTE_TITLES: Record<(typeof ATTRS)[number]["key"], readonly string[]>
 export function StatusTab() {
   const { state, act } = useSystem();
   const [inventoryOpen, setInventoryOpen] = useState(false);
-  const [skillName, setSkillName] = useState("");
-  const [skillEditorOpen, setSkillEditorOpen] = useState(false);
   const [hpHealing, setHpHealing] = useState(false);
   const hpHealTimeout = useRef<number | null>(null);
   const [itemEffect, setItemEffect] = useState<{ type: "potion" | "gift"; label: string; id: number } | null>(null);
@@ -28,6 +26,7 @@ export function StatusTab() {
   if (!rank) return null;
   const next = RANKS[ri + 1];
   const highestAttribute = ATTRS.reduce((highest, attr) => state.stats[attr.key] > state.stats[highest.key] ? attr : highest, ATTRS[0]!);
+  const skillIcons = [Network, Computer, Shield, Terminal];
   const showItemEffect = (type: "potion" | "gift", label: string) => {
     if (itemEffectTimeout.current !== null) window.clearTimeout(itemEffectTimeout.current);
     setItemEffect({ type, label, id: Date.now() });
@@ -57,6 +56,17 @@ export function StatusTab() {
     hpHealTimeout.current = window.setTimeout(() => { hpHealTimeout.current = null; setHpHealing(false); }, 1100);
     showItemEffect("potion", `+${restored} HP`);
   };
+  const useManaInventoryPotion = () => {
+    if (state.manaPotions < 1 || state.mana >= state.maxMana) return;
+    const restored = Math.min(POTION_MANA, state.maxMana - state.mana);
+    closeInventory();
+    act((s) => useManaPotion(s), { suppressLowHpNotification: true });
+    showItemEffect("potion", `+${restored} MP`);
+  };
+  const useSkipInventoryPotion = () => {
+    if (state.skipPotions < 1) return;
+    act((s, alerts) => { if (useQuestSkipPotion(s, alerts)) closeInventory(); });
+  };
   return (
     <div className="space-y-4">
       <Panel title="Status" className={isLowHp(state) ? "sys-danger sys-low-hp" : ""}>
@@ -84,12 +94,17 @@ export function StatusTab() {
             <p className="mt-1 font-mono text-[10px] text-muted-foreground">Rest restores up to 20 HP each day.</p>
           </div>
           <div>
+            <div className="mb-1 flex justify-between font-mono text-xs"><span className="text-sky-300">MP</span><span>{state.mana} / {state.maxMana}</span></div>
+            <Bar value={state.mana} max={state.maxMana} />
+            <p className="mt-1 font-mono text-[10px] text-muted-foreground">Daily recovery: +20 MP. INT increases mana capacity.</p>
+          </div>
+          <div>
             <div className="mb-1 flex justify-between font-mono text-xs"><span className="text-primary">XP</span><span>{state.xp} / {xpToNext(state.level)}</span></div>
             <Bar value={state.xp} max={xpToNext(state.level)} />
           </div>
         </div>
         <div className="mt-4 flex justify-between border-t border-border pt-3 font-mono text-xs">
-          <span className="text-muted-foreground">Previously Earned Points</span>
+          <span className="text-muted-foreground">Attribute points · +3 per level</span>
           <span className="font-bold text-primary">{state.points}</span>
         </div>
       </Panel>
@@ -97,9 +112,10 @@ export function StatusTab() {
       <Panel title="Attributes">
         <div className="grid grid-cols-2 gap-x-6 gap-y-2 font-mono text-sm">
           {ATTRS.map((a) => (
-            <div key={a.key} className="flex justify-between border-b border-border/50 py-1">
+            <div key={a.key} className="flex items-center justify-between border-b border-border/50 py-1">
               <span className="flex items-center gap-1.5 uppercase text-muted-foreground"><AttributeIcon attr={a.key} className="h-3.5 w-3.5 text-primary" />{a.label.slice(0, 3)}</span>
               <span className="font-bold text-foreground">{state.stats[a.key]}</span>
+              <button aria-label={`Add point to ${a.label}`} disabled={state.points < 1} onClick={() => act((s) => { allocateAttributePoint(s, a.key); })} className="text-primary disabled:opacity-30">+</button>
             </div>
           ))}
         </div>
@@ -107,27 +123,13 @@ export function StatusTab() {
 
       <Panel title="Inventory">
         <div className="flex items-center justify-between gap-3">
-          <div><p className="font-bold">Items and rewards</p><p className="font-mono text-xs text-muted-foreground">{state.potions + state.inventoryGifts.length} items · {state.potions} healing potions · {state.inventoryGifts.length} gifts</p></div>
+          <div><p className="font-bold">Items and rewards</p><p className="font-mono text-xs text-muted-foreground">{state.potions + state.manaPotions + state.skipPotions + state.inventoryGifts.length} items · {state.potions} HP · {state.manaPotions} MP · {state.skipPotions} skips</p></div>
           <SysButton className="flex items-center gap-2" onClick={() => setInventoryOpen(true)}><Package className="h-4 w-4" />Inventory</SysButton>
         </div>
       </Panel>
 
-      <Panel title="Skills" actions={<AddIconButton label="Add skill" onClick={() => setSkillEditorOpen((open) => !open)} />}>
-        <p className="mb-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Create skills and assign tasks or weekly quests to grow them.</p>
-        {skillEditorOpen && <form className="mb-3 flex gap-2" onSubmit={(event) => { event.preventDefault(); const name = skillName.trim(); if (!name) return; act((s) => s.skills.push({ id: uid(), name, level: 1, xp: 0 })); setSkillName(""); setSkillEditorOpen(false); }}>
-          <input autoFocus className="min-h-11 min-w-0 flex-1 border border-input bg-background/60 px-3 text-base text-foreground outline-none focus:border-primary" placeholder="Skill name" value={skillName} onChange={(event) => setSkillName(event.target.value)} />
-          <SysButton type="submit" disabled={!skillName.trim()}>Add</SysButton>
-        </form>}
-        {state.skills.length === 0 ? (
-          <p className="font-mono text-xs text-muted-foreground">No skills yet. Create one above.</p>
-        ) : (
-          <div className="space-y-3">
-            {state.skills.map((skill) => <div key={skill.id} className="flex items-center justify-between gap-3 border border-border/70 bg-background/30 p-3">
-              <h3 className="min-w-0 truncate font-bold text-foreground">{skill.name}</h3>
-              <div className="flex shrink-0 items-center gap-2"><span className="font-mono text-sm font-bold text-primary">Lv {skill.level}</span><ItemOptionsMenu itemName={skill.name} info={`Level: ${skill.level}`} onDelete={() => act((s) => { s.skills = s.skills.filter((item) => item.id !== skill.id); s.todos.forEach((task) => { if (task.skillId === skill.id) task.skillId = undefined; }); s.weeklyQuests.forEach((quest) => { if (quest.skillId === skill.id) quest.skillId = undefined; }); s.dailyQuests.forEach((quest) => { if (quest.skillId === skill.id) quest.skillId = undefined; }); })} /></div>
-            </div>)}
-          </div>
-        )}
+      <Panel title="Cyber Skills">
+        <div className="grid grid-cols-2 gap-2">{CYBER_SKILLS.map((skill, index) => { const Icon = skillIcons[index]!; const rank = state.skills.find((item) => item.id === skill.id); return <div key={skill.id} className="flex items-center gap-2 border border-border/70 bg-background/30 p-3"><Icon className="h-5 w-5 text-primary" /><div><p className="font-bold">{skill.name}</p><p className="font-mono text-[10px] text-muted-foreground">Lv {rank?.level ?? 1}</p></div></div>; })}</div>
       </Panel>
 
       <Panel title="System Log">
@@ -154,6 +156,12 @@ export function StatusTab() {
                 <FlaskConical className="h-7 w-7 text-success" />
                 <span className="line-clamp-2 text-xs font-bold">Healing Potion</span>
                 <span className="font-mono text-[10px] text-success">×{state.potions}</span>
+              </button>
+              <button type="button" aria-label={`Use Mana Potion, ${state.manaPotions} available`} disabled={state.manaPotions < 1 || state.mana >= state.maxMana} onClick={useManaInventoryPotion} className="flex aspect-square min-w-0 flex-col items-center justify-center gap-2 border border-border/70 p-2 text-center hover:border-primary/70 disabled:opacity-40">
+                <Droplets className="h-7 w-7 text-sky-300" /><span className="line-clamp-2 text-xs font-bold">Mana Potion</span><span className="font-mono text-[10px] text-primary">×{state.manaPotions}</span>
+              </button>
+              <button type="button" aria-label={`Use Quest Skip Potion, ${state.skipPotions} available`} disabled={state.skipPotions < 1} onClick={useSkipInventoryPotion} className="flex aspect-square min-w-0 flex-col items-center justify-center gap-2 border border-border/70 p-2 text-center hover:border-primary/70 disabled:opacity-40">
+                <SkipForward className="h-7 w-7 text-primary" /><span className="line-clamp-2 text-xs font-bold">Quest Skip</span><span className="font-mono text-[10px] text-primary">×{state.skipPotions}</span>
               </button>
               {state.inventoryGifts.map((gift) => (
                 <button key={gift.id} type="button" title={gift.description || gift.name} aria-label={`Use gift ${gift.name}, ${gift.rank}-Rank`} onClick={() => useGift(gift.id)} className="flex aspect-square min-w-0 flex-col items-center justify-center gap-2 border border-border/70 p-2 text-center hover:border-primary/70">

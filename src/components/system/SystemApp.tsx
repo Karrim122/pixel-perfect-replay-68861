@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { Brain, Timer, CalendarDays, Hexagon, ListChecks, Settings, Swords, User, Volume2, VolumeX } from "lucide-react";
+import { CalendarDays, Hexagon, ListChecks, Settings, Swords, User, Volume2, VolumeX } from "lucide-react";
 import { SystemProvider, buzz, useSystem } from "@/lib/store";
-import { completeFocusBreaths, completeFocusRegain, failFocusBreaths, failFocusRegain, FOCUS_REGAIN_FAILURE_DISCIPLINE_PERCENT, FOCUS_REGAIN_FAILURE_HP_PERCENT, FOCUS_REGAIN_STEPS, isWeeklyQuestScheduled, rankOf } from "@/lib/system";
+import { isWeeklyQuestScheduled, rankOf } from "@/lib/system";
 import { StatusTab } from "./StatusTab";
 import { playSound, setSoundEnabled } from "@/lib/sound";
 import { QuestsTab } from "./QuestsTab";
@@ -14,10 +14,10 @@ import { cn } from "@/lib/utils";
 
 const TABS = [
   { key: "status", label: "Status", icon: User },
-  { key: "quests", label: "Daily", icon: Hexagon },
-  { key: "weekly", label: "Weekly", icon: CalendarDays },
-  { key: "todo", label: "To-Do", icon: ListChecks },
-  { key: "gates", label: "Gates", icon: Swords },
+  { key: "quests", label: "Daily Labs", icon: Hexagon },
+  { key: "weekly", label: "Recurring", icon: CalendarDays },
+  { key: "todo", label: "Quests", icon: ListChecks },
+  { key: "gates", label: "Projects", icon: Swords },
 ] as const;
 type Tab = (typeof TABS)[number]["key"];
 
@@ -33,9 +33,9 @@ function AlertDetails({ body, motivatingText }: { body: string; motivatingText?:
     <div className="mt-4 space-y-2 border border-border/70 bg-background/60 p-4 text-left">
       {sentences.map((sentence, index) => (
         <p key={`${index}-${sentence}`} className={cn("text-sm leading-relaxed", motivatingText?.includes(sentence) ? "text-primary sys-glow-text" : "text-foreground/90")}>
-          {sentence.split(/([+−-]?\s?\d+(?:\.\d+)?(?:%|\/\d+(?:\.\d+)?%?)?(?:\s?(?:XP|HP|minutes?|m|attribute progress))?)/gi).map((part, partIndex) => {
-            if (!/\d/.test(part)) return part.split(/(\b(?:strength|discipline|intelligence|perception|vitality)\b)/gi).map((word, wordIndex) =>
-              /^(?:strength|discipline|intelligence|perception|vitality)$/i.test(word)
+          {sentence.split(/([+−-]?\s?\d+(?:\.\d+)?(?:%|\/\d+(?:\.\d+)?%?)?(?:\s?(?:XP|HP|MP|minutes?|m))?)/gi).map((part, partIndex) => {
+            if (!/\d/.test(part)) return part.split(/(\b(?:strength|agility|intelligence|perception|vitality)\b)/gi).map((word, wordIndex) =>
+              /^(?:strength|agility|intelligence|perception|vitality)$/i.test(word)
                 ? <span key={`${partIndex}-${wordIndex}`} className="font-bold text-primary sys-glow-text">{word}</span>
                 : word,
             );
@@ -75,116 +75,6 @@ function AlertModal() {
   );
 }
 
-function EmergencyOverlay() {
-  const { state, act } = useSystem();
-  const [now, setNow] = useState(Date.now());
-  const deadline = state.focusRegainDeadline;
-
-  useEffect(() => {
-    if (deadline === null) return;
-    setNow(Date.now());
-    const timer = window.setInterval(() => setNow(Date.now()), 250);
-    return () => window.clearInterval(timer);
-  }, [deadline]);
-
-  const secondsLeft = deadline === null ? 0 : Math.max(0, Math.ceil((deadline - now) / 1000));
-  useEffect(() => {
-    if (deadline !== null && secondsLeft === 0) playSound("done");
-  }, [deadline, secondsLeft]);
-
-  if (deadline === null) return null;
-  const stepIndex = Math.max(0, Math.min(FOCUS_REGAIN_STEPS.length - 1, state.focusRegainStep));
-  const step = FOCUS_REGAIN_STEPS[stepIndex]!;
-  const stepHasTimer = step.durationSeconds > 0;
-  const minutes = String(Math.floor(secondsLeft / 60)).padStart(2, "0");
-  const seconds = String(secondsLeft % 60).padStart(2, "0");
-
-  return (
-    <div className="urgent-quest-overlay fixed inset-0 z-[60] flex items-center justify-center bg-background/85 p-4 text-foreground backdrop-blur-lg" role="alertdialog" aria-modal="true" aria-label="Urgent Quest: Focus Regain">
-      <div className="system-window-panel system-window-urgent w-full max-w-md p-5 sm:p-6">
-        <div className="system-window-topline">
-          <span className="system-window-mark"><Timer className="h-4 w-4" /> SYSTEM WINDOW</span>
-          <span className="system-window-live"><i /> ACTIVE</span>
-        </div>
-        <div className="mt-6 text-left">
-          <p className="font-mono text-[10px] font-bold uppercase tracking-[0.32em] text-primary">Emergency quest · {stepIndex + 1} of {FOCUS_REGAIN_STEPS.length}</p>
-          <h2 className="mt-2 text-4xl font-black uppercase leading-none tracking-tight text-destructive sm:text-5xl">Urgent Quest</h2>
-          <p className="mt-2 font-mono text-sm font-bold uppercase tracking-[0.24em] text-primary sys-glow-text">Focus Regain Protocol</p>
-        </div>
-        <div className="system-window-progress mt-5" aria-label={`Step ${stepIndex + 1} of ${FOCUS_REGAIN_STEPS.length}`}>
-          {FOCUS_REGAIN_STEPS.map((questStep, index) => <span key={questStep.title} className={cn(index <= stepIndex && "is-active")} />)}
-        </div>
-        <section className="system-window-objective mt-5 text-left">
-          <p className="font-mono text-[9px] font-bold uppercase tracking-[0.28em] text-primary">Current objective // {String(stepIndex + 1).padStart(2, "0")}</p>
-          <h3 className="mt-2 text-2xl font-black uppercase tracking-wide text-foreground">{step.title}</h3>
-          <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{step.description}</p>
-        </section>
-        {stepHasTimer ? <>
-          <p className="mt-6 text-center font-mono text-[9px] font-bold uppercase tracking-[0.35em] text-muted-foreground">One minute · time remaining</p>
-          <div role="timer" className="system-window-timer my-1" aria-label={`Urgent quest timer: ${minutes}:${seconds}`}>
-            <p className="relative z-10 font-mono text-6xl font-bold tabular-nums text-primary sys-glow-text" aria-live="off">{minutes}:{seconds}</p>
-          </div>
-          <p className="text-center font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-primary">{secondsLeft === 0 ? "Minute complete · continue when ready" : "Stand up · breathe deeply"}</p>
-        </> : <p className="mt-6 text-center font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-primary">Take the time you need · confirm when complete</p>}
-        <div className="mt-5 grid grid-cols-2 gap-2">
-          <SysButton disabled={stepHasTimer && secondsLeft > 0} className="rounded-sm" onClick={() => act((s, alerts) => completeFocusRegain(s, alerts))}>{stepIndex === FOCUS_REGAIN_STEPS.length - 1 ? "Prayer complete" : "Objective complete"}</SysButton>
-          <SysButton variant="danger" className="rounded-sm" onClick={() => act((s, alerts) => failFocusRegain(s, alerts))}>Failed</SysButton>
-        </div>
-        <p className="system-window-warning mt-4"><span>Failure penalty</span><span>-{FOCUS_REGAIN_FAILURE_DISCIPLINE_PERCENT}% Discipline · -{FOCUS_REGAIN_FAILURE_HP_PERCENT}% current HP</span></p>
-      </div>
-    </div>
-  );
-}
-
-function FocusBreathOverlay() {
-  const { state, act } = useSystem();
-  const [now, setNow] = useState(Date.now());
-  const deadline = state.focusBreathDeadline;
-
-  useEffect(() => {
-    if (deadline === null) return;
-    setNow(Date.now());
-    const timer = window.setInterval(() => setNow(Date.now()), 250);
-    return () => window.clearInterval(timer);
-  }, [deadline]);
-
-  const secondsLeft = deadline === null ? 0 : Math.max(0, Math.ceil((deadline - now) / 1000));
-  useEffect(() => {
-    if (deadline !== null && secondsLeft === 0) playSound("done");
-  }, [deadline, secondsLeft]);
-
-  if (deadline === null) return null;
-  const minutes = String(Math.floor(secondsLeft / 60)).padStart(2, "0");
-  const seconds = String(secondsLeft % 60).padStart(2, "0");
-
-  return (
-    <div className="focus-breath-overlay fixed inset-0 z-[60] flex items-center justify-center bg-background/80 p-4 text-foreground backdrop-blur-lg" role="dialog" aria-modal="true" aria-label="Five-minute focus breathing">
-      <div className="system-window-panel system-window-focus w-full max-w-sm p-5 sm:p-6">
-        <div className="system-window-topline">
-          <span className="system-window-mark"><Brain className="h-4 w-4" /> SYSTEM WINDOW</span>
-          <span className="system-window-live"><i /> RECOVERY</span>
-        </div>
-        <div className="mt-6 text-center">
-          <p className="font-mono text-[10px] font-bold uppercase tracking-[0.32em] text-primary">Focus reset protocol</p>
-          <h2 className="mt-2 text-3xl font-black uppercase tracking-tight text-primary sys-glow-text">Deep Breaths</h2>
-          <p className="mx-auto mt-2 max-w-xs text-sm leading-relaxed text-muted-foreground">Sit comfortably. Breathe in gently, then let each breath out slowly.</p>
-        </div>
-        <div className="system-window-focus-divider mt-5"><span>Recovery sequence</span></div>
-        <p className="mt-5 text-center font-mono text-[9px] font-bold uppercase tracking-[0.35em] text-muted-foreground">Time remaining</p>
-        <div role="timer" className="system-window-timer system-window-timer-focus my-1" aria-label={`Focus breathing timer: ${minutes}:${seconds}`}>
-          <p className="relative z-10 font-mono text-6xl font-bold tabular-nums text-primary sys-glow-text" aria-live="off">{minutes}:{seconds}</p>
-        </div>
-        <p className="text-center font-mono text-[10px] font-bold uppercase tracking-[0.1em] text-primary">{secondsLeft === 0 ? "Sequence complete · reward ready" : "Inhale · hold · exhale"}</p>
-        <div className="mt-5 space-y-2">
-          <SysButton disabled={secondsLeft > 0} className="w-full rounded-sm" onClick={() => act((s, alerts) => completeFocusBreaths(s, alerts))}>Complete recovery</SysButton>
-          <SysButton variant="ghost" className="w-full rounded-sm" onClick={() => act((s) => failFocusBreaths(s))}>End session</SysButton>
-        </div>
-        <p className="mt-4 text-center text-xs leading-relaxed text-muted-foreground">Complete the sequence for XP and Perception practice. Repeat whenever you need a reset.</p>
-      </div>
-    </div>
-  );
-}
-
 function Shell() {
   const { state, ready } = useSystem();
   const [tab, setTab] = useState<Tab>("status");
@@ -206,8 +96,8 @@ function Shell() {
     <div className="mx-auto flex min-h-screen max-w-md flex-col">
       <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-background/85 px-4 py-3 backdrop-blur">
         <div>
-          <p className="font-mono text-[9px] uppercase tracking-[0.4em] text-muted-foreground">Solo Leveling</p>
-          <h1 className="text-xl font-bold uppercase tracking-[0.2em] text-primary sys-glow-text">System</h1>
+          <p className="font-mono text-[9px] uppercase tracking-[0.4em] text-muted-foreground">Cybersecurity</p>
+          <h1 className="text-xl font-bold uppercase tracking-[0.2em] text-primary sys-glow-text">Leveling System</h1>
         </div>
         <div className="flex items-center gap-3">
           <SysButton variant="ghost" className="flex w-11 items-center justify-center px-0" aria-label={sounds ? "Mute sounds" : "Enable sounds"} title={sounds ? "Mute sounds" : "Enable sounds"} aria-pressed={sounds} onClick={() => { setSoundEnabled(!sounds); setSounds(!sounds); if (!sounds) playSound(); }}>
@@ -220,6 +110,7 @@ function Shell() {
           <p className="max-w-28 truncate text-foreground">{state.playerName || "Player"}</p>
           <p className="text-primary">LV {state.level} · {rank.name}</p>
           <p className="text-hp">HP {state.hp}/{state.maxHp}</p>
+          <p className="text-sky-300">MP {state.mana}/{state.maxMana}</p>
           </div>
         </div>
       </header>
@@ -237,7 +128,7 @@ function Shell() {
           {TABS.map((t) => {
             const on = tab === t.key;
             const badgeCount = t.key === "quests" ? remainingToday : t.key === "todo" ? remainingTodoTasks : null;
-            const accessibleLabel = t.key === "quests" ? `Daily, ${remainingToday} quests left today` : t.key === "todo" ? `To-Do, ${remainingTodoTasks} tasks left today` : t.label;
+            const accessibleLabel = t.key === "quests" ? `Daily Labs, ${remainingToday} labs left today` : t.key === "todo" ? `Quests, ${remainingTodoTasks} labs due today` : t.label;
             return (
               <SysButton variant="ghost" aria-current={on ? "page" : undefined} aria-label={accessibleLabel} key={t.key} onClick={() => { buzz(8); setTab(t.key); }}
                 className={cn("relative flex h-16 flex-col items-center justify-center gap-1 font-mono text-[10px] uppercase tracking-wider transition", on ? "text-primary" : "text-muted-foreground")}>
@@ -253,9 +144,7 @@ function Shell() {
         </nav>
       )}
       <AlertModal />
-      <EmergencyOverlay />
-      <FocusBreathOverlay />
-      {settings && <SettingsModal onClose={() => setSettings(false)} />}
+          {settings && <SettingsModal onClose={() => setSettings(false)} />}
       {ready && !state.playerName && <AwakeningModal />}
     </div>
   );
