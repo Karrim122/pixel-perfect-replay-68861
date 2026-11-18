@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useSystem } from "@/lib/store";
-import { ATTRS, CYBER_SKILLS, RANKS, rankIndex, xpToNext, skillXpToNext, usePotion, useManaPotion, useQuestSkipPotion, POTION_HP, POTION_MANA, isLowHp, allocateAttributePoint, uid } from "@/lib/system";
+import { ATTRS, CYBER_SKILLS, RANKS, rankIndex, xpToNext, skillXpToNext, usePotion, useManaPotion, useQuestSkipPotion, cancelQuestDamage, isWeeklyQuestScheduled, POTION_HP, POTION_MANA, isLowHp, allocateAttributePoint, uid, type QuestDamageKind } from "@/lib/system";
 import { FlaskConical, Gift, Package, X, Network, Computer, Shield, Terminal, Droplets, SkipForward } from "lucide-react";
 import { AttributeIcon, Bar, DiffBadge, Panel, SysButton } from "./ui";
 import { cn } from "@/lib/utils";
@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 export function StatusTab() {
   const { state, act } = useSystem();
   const [inventoryOpen, setInventoryOpen] = useState(false);
+  const [skipPotionOpen, setSkipPotionOpen] = useState(false);
   const [hpHealing, setHpHealing] = useState(false);
   const hpHealTimeout = useRef<number | null>(null);
   const [itemEffect, setItemEffect] = useState<{ type: "potion" | "gift"; label: string; id: number } | null>(null);
@@ -18,6 +19,14 @@ export function StatusTab() {
   if (!rank) return null;
   const next = RANKS[ri + 1];
   const skillIcons = [Network, Computer, Shield, Terminal];
+  const damageTargets: { id: string; kind: QuestDamageKind; name: string; label: string }[] = [
+    ...state.dailyQuests.filter((quest) => quest.doneDate !== state.lastDay).map((quest) => ({ id: quest.id, kind: "daily" as const, name: quest.name, label: "Daily quest" })),
+    ...state.weeklyQuests.filter((quest) => quest.startedAt && !quest.doneDates.includes(state.lastDay)).map((quest) => ({ id: quest.id, kind: "weekly" as const, name: quest.name, label: "Weekly quest" })),
+    ...state.todos.filter((task) => !task.done && task.startedAt).map((task) => ({ id: task.id, kind: "todo" as const, name: task.name, label: "To-Do quest" })),
+  ];
+  const canSkipQuest = state.dailyQuests.some((quest) => quest.doneDate !== state.lastDay)
+    || state.weeklyQuests.some((quest) => isWeeklyQuestScheduled(quest, state.lastDay) && !quest.doneDates.includes(state.lastDay))
+    || state.todos.some((task) => !task.done);
   const showItemEffect = (type: "potion" | "gift", label: string) => {
     if (itemEffectTimeout.current !== null) window.clearTimeout(itemEffectTimeout.current);
     setItemEffect({ type, label, id: Date.now() });
@@ -56,7 +65,16 @@ export function StatusTab() {
   };
   const useSkipInventoryPotion = () => {
     if (state.skipPotions < 1) return;
-    act((s, alerts) => { if (useQuestSkipPotion(s, alerts)) closeInventory(); });
+    closeInventory();
+    setSkipPotionOpen(true);
+  };
+  const cancelSelectedQuestDamage = (target: { id: string; kind: QuestDamageKind }) => {
+    act((s, alerts) => { cancelQuestDamage(s, target.kind, target.id, alerts); });
+    setSkipPotionOpen(false);
+  };
+  const skipNextQuest = () => {
+    act((s, alerts) => { useQuestSkipPotion(s, alerts); });
+    setSkipPotionOpen(false);
   };
   return (
     <div className="space-y-4">
@@ -170,6 +188,32 @@ export function StatusTab() {
                   <DiffBadge d={gift.rank} />
                 </button>
               ))}
+            </div>
+          </section>
+        </div>,
+        document.body,
+      )}
+      {skipPotionOpen && createPortal(
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-background/80 p-3 backdrop-blur-md" onClick={() => setSkipPotionOpen(false)}>
+          <section role="dialog" aria-modal="true" aria-label="Quest Skip Potion" onClick={(event) => event.stopPropagation()} className="sys-panel mx-auto max-h-[90dvh] w-full max-w-md space-y-4 overflow-y-auto p-5">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary">Quest Skip Potion ×{state.skipPotions}</p>
+                <h2 className="mt-1 font-mono text-sm font-bold uppercase tracking-wider text-primary sys-glow-text">Choose how to use it</h2>
+              </div>
+              <button type="button" aria-label="Close Quest Skip Potion options" onClick={() => setSkipPotionOpen(false)} className="flex h-10 w-10 items-center justify-center text-muted-foreground hover:text-foreground"><X className="h-5 w-5" /></button>
+            </div>
+            <div className="space-y-2">
+              <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Cancel failure damage for a chosen quest</p>
+              {damageTargets.length === 0 ? <p className="border border-dashed border-border p-3 text-xs text-muted-foreground">No quests are currently set to take failure damage.</p> : damageTargets.map((target) => (
+                <button key={`${target.kind}:${target.id}`} type="button" onClick={() => cancelSelectedQuestDamage(target)} className="flex min-h-11 w-full items-center justify-between gap-3 border border-primary/30 px-3 text-left hover:bg-primary/10">
+                  <span className="min-w-0"><span className="block truncate text-sm font-bold">{target.name}</span><span className="font-mono text-[9px] uppercase text-muted-foreground">{target.label}</span></span>
+                  <span className="shrink-0 font-mono text-[9px] uppercase text-primary">Cancel damage</span>
+                </button>
+              ))}
+            </div>
+            <div className="border-t border-border/60 pt-3">
+              <SysButton type="button" variant="ghost" disabled={!canSkipQuest} className="w-full" onClick={skipNextQuest}>Skip next available quest (no XP)</SysButton>
             </div>
           </section>
         </div>,

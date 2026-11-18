@@ -91,6 +91,7 @@ export interface GameState {
   startingStatsAdjusted: boolean;
   lastDay: string; dailyQuestRewardDay: string | null; weeklyQuestRewardDays: string[];
   dailyQuestStreak: number; dailyQuestStreakDate: string | null;
+  protectedQuestPenalties: string[];
   playerName: string; playerSince: string;
 }
 
@@ -112,7 +113,7 @@ export function moveItem<T extends { id: string }>(items: T[], id: string, targe
 export const initialState = (): GameState => ({
   level: 1, xp: 0, xpCurveVersion: 2, hp: 110, maxHp: 110, mana: 60, maxMana: 60, points: 0, potions: 0, manaPotions: 0, skipPotions: 0,
   stats: { strength: 1, agility: 1, intelligence: 1, perception: 1, vitality: 1 },
-  dailyQuests: [], weeklyQuests: [], skills: CYBER_SKILLS.map(({ id, name }) => ({ id, name, level: 1, xp: 0 })), todos: [], projects: [], inventoryGifts: [], log: [], startingStatsAdjusted: true, lastDay: today(), dailyQuestRewardDay: null, weeklyQuestRewardDays: [], dailyQuestStreak: 0, dailyQuestStreakDate: null, playerName: "", playerSince: today(),
+  dailyQuests: [], weeklyQuests: [], skills: CYBER_SKILLS.map(({ id, name }) => ({ id, name, level: 1, xp: 0 })), todos: [], projects: [], inventoryGifts: [], log: [], startingStatsAdjusted: true, lastDay: today(), dailyQuestRewardDay: null, weeklyQuestRewardDays: [], dailyQuestStreak: 0, dailyQuestStreakDate: null, protectedQuestPenalties: [], playerName: "", playerSince: today(),
 });
 
 export type Alert = { kind: "info" | "penalty" | "level" | "awaken" | "exhausted" | "monarch" | "lowHp"; title: string; body: string };
@@ -327,6 +328,31 @@ export function useQuestSkipPotion(s: GameState, alerts: Alert[]) {
   return true;
 }
 
+export type QuestDamageKind = "daily" | "weekly" | "todo";
+const questDamageKey = (date: string, kind: QuestDamageKind, id: string) => `${date}:${kind}:${id}`;
+
+export function cancelQuestDamage(s: GameState, kind: QuestDamageKind, id: string, alerts: Alert[]) {
+  if (s.skipPotions < 1) return false;
+  const eligible = kind === "daily"
+    ? s.dailyQuests.some((quest) => quest.id === id && quest.doneDate !== s.lastDay)
+    : kind === "weekly"
+      ? s.weeklyQuests.some((quest) => quest.id === id && Boolean(quest.startedAt) && !quest.doneDates.includes(s.lastDay))
+      : s.todos.some((task) => task.id === id && !task.done && Boolean(task.startedAt));
+  if (!eligible) return false;
+  s.skipPotions -= 1;
+  s.protectedQuestPenalties.push(questDamageKey(s.lastDay, kind, id));
+  log(s, `Quest Skip Potion used to cancel damage: ${kind} quest ${id}`, "level");
+  alerts.push({ kind: "info", title: "[SYSTEM] Quest Damage Canceled", body: `A Quest Skip Potion will cancel the failure damage for this ${kind} quest at the daily reset.` });
+  return true;
+}
+
+function consumeQuestDamageProtection(s: GameState, kind: QuestDamageKind, id: string, date: string) {
+  const index = s.protectedQuestPenalties.indexOf(questDamageKey(date, kind, id));
+  if (index < 0) return false;
+  s.protectedQuestPenalties.splice(index, 1);
+  return true;
+}
+
 export function spendMana(s: GameState, amount: number, alerts: Alert[] = []) {
   if (s.mana < amount) {
     alerts.push({ kind: "info", title: "[SYSTEM] Mana too low", body: `This quest costs ${amount} MP. Recover mana before starting.` });
@@ -469,6 +495,12 @@ export function rollover(s: GameState, alerts: Alert[]) {
   if (manaRecovered > 0) log(s, `Daily recovery. +${manaRecovered} MP`, "info");
   s.dailyQuests.forEach((quest) => {
     if (quest.doneDate === s.lastDay) return;
+    if (consumeQuestDamageProtection(s, "daily", quest.id, s.lastDay)) {
+      log(s, `Daily quest damage canceled: ${quest.name}`, "info");
+      alerts.push({ kind: "info", title: "[SYSTEM] Damage Canceled", body: `No failure damage was taken for ${quest.name}.` });
+      delete quest.startedAt;
+      return;
+    }
     const damage = 20 + DIFF_HP[quest.diff] * 10;
     log(s, `Daily quest missed: ${quest.name}. -${damage} HP`, "warn");
     alerts.push({ kind: "penalty", title: "[SYSTEM] Daily Quest Failed", body: `${quest.name} was not cleared today. -${damage} HP. STR reduces damage taken.` });
@@ -477,6 +509,12 @@ export function rollover(s: GameState, alerts: Alert[]) {
   });
   s.weeklyQuests.forEach((quest) => {
     if (!quest.startedAt || quest.doneDates.includes(s.lastDay)) return;
+    if (consumeQuestDamageProtection(s, "weekly", quest.id, s.lastDay)) {
+      log(s, `Weekly quest damage canceled: ${quest.name}`, "info");
+      alerts.push({ kind: "info", title: "[SYSTEM] Damage Canceled", body: `No failure damage was taken for ${quest.name}.` });
+      delete quest.startedAt;
+      return;
+    }
     const damage = 20 + DIFF_HP[quest.diff] * 10;
     log(s, `Started quest abandoned: ${quest.name}. -${damage} HP`, "warn");
     alerts.push({ kind: "penalty", title: "[SYSTEM] Quest Abandoned", body: `${quest.name} was started and left unfinished. -${damage} HP. STR reduces damage taken.` });
@@ -485,12 +523,19 @@ export function rollover(s: GameState, alerts: Alert[]) {
   });
   s.todos.forEach((task) => {
     if (task.done || !task.startedAt) return;
+    if (consumeQuestDamageProtection(s, "todo", task.id, s.lastDay)) {
+      log(s, `To-do quest damage canceled: ${task.name}`, "info");
+      alerts.push({ kind: "info", title: "[SYSTEM] Damage Canceled", body: `No failure damage was taken for ${task.name}.` });
+      delete task.startedAt;
+      return;
+    }
     const damage = 20 + DIFF_HP[task.diff] * 10;
     log(s, `Started quest abandoned: ${task.name}. -${damage} HP`, "warn");
     alerts.push({ kind: "penalty", title: "[SYSTEM] Quest Abandoned", body: `${task.name} was started and left unfinished. -${damage} HP. STR reduces damage taken.` });
     takeDamage(s, damage, alerts);
     delete task.startedAt;
   });
+  s.protectedQuestPenalties = s.protectedQuestPenalties.filter((key) => !key.startsWith(`${s.lastDay}:`));
   s.todos = s.todos.filter((task) => !task.done);
   s.lastDay = t;
 }
@@ -568,5 +613,5 @@ export function hydrateState(raw: string): GameState {
     ...(saved.inventoryGifts ?? []).map((gift) => gift.earnedAt),
   ].filter((date) => /^\d{4}-\d{2}-\d{2}$/.test(date)).sort();
   const playerSince = saved.playerSince ?? legacyActivityDates[0] ?? saved.lastDay ?? today();
-  return { ...base, ...current, level: savedLevel, xp, xpCurveVersion: 2, points: Math.max(0, Math.floor(saved.points ?? Math.max(0, savedLevel - 1) * 3)), hp: Math.min(maxHp, saved.hp ?? maxHp), maxHp, mana: Math.min(maxMana, saved.mana ?? maxMana), maxMana, manaPotions: saved.manaPotions ?? 0, skipPotions: saved.skipPotions ?? 0, todos: (saved.todos ?? []).filter((task) => !task.emergency), projects: Array.isArray(saved.projects) ? saved.projects.map((project) => ({ ...project, skillIds: Array.isArray(project.skillIds) ? project.skillIds : [], done: Boolean(project.done) })) : [], skills, startingStatsAdjusted: true, stats, playerSince, dailyQuests: saved.dailyQuests ?? [], weeklyQuests: weeklyQuests.map((quest) => ({ ...quest, daysOfWeek: Array.isArray(quest.daysOfWeek) ? quest.daysOfWeek.filter((day) => Number.isInteger(day) && day >= 0 && day <= 6) : [], doneDates: Array.isArray(quest.doneDates) ? quest.doneDates : [], rewardedDates: Array.isArray(quest.rewardedDates) ? quest.rewardedDates : Array.isArray(quest.doneDates) ? quest.doneDates : [], masteryLevel: Math.max(1, quest.masteryLevel ?? 1), masteryXp: Math.max(0, quest.masteryXp ?? 0) })), inventoryGifts: saved.inventoryGifts ?? [], dailyQuestRewardDay: saved.dailyQuestRewardDay ?? null, dailyQuestStreak: Math.max(0, Math.floor(saved.dailyQuestStreak ?? 0)), dailyQuestStreakDate: saved.dailyQuestStreakDate ?? null, weeklyQuestRewardDays: saved.weeklyQuestRewardDays ?? (saved.weeklyQuestRewardDay ? [saved.weeklyQuestRewardDay] : []) } as GameState;
+  return { ...base, ...current, level: savedLevel, xp, xpCurveVersion: 2, points: Math.max(0, Math.floor(saved.points ?? Math.max(0, savedLevel - 1) * 3)), hp: Math.min(maxHp, saved.hp ?? maxHp), maxHp, mana: Math.min(maxMana, saved.mana ?? maxMana), maxMana, manaPotions: saved.manaPotions ?? 0, skipPotions: saved.skipPotions ?? 0, todos: (saved.todos ?? []).filter((task) => !task.emergency), protectedQuestPenalties: Array.isArray(saved.protectedQuestPenalties) ? saved.protectedQuestPenalties : [], projects: Array.isArray(saved.projects) ? saved.projects.map((project) => ({ ...project, skillIds: Array.isArray(project.skillIds) ? project.skillIds : [], done: Boolean(project.done) })) : [], skills, startingStatsAdjusted: true, stats, playerSince, dailyQuests: saved.dailyQuests ?? [], weeklyQuests: weeklyQuests.map((quest) => ({ ...quest, daysOfWeek: Array.isArray(quest.daysOfWeek) ? quest.daysOfWeek.filter((day) => Number.isInteger(day) && day >= 0 && day <= 6) : [], doneDates: Array.isArray(quest.doneDates) ? quest.doneDates : [], rewardedDates: Array.isArray(quest.rewardedDates) ? quest.rewardedDates : Array.isArray(quest.doneDates) ? quest.doneDates : [], masteryLevel: Math.max(1, quest.masteryLevel ?? 1), masteryXp: Math.max(0, quest.masteryXp ?? 0) })), inventoryGifts: saved.inventoryGifts ?? [], dailyQuestRewardDay: saved.dailyQuestRewardDay ?? null, dailyQuestStreak: Math.max(0, Math.floor(saved.dailyQuestStreak ?? 0)), dailyQuestStreakDate: saved.dailyQuestStreakDate ?? null, weeklyQuestRewardDays: saved.weeklyQuestRewardDays ?? (saved.weeklyQuestRewardDay ? [saved.weeklyQuestRewardDay] : []) } as GameState;
 }
