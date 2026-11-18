@@ -37,7 +37,6 @@ export function baseDifficultyForDiff(diff: Diff, playerLevel: number): BaseDiff
 }
 export const POTION_HP = 20;
 export const POTION_MANA = 25;
-export const DAILY_REST_HP = 20;
 export const statMaxHp = (vitality: number) => 100 + vitality * 10;
 export const statMaxMana = (intelligence: number) => 50 + intelligence * 10;
 export const questManaCost = (diff: Diff, skillCount = 1) => (5 + DIFF_HP[diff] * 5) * Math.max(1, skillCount);
@@ -487,7 +486,7 @@ export function allocateAttributePoint(s: GameState, attr: Attr) {
 export function rollover(s: GameState, alerts: Alert[]) {
   const t = today();
   if (s.lastDay === t) return;
-  const recovered = Math.min(DAILY_REST_HP, s.maxHp - s.hp);
+  const recovered = Math.min(Math.round(s.maxHp * 0.25), s.maxHp - s.hp);
   s.hp += recovered;
   if (recovered > 0) log(s, `Rest recovery. +${recovered} HP`, "info");
   const manaRecovered = s.maxMana - s.mana;
