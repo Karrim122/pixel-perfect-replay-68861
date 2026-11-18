@@ -124,7 +124,7 @@ function Shell() {
         </div>
       </main>
       {!locked && (
-        <nav className="fixed inset-x-0 bottom-0 z-30 mx-auto grid max-w-md grid-cols-5 border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
+        <nav className="fixed inset-x-3 bottom-3 z-30 mx-auto grid max-w-md grid-cols-5 overflow-hidden rounded-2xl border border-border bg-card/95 pb-[env(safe-area-inset-bottom)] shadow-[0_8px_30px_-12px_var(--glow)] backdrop-blur">
           {TABS.map((t) => {
             const on = tab === t.key;
             const badgeCount = t.key === "quests" ? remainingToday : t.key === "todo" ? remainingTodoTasks : null;
