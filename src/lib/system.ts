@@ -45,6 +45,7 @@ export const requiredStrengthFor = (diff: Diff) => Math.max(1, (DIFFS.indexOf(di
 export const canAccessDifficulty = (strength: number, diff: Diff) => strength >= requiredStrengthFor(diff);
 export const speedWindowSeconds = (baseSeconds: number, agility: number) => Math.max(5, Math.round(baseSeconds * Math.min(0.5, 0.05 + agility * 0.005)));
 export const randomRewardChance = (perception: number) => Math.min(0.75, 0.05 + perception * 0.01);
+export const secondRandomRewardChance = (perception: number) => Math.min(0.75, Math.max(0, (perception - 70) * 0.01));
 export const isLowHp = (s: Pick<GameState, "hp" | "maxHp">) => s.hp > 0 && s.hp / s.maxHp <= 0.25;
 
 export const RANKS: readonly { name: string; min: number; tier: "hunter" | "s" | "monarch" }[] = [
@@ -335,8 +336,7 @@ export function spendMana(s: GameState, amount: number, alerts: Alert[] = []) {
   return true;
 }
 
-export function awardRandomReward(s: GameState, alerts: Alert[], source: string, diff: Diff) {
-  if (Math.random() >= randomRewardChance(s.stats.perception)) return;
+function grantRandomReward(s: GameState, alerts: Alert[], source: string, diff: Diff) {
   const reward = Math.floor(Math.random() * 5);
   if (reward === 0) {
     const xp = gainXp(s, DIFF_XP[diff], alerts);
@@ -359,6 +359,13 @@ export function awardRandomReward(s: GameState, alerts: Alert[], source: string,
     log(s, `Perception reward: +1 attribute point (${source})`, "level");
     alerts.push({ kind: "info", title: "[SYSTEM] Hidden Reward", body: "Perception found 1 available attribute point." });
   }
+}
+
+export function awardRandomReward(s: GameState, alerts: Alert[], source: string, diff: Diff, guaranteed = false) {
+  const perception = s.stats.perception;
+  if (!guaranteed && Math.random() >= randomRewardChance(perception)) return;
+  grantRandomReward(s, alerts, source, diff);
+  if (Math.random() < secondRandomRewardChance(perception)) grantRandomReward(s, alerts, source, diff);
 }
 
 const log = (s: GameState, text: string, kind: LogEntry["kind"] = "info") => {
@@ -410,6 +417,7 @@ export function completeProject(s: GameState, id: string, alerts: Alert[]) {
   const baseXp = projectXpReward(project.diff);
   const earnedXp = gainXp(s, baseXp, alerts);
   awardSkillXp(s, project.skillIds, earnedXp);
+  awardRandomReward(s, alerts, project.name, project.diff, true);
   project.done = true;
   project.completedAt = today();
   const skillNames = project.skillIds.map((skillId) => CYBER_SKILLS.find((skill) => skill.id === skillId)?.name).filter(Boolean);

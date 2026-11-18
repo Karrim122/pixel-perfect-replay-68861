@@ -63,7 +63,7 @@ export function GatesTab() {
   return (
     <div className="space-y-4">
       <Panel title="Projects" actions={<AddIconButton label="Add project" onClick={() => { resetEditor(); setOpen(true); }} />}>
-        <p className="mb-3 font-mono text-[11px] text-muted-foreground">Complete a project once to earn a large rank-based XP reward for your overall level and selected skills.</p>
+        <p className="mb-3 font-mono text-[11px] text-muted-foreground">Complete a project once to earn a large rank-based XP reward for your overall level and selected skills, plus one guaranteed random reward.</p>
         {openProjects.length > 0 && <p className="mb-2 font-mono text-[10px] uppercase tracking-wider text-primary">{openProjects.length} active project{openProjects.length === 1 ? "" : "s"}</p>}
         {orderedProjects.length === 0 ? (
           <div className="flex flex-col items-center gap-2 border border-dashed border-border p-6 text-center">
@@ -109,7 +109,7 @@ export function GatesTab() {
             <textarea maxLength={500} className={`${inputCls} min-h-24 py-2`} placeholder="Project details (optional)" value={description} onChange={(event) => setDescription(event.target.value)} />
             <BaseDifficultyPicker value={baseDifficulty} onChange={setBaseDifficulty} playerLevel={state.level} />
             <SkillPicker skills={state.skills} value={skillIds} onChange={setSkillIds} />
-            <p className="border border-primary/30 bg-primary/5 p-3 text-center font-mono text-xs text-primary">Completion reward: +{rewardXp} overall XP and skill XP</p>
+            <p className="border border-primary/30 bg-primary/5 p-3 text-center font-mono text-xs text-primary">Completion reward: +{rewardXp} overall XP, skill XP, and 1 guaranteed random reward</p>
             <div className="flex gap-2"><SysButton type="submit" className="flex-1" disabled={!name.trim() || !skillIds.length}>{editingId ? "Save Project" : "Add Project"}</SysButton><SysButton type="button" variant="ghost" onClick={resetEditor}>Cancel</SysButton></div>
           </form>
         </div>, document.body,
