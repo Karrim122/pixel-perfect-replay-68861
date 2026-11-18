@@ -14,10 +14,10 @@ import { cn } from "@/lib/utils";
 
 const TABS = [
   { key: "status", label: "Status", icon: User },
-  { key: "quests", label: "Daily Labs", icon: Hexagon },
+  { key: "quests", label: "Daily Quests", icon: Hexagon },
   { key: "weekly", label: "Recurring", icon: CalendarDays },
-  { key: "todo", label: "Quests", icon: ListChecks },
-  { key: "gates", label: "Projects", icon: Swords },
+  { key: "todo", label: "To-Do", icon: ListChecks },
+  { key: "gates", label: "Gates", icon: Swords },
 ] as const;
 type Tab = (typeof TABS)[number]["key"];
 
@@ -128,7 +128,7 @@ function Shell() {
           {TABS.map((t) => {
             const on = tab === t.key;
             const badgeCount = t.key === "quests" ? remainingToday : t.key === "todo" ? remainingTodoTasks : null;
-            const accessibleLabel = t.key === "quests" ? `Daily Labs, ${remainingToday} labs left today` : t.key === "todo" ? `Quests, ${remainingTodoTasks} labs due today` : t.label;
+            const accessibleLabel = t.key === "quests" ? `Daily Quests, ${remainingToday} quests left today` : t.key === "todo" ? `To-Do, ${remainingTodoTasks} quests due today` : t.label;
             return (
               <SysButton variant="ghost" aria-current={on ? "page" : undefined} aria-label={accessibleLabel} key={t.key} onClick={() => { buzz(8); setTab(t.key); }}
                 className={cn("relative flex h-16 flex-col items-center justify-center gap-1 font-mono text-[10px] uppercase tracking-wider transition", on ? "text-primary" : "text-muted-foreground")}>

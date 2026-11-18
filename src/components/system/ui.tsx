@@ -28,10 +28,11 @@ export function StreakBadge({ count, label, completedToday = true, color = "prim
   return <span role="img" aria-label={`${label}${completedToday ? "; completed today" : "; not completed today"}`} title={`${label}${completedToday ? " · completed today" : " · not completed today"}`} className={cn("inline-flex shrink-0 items-center justify-center font-mono text-[10px] font-bold leading-none", completedToday ? color === "success" ? "text-success" : "text-primary" : "text-muted-foreground")}>{count}</span>;
 }
 
-export function Bar({ value, max, hp, heal }: { value: number; max: number; hp?: boolean; heal?: boolean }) {
+export function Bar({ value, max, kind = "mana", heal }: { value: number; max: number; kind?: "hp" | "mana" | "xp"; heal?: boolean }) {
+  const colorClass = kind === "hp" ? "sys-bar-hp" : kind === "mana" ? "sys-bar-mana" : "sys-bar-xp";
   return (
-    <div className={cn("h-2 w-full overflow-hidden bg-secondary", heal && "hp-heal-frame")}>
-      <div className={cn("h-full transition-all duration-700", hp ? "sys-bar-hp" : "sys-bar", hp && heal && "hp-heal-fill")} style={{ width: `${Math.min(100, (value / max) * 100)}%` }} />
+    <div className={cn("h-2 w-full overflow-hidden rounded-full bg-secondary", kind === "hp" && heal && "hp-heal-frame")}>
+      <div className={cn("h-full rounded-full transition-all duration-700", colorClass, kind === "hp" && heal && "hp-heal-fill")} style={{ width: `${Math.min(100, (value / max) * 100)}%` }} />
     </div>
   );
 }

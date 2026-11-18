@@ -166,6 +166,14 @@
   background: linear-gradient(90deg, var(--glow), var(--primary));
   box-shadow: 0 0 10px var(--primary);
 }
+@utility sys-bar-mana {
+  background: linear-gradient(90deg, #4c1d95, #7c3aed);
+  box-shadow: 0 0 10px #7c3aed;
+}
+@utility sys-bar-xp {
+  background: linear-gradient(90deg, #a5f3fc, #67e8f9);
+  box-shadow: 0 0 12px #67e8f9;
+}
 @utility sys-bar-hp {
   background: linear-gradient(90deg, var(--destructive), var(--hp));
   box-shadow: 0 0 10px var(--hp);

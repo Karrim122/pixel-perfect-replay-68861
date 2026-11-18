@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { Check } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
-import { baseDifficultyForDiff, completeDailyQuest, completeWeeklyQuest, dailyQuestStreakFor, isWeeklyQuestScheduled, moveItem, questManaCost, resolveDifficulty, speedWindowSeconds, startDailyQuest, startWeeklyQuest, uid, useLabHelp, type Attr, type BaseDifficulty, type CyberSkill } from "@/lib/system";
+import { baseDifficultyForDiff, completeDailyQuest, completeWeeklyQuest, dailyQuestStreakFor, isWeeklyQuestScheduled, moveItem, resolveDifficulty, speedWindowSeconds, startDailyQuest, startWeeklyQuest, uid, useLabHelp, type Attr, type BaseDifficulty, type CyberSkill } from "@/lib/system";
 import { playSound } from "@/lib/sound";
 import { AddIconButton, BaseDifficultyPicker, CriticalTimer, DiffBadge, ItemOptionsMenu, Panel, SkillPicker, StreakBadge, SysButton, inputCls } from "./ui";
 import { cn } from "@/lib/utils";
@@ -78,25 +78,25 @@ export function QuestsTab() {
 
   return (
     <div className="space-y-4">
-      <Panel title="Daily Labs" actions={<div className="flex items-center gap-2"><StreakBadge count={dailyStreak} completedToday={state.dailyQuestStreakDate === state.lastDay} label={`${dailyStreak} day streak clearing the project objective and every Daily lab`} /><AddIconButton label="Add daily lab" onClick={() => { setEditingId(null); setEditingWeeklyId(null); setName(""); setDescription(""); setBaseDifficulty("Easy"); setAttrs(["agility"]); setSkillIds(["security"]); setFocusMinutes("25"); setReminder(""); setOpen(true); }} /></div>}>
+      <Panel title="Daily Quests" actions={<div className="flex items-center gap-2"><StreakBadge count={dailyStreak} completedToday={state.dailyQuestStreakDate === state.lastDay} label={`${dailyStreak} day streak clearing the project objective and every Daily quest`} /><AddIconButton label="Add daily quest" onClick={() => { setEditingId(null); setEditingWeeklyId(null); setName(""); setDescription(""); setBaseDifficulty("Easy"); setAttrs(["agility"]); setSkillIds(["security"]); setFocusMinutes("25"); setReminder(""); setOpen(true); }} /></div>}>
         <ul className="space-y-3">
           <li className="flex items-center gap-3 border-b border-border/40 pb-3">
-            <button type="button" role="checkbox" aria-checked={dailyDone} aria-label="Clear a project lab" disabled
+            <button type="button" role="checkbox" aria-checked={dailyDone} aria-label="Clear a project gate" disabled
               className={cn("flex h-10 w-10 shrink-0 cursor-not-allowed items-center justify-center rounded-md border", dailyDone ? "border-success bg-success/20 text-success" : "border-primary/60 text-primary")}>
               {dailyDone && <Check className="h-5 w-5" />}
             </button>
             <div className="min-w-0 flex-1 pr-3">
-              <p className={cn("text-lg", dailyDone && "text-muted-foreground line-through")}>Clear a project lab</p>
-              <p className="font-mono text-[10px] text-muted-foreground">Close a project lab or finish a qualifying lab in a project.</p>
+              <p className={cn("text-lg", dailyDone && "text-muted-foreground line-through")}>Clear a project gate</p>
+              <p className="font-mono text-[10px] text-muted-foreground">Clear a gate or finish a qualifying quest inside one.</p>
             </div>
           </li>
           {state.dailyQuests.map((quest, index) => {
             const done = quest.doneDate === state.lastDay;
             return (
               <li key={quest.id} className="flex items-center gap-2 border-b border-border/40 pb-3">
-                <button disabled={done} onClick={() => completeDaily(quest.id)} aria-label={done ? `Completed ${quest.name}` : quest.startedAt ? `Clear lab ${quest.name}` : `Start lab ${quest.name}`}
+                <button disabled={done} onClick={() => completeDaily(quest.id)} aria-label={done ? `Completed ${quest.name}` : quest.startedAt ? `Clear quest ${quest.name}` : `Start quest ${quest.name}`}
                   className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-md border disabled:cursor-default", done ? "border-success bg-success/20 text-success" : "border-primary/60 text-primary")}>
-                {done ? <Check className="h-4 w-4" /> : !quest.startedAt && <span className="text-[9px] font-bold">{questManaCost(quest.diff, quest.skillIds?.length || 1)}MP</span>}
+                {done ? <Check className="h-4 w-4" /> : !quest.startedAt && <span className="text-[9px] font-bold">START</span>}
                 </button>
                 <div className="min-w-0 flex-1 pr-3">
                   <p className={cn("truncate text-base", done && "text-muted-foreground line-through")}>{quest.name}</p>
@@ -114,7 +114,7 @@ export function QuestsTab() {
         </ul>
       </Panel>
 
-      <Panel title="Today's Recurring Labs">
+      <Panel title="Today's Recurring Quests">
         {todayQuests.length === 0 ? (
           <p className="font-mono text-xs text-muted-foreground">No weekly quests are scheduled for today.</p>
         ) : (
@@ -123,9 +123,9 @@ export function QuestsTab() {
               const done = quest.doneDates.includes(state.lastDay);
               return (
                 <li key={quest.id} className="flex items-center gap-3 border-b border-border/40 pb-3">
-                  <button disabled={done} onClick={() => completeWeekly(quest.id)} aria-label={done ? `Completed ${quest.name}` : quest.startedAt ? `Clear lab ${quest.name}` : `Start lab ${quest.name}`}
+                  <button disabled={done} onClick={() => completeWeekly(quest.id)} aria-label={done ? `Completed ${quest.name}` : quest.startedAt ? `Clear quest ${quest.name}` : `Start quest ${quest.name}`}
                     className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-md border disabled:cursor-default", done ? "border-success bg-success/20 text-success" : "border-primary/60 text-primary")}>
-                    {done ? <Check className="h-5 w-5" /> : !quest.startedAt && <span className="text-[9px] font-bold">{questManaCost(quest.diff, quest.skillIds?.length || 1)}MP</span>}
+                    {done && <Check className="h-5 w-5" />}
                   </button>
                   <div className="min-w-0 flex-1 pr-3">
                     <p className={cn("text-lg leading-tight", done && "text-muted-foreground line-through")}>{quest.name}</p>
@@ -143,23 +143,23 @@ export function QuestsTab() {
             })}
           </ul>
         )}
-        <p className="mt-3 font-mono text-[10px] text-muted-foreground">Recurring labs repeat on the weekdays you selected.</p>
+        <p className="mt-3 font-mono text-[10px] text-muted-foreground">Recurring quests repeat on the weekdays you selected.</p>
       </Panel>
 
       {open && createPortal(
         <div className="fixed inset-0 z-[100] flex items-end bg-background/80 backdrop-blur-md" onClick={closeEditor}>
           <form role="dialog" aria-modal="true" aria-label={editingId || editingWeeklyId ? "Edit quest" : "Create daily quest"} onClick={(event) => event.stopPropagation()} onSubmit={save}
             className="sys-panel mx-auto max-h-[90dvh] w-full max-w-sm space-y-2 overflow-y-auto p-4 animate-in slide-in-from-bottom">
-            <h3 className="font-mono text-xs uppercase tracking-[0.3em] text-primary">{editingWeeklyId ? "Edit Recurring Lab" : editingId ? "Edit Daily Lab" : "New Daily Lab"}</h3>
-            <input autoFocus required className={inputCls} placeholder="Lab name" value={name} onChange={(event) => setName(event.target.value)} />
+            <h3 className="font-mono text-xs uppercase tracking-[0.3em] text-primary">{editingWeeklyId ? "Edit Recurring Quest" : editingId ? "Edit Daily Quest" : "New Daily Quest"}</h3>
+            <input autoFocus required className={inputCls} placeholder="Quest name" value={name} onChange={(event) => setName(event.target.value)} />
             <textarea className={`${inputCls} min-h-20 py-2`} placeholder="Description (optional)" value={description} onChange={(event) => setDescription(event.target.value)} />
             <BaseDifficultyPicker value={baseDifficulty} onChange={setBaseDifficulty} playerLevel={state.level} />
-            <label className="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Lab time · minutes
+            <label className="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Quest timer · minutes
               <input type="number" min={1} step={1} className={`${inputCls} mt-1`} value={focusMinutes} onChange={(event) => setFocusMinutes(event.target.value)} />
             </label>
             <SkillPicker skills={state.skills} value={skillIds} onChange={setSkillIds} />
             <label className="block font-mono text-xs text-muted-foreground">Reminder (optional)<input type="time" className={inputCls} value={reminder} onChange={(event) => setReminder(event.target.value)} /></label>
-            <div className="flex gap-2"><SysButton type="submit" className="flex-1">{editingId || editingWeeklyId ? "Save Changes" : "Create Daily Lab"}</SysButton><SysButton type="button" variant="ghost" onClick={closeEditor}>Cancel</SysButton></div>
+            <div className="flex gap-2"><SysButton type="submit" className="flex-1">{editingId || editingWeeklyId ? "Save Changes" : "Create Daily Quest"}</SysButton><SysButton type="button" variant="ghost" onClick={closeEditor}>Cancel</SysButton></div>
           </form>
         </div>,
         document.body,

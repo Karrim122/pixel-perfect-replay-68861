@@ -33,7 +33,7 @@ function GateObjectives({ editable = false }: { editable?: boolean }) {
   return (
     <section className="w-full max-w-md border border-primary/30 bg-card/70 p-3 text-left shadow-[0_0_18px_-12px_var(--primary)]">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-primary">Project Objectives · {objectives.filter((objective) => !objective.done).length} active</p>
+        <p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-primary">Gate Objectives · {objectives.filter((objective) => !objective.done).length} active</p>
         {editable && state.activeGate && <SysButton type="button" variant="danger" className="h-8 min-h-8 px-2 text-[9px]" onClick={() => act((s, alerts) => useGateHelp(s, alerts))}>Use help · HP</SysButton>}
         {editable && <AddIconButton label="Add gate objective" onClick={() => { setEditingId(null); setDraft(""); setEditorOpen(true); }} />}
       </div>
@@ -108,8 +108,8 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
       const damage = 20 + DIFF_HP[s.activeGate?.diff ?? difficultyForRankIndex(rankIndex(s.level))] * 10;
       s.activeGate = null;
       s.sessions.unshift({ id: uid(), date: s.lastDay, minutes: totalFocusMinutes, success: false, label: meta.current.label, ...(meta.current.details ? { details: meta.current.details } : {}), ...(objectives ? { objectives } : {}) });
-      s.log.unshift({ id: uid(), ts: Date.now(), text: `Project failed (${totalFocusMinutes}m recorded). -${damage} HP`, kind: "warn" });
-      a.push({ kind: "penalty", title: "[SYSTEM] Project Failed", body: `${reason} -${damage} HP. STR reduces damage taken.` });
+      s.log.unshift({ id: uid(), ts: Date.now(), text: `Gate failed (${totalFocusMinutes}m recorded). -${damage} HP`, kind: "warn" });
+      a.push({ kind: "penalty", title: "[SYSTEM] Gate Failed", body: `${reason} -${damage} HP. STR reduces damage taken.` });
       takeDamage(s, damage, a);
     });
   };
@@ -143,11 +143,11 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
       const elapsedSeconds = (Date.now() - meta.current.startedAt) / 1000;
       if (elapsedSeconds <= meta.current.speedTargetSeconds) {
         const bonus = gainXp(s, Math.max(1, Math.round(DIFF_XP[labDiff] * 0.5)), a);
-        a.push({ kind: "info", title: "[SYSTEM] Speed Clear", body: `Project cleared inside your ${meta.current.speedTargetSeconds}s critical window. +${bonus} bonus XP.` });
+        a.push({ kind: "info", title: "[SYSTEM] Speed Clear", body: `Gate cleared inside your ${meta.current.speedTargetSeconds}s critical window. +${bonus} bonus XP.` });
       }
       awardRandomReward(s, a, label, labDiff);
-      s.log.unshift({ id: uid(), ts: Date.now(), text: `Project lab cleared (${totalFocusMinutes}m). +${gateXp} XP.`, kind: "level" });
-      a.push({ kind: "info", title: "[SYSTEM] Project Lab Cleared", body: `Lab cleared after ${totalFocusMinutes} focus minutes. +${gateXp} XP. Completed: ${label}.` });
+      s.log.unshift({ id: uid(), ts: Date.now(), text: `Gate cleared (${totalFocusMinutes}m). +${gateXp} XP.`, kind: "level" });
+      a.push({ kind: "info", title: "[SYSTEM] Gate Cleared", body: `Gate cleared after ${totalFocusMinutes} focus minutes. +${gateXp} XP. Completed: ${label}.` });
     });
   };
 
@@ -219,16 +219,16 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
   const start = () => {
     const selected = options.find((option) => option.id === target);
     if (!canAccessDifficulty(state.stats.strength, gateDiff)) {
-      act((_s, alerts) => alerts.push({ kind: "info", title: "[SYSTEM] STR too low", body: `This project requires STR ${requiredStrengthFor(gateDiff)}.` }));
+      act((_s, alerts) => alerts.push({ kind: "info", title: "[SYSTEM] STR too low", body: `This gate requires STR ${requiredStrengthFor(gateDiff)}.` }));
       return;
     }
     if (state.mana < gateManaCost) {
-      act((_s, alerts) => alerts.push({ kind: "info", title: "[SYSTEM] Mana too low", body: `This project costs ${gateManaCost} MP.` }));
+      act((_s, alerts) => alerts.push({ kind: "info", title: "[SYSTEM] Mana too low", body: `This gate costs ${gateManaCost} MP.` }));
       return;
     }
     const startedAt = Date.now();
     const speedTargetSeconds = speedWindowSeconds(gateDurationMinutes * 60, state.stats.agility);
-    meta.current = { target: selected?.id ?? "", label: selected?.label ?? "Project Lab", details: details.trim(), startedAt, speedTargetSeconds };
+    meta.current = { target: selected?.id ?? "", label: selected?.label ?? "Gate Quest", details: details.trim(), startedAt, speedTargetSeconds };
     const objectives = objectivesDraft.map((objective) => ({ ...objective }));
     act((s, alerts) => { if (!spendMana(s, gateManaCost, alerts)) return; s.activeGate = { startedAt, label: meta.current.label, diff: gateDiff, ...(meta.current.details ? { details: meta.current.details } : {}), objectives }; });
     setObjectivesDraft([]);
@@ -270,7 +270,7 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
           <span className="gate-entry-ring gate-entry-ring-inner" />
           <span className="gate-entry-core" />
         </div>
-        <p className="gate-entry-title">Entering Project</p>
+        <p className="gate-entry-title">Entering Gate</p>
         <p className="font-mono text-xs text-muted-foreground">{meta.current.label}</p>
         {meta.current.details && <p className="max-w-sm text-sm text-foreground/80">{meta.current.details}</p>}
       </div>
@@ -285,7 +285,7 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
     return (
       <div className="gate-timer-screen">
         <div className="gate-timer-visual">
-        <p className="gate-timer-label font-mono text-xs uppercase tracking-[0.4em] text-primary animate-sys-pulse">{timerKind === "rest" ? "Rest Timer" : "Project Lab Active"}</p>
+        <p className="gate-timer-label font-mono text-xs uppercase tracking-[0.4em] text-primary animate-sys-pulse">{timerKind === "rest" ? "Rest Timer" : "Gate Active"}</p>
         <div className="relative flex h-64 w-64 items-center justify-center">
           <div className={timerKind === "rest" ? "gate-animation gate-animation-rest" : "gate-animation"} aria-hidden="true">
             <div className="gate-animation-rim gate-animation-rim-outer" />
@@ -311,9 +311,9 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
           {restsUsed < restLimit && <div className="flex justify-center gap-2">{[5, 10, 15].map((duration) => <SysButton key={duration} variant="ghost" onClick={() => takeRest(duration)}>Rest {duration}m</SysButton>)}</div>}
         </div>}
         <GateObjectives editable />
-        {timerKind === "focus" && <SysButton className="w-full" onClick={clear}>Project cleared · submit lab</SysButton>}
+        {timerKind === "focus" && <SysButton className="w-full" onClick={clear}>Gate cleared · submit quest</SysButton>}
         <div className="gate-timer-exit flex gap-2">
-          <SysButton variant="danger" onClick={() => fail("You abandoned the project lab.")}>Exit Project Lab</SysButton>
+          <SysButton variant="danger" onClick={() => fail("You abandoned the gate quest.")}>Exit Gate</SysButton>
         </div>
         <p className="gate-timer-warning max-w-xs font-mono text-[10px] text-muted-foreground">Leaving this screen or switching apps counts as fleeing the gate.</p>
         </div>
@@ -324,7 +324,7 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
   if (gateActive) {
     return (
       <div className="space-y-4">
-        <Panel title="Project Lab In Progress">
+        <Panel title="Gate In Progress">
           <p className="font-bold">{meta.current.label}</p>
           {meta.current.details && <p className="mt-1 text-sm text-muted-foreground">{meta.current.details}</p>}
           <p className="mt-1 font-mono text-xs text-muted-foreground">Completed focus: {focusMinutes} min</p>
@@ -344,26 +344,26 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
             </div>
             : <p className="font-mono text-xs text-muted-foreground">No rests remaining for this assigned duration.</p>}
         </Panel>
-        <SysButton disabled={!focusMinutes} className="h-14 w-full" onClick={clear}>Clear Project Lab</SysButton>
-        <SysButton variant="danger" className="w-full" onClick={() => fail("You left the project lab.")}>Leave Project Lab</SysButton>
-        <p className="text-center font-mono text-[10px] text-muted-foreground">Clearing this project lab completes today's project objective. Leaving causes rank-scaled HP damage, reduced by STR.</p>
+        <SysButton disabled={!focusMinutes} className="h-14 w-full" onClick={clear}>Clear Gate</SysButton>
+        <SysButton variant="danger" className="w-full" onClick={() => fail("You left the gate quest.")}>Leave Gate</SysButton>
+        <p className="text-center font-mono text-[10px] text-muted-foreground">Clearing this gate completes today's project objective. Leaving causes rank-scaled HP damage, reduced by STR.</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      <Panel title="Start a Project Lab">
+      <Panel title="Open a Gate">
         <label className="mb-1 block font-mono text-xs text-muted-foreground">Assigned objective</label>
         <select className={inputCls} value={target} onChange={(e) => { const value = e.target.value; setTarget(value); const selected = options.find((option) => option.id === value); if (selected?.focusMinutes) setMinutes(String(selected.focusMinutes)); }}>
           <option value="">Free focus</option>
-          {todoOptions.length > 0 && <optgroup label="Cyber Labs">{todoOptions.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</optgroup>}
-          {weeklyOptions.length > 0 && <optgroup label="Recurring Labs">{weeklyOptions.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</optgroup>}
+          {todoOptions.length > 0 && <optgroup label="To-Do Quests">{todoOptions.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</optgroup>}
+          {weeklyOptions.length > 0 && <optgroup label="Recurring Quests">{weeklyOptions.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</optgroup>}
         </select>
-        <label className="mb-1 mt-4 block font-mono text-xs text-muted-foreground" htmlFor="gate-details">Project details</label>
+        <label className="mb-1 mt-4 block font-mono text-xs text-muted-foreground" htmlFor="gate-details">Gate details</label>
         <textarea id="gate-details" className={`${inputCls} min-h-14 py-2`} maxLength={160} placeholder="Short focus description (optional)" value={details} onChange={(event) => setDetails(event.target.value)} />
         <div className="mt-4 border border-primary/30 bg-card/70 p-3">
-          <div className="mb-2 flex items-center justify-between gap-2"><p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-primary">Project Objectives · {objectivesDraft.length} active</p><AddIconButton label="Add project objective" onClick={() => { setEditingDraftId(null); setNewObjective(""); setObjectiveDraftOpen(true); }} /></div>
+          <div className="mb-2 flex items-center justify-between gap-2"><p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-primary">Gate Objectives · {objectivesDraft.length} active</p><AddIconButton label="Add gate objective" onClick={() => { setEditingDraftId(null); setNewObjective(""); setObjectiveDraftOpen(true); }} /></div>
           {objectivesDraft.length > 0 && <ul className="space-y-1.5">{objectivesDraft.map((objective) => <li key={objective.id} className="flex items-center gap-3 border-b border-border/40 pb-2"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-border" /><p className="min-w-0 flex-1 pr-2 text-sm">{objective.text}</p><ItemOptionsMenu itemName={objective.text} info="Gate objective" onEdit={() => { setEditingDraftId(objective.id); setNewObjective(objective.text); setObjectiveDraftOpen(true); }} onDelete={() => setObjectivesDraft((items) => items.filter((item) => item.id !== objective.id))} /></li>)}</ul>}
         </div>
         {objectiveDraftOpen && createPortal(
@@ -381,9 +381,9 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
           <input aria-label="Gate focus timer duration in minutes" type="number" min={10} step={1} inputMode="numeric" className={`${inputCls} mt-2`} value={minutes} onChange={(event) => setMinutes(event.target.value)} />
         </label>
         <p className="mt-3 font-mono text-[10px] text-primary">Start cost: {gateManaCost} MP · speed clear target: {speedWindowSeconds(gateDurationMinutes * 60, state.stats.agility)}s</p>
-        <SysButton className="mt-2 h-14 w-full text-sm" onClick={start}>Start Project Lab</SysButton>
+        <SysButton className="mt-2 h-14 w-full text-sm" onClick={start}>Enter Gate</SysButton>
       </Panel>
-      <Panel title="Project Analysis">
+      <Panel title="Gate Analysis">
         <div className="grid grid-cols-2 gap-3 text-center font-mono">
           <div>
             <p className="text-2xl font-bold text-primary">{Math.round(analysis.todayMinutes)}</p>
@@ -395,14 +395,14 @@ export function GatesTab({ onLock }: { onLock: (l: boolean) => void }) {
           </div>
           <div>
             <p className="text-2xl font-bold text-primary">{analysis.closedGates}</p>
-            <p className="text-[10px] uppercase text-muted-foreground">Project labs cleared</p>
+            <p className="text-[10px] uppercase text-muted-foreground">Gates cleared</p>
           </div>
           <div>
             <p className="text-2xl font-bold text-primary">{analysis.efficiency}%</p>
             <p className="text-[10px] uppercase text-muted-foreground">Efficiency</p>
           </div>
         </div>
-        <p className="mt-3 border-t border-border/50 pt-3 text-center font-mono text-[10px] text-muted-foreground">Project labs award XP by rank. AGI widens the critical speed clear window.</p>
+        <p className="mt-3 border-t border-border/50 pt-3 text-center font-mono text-[10px] text-muted-foreground">Gates award XP by rank. AGI widens the critical speed clear window.</p>
       </Panel>
     </div>
   );

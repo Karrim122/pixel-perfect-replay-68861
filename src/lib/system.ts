@@ -1,10 +1,10 @@
 export type Attr = "strength" | "agility" | "intelligence" | "perception" | "vitality";
 export const ATTRS: { key: Attr; label: string; desc: string }[] = [
-  { key: "strength", label: "STR", desc: "Reduces damage and unlocks higher-rank labs." },
+  { key: "strength", label: "STR", desc: "Reduces damage and unlocks higher-rank quests." },
   { key: "intelligence", label: "INT", desc: "Increases mana capacity and XP earned." },
   { key: "vitality", label: "VIT", desc: "Increases maximum HP." },
   { key: "agility", label: "AGI", desc: "Improves speed challenge windows." },
-  { key: "perception", label: "PER", desc: "Improves the chance of a random lab reward." },
+  { key: "perception", label: "PER", desc: "Improves the chance of a random quest reward." },
 ];
 export type CyberSkill = "networks" | "operating-systems" | "security" | "hacking";
 export const CYBER_SKILLS: { id: CyberSkill; name: string }[] = [
@@ -148,7 +148,7 @@ export function failInterruptedGate(s: GameState, alerts: Alert[]) {
   s.activeGate = null;
   s.sessions.unshift({ id: uid(), date: s.lastDay, minutes: 0, success: false, label: gate.label, ...(gate.details ? { details: gate.details } : {}), ...(gate.objectives ? { objectives: gate.objectives } : {}) });
   const damage = 20 + DIFF_HP[gate.diff ?? difficultyForRankIndex(rankIndex(s.level))] * 10;
-  log(s, `Project failure (system closed during lab). -${damage} HP`, "warn");
+  log(s, `Gate failure (system closed during gate quest). -${damage} HP`, "warn");
   alerts.push({ kind: "penalty", title: "[SYSTEM] Project Failed", body: `The system was closed while ${gate.label} was active. -${damage} HP. STR reduces damage taken.` });
   takeDamage(s, damage, alerts);
 }
@@ -162,7 +162,7 @@ function awardDailyPotionIfComplete(s: GameState, alerts: Alert[]) {
   s.dailyQuestRewardDay = s.lastDay;
   s.potions += 1;
   log(s, "All daily and today's weekly quests complete. +1 Healing Potion", "level");
-  alerts.push({ kind: "info", title: "[SYSTEM] Daily Labs Complete!", body: "You cleared a project lab, all Daily labs, and all Recurring labs scheduled for today. Reward: +1 Health Potion." });
+  alerts.push({ kind: "info", title: "[SYSTEM] Daily Quests Complete!", body: "You cleared a gate, all Daily Quests, and all Recurring Quests scheduled for today. Reward: +1 Health Potion." });
 }
 
 function awardWeeklyCompletionGift(s: GameState, quest: WeeklyQuest, date: string, alerts: Alert[]) {
@@ -189,7 +189,7 @@ export function completeWeeklyQuest(s: GameState, id: string, alerts: Alert[], d
   const earnedXp = gainXp(s, DIFF_XP[quest.diff], alerts);
   awardSkillXp(s, quest.skillIds ?? quest.skillId, earnedXp);
   log(s, `Weekly quest complete: ${quest.name} (+${earnedXp} XP)`, "info");
-  alerts.push({ kind: "info", title: "[SYSTEM] Weekly Lab Complete!", body: `${quest.name} cleared. +${earnedXp} XP.` });
+  alerts.push({ kind: "info", title: "[SYSTEM] Recurring Quest Complete!", body: `${quest.name} cleared. +${earnedXp} XP.` });
   awardRandomReward(s, alerts, quest.name, quest.diff);
   awardSpeedClear(s, quest, alerts);
   delete quest.startedAt;
@@ -201,33 +201,31 @@ export function completeWeeklyQuest(s: GameState, id: string, alerts: Alert[], d
 export function startDailyQuest(s: GameState, id: string, alerts: Alert[]) {
   const quest = s.dailyQuests.find((item) => item.id === id);
   if (!quest || quest.doneDate === s.lastDay || quest.startedAt) return false;
-  if (!canAccessDifficulty(s.stats.strength, quest.diff)) { alerts.push({ kind: "info", title: "[SYSTEM] STR too low", body: `This lab requires STR ${requiredStrengthFor(quest.diff)}.` }); return false; }
+  if (!canAccessDifficulty(s.stats.strength, quest.diff)) { alerts.push({ kind: "info", title: "[SYSTEM] STR too low", body: `This quest requires STR ${requiredStrengthFor(quest.diff)}.` }); return false; }
   quest.skillIds = quest.skillIds?.length ? quest.skillIds : quest.skillId ? [quest.skillId] : ["security"];
-  if (!spendMana(s, questManaCost(quest.diff, quest.skillIds.length), alerts)) return false;
   quest.startedAt = Date.now();
-  log(s, `Lab started: ${quest.name}`);
+  log(s, `Quest started: ${quest.name}`);
   return true;
 }
 
 export function startWeeklyQuest(s: GameState, id: string, alerts: Alert[]) {
   const quest = s.weeklyQuests.find((item) => item.id === id);
   if (!quest || quest.doneDates.includes(s.lastDay) || quest.startedAt) return false;
-  if (!canAccessDifficulty(s.stats.strength, quest.diff)) { alerts.push({ kind: "info", title: "[SYSTEM] STR too low", body: `This lab requires STR ${requiredStrengthFor(quest.diff)}.` }); return false; }
+  if (!canAccessDifficulty(s.stats.strength, quest.diff)) { alerts.push({ kind: "info", title: "[SYSTEM] STR too low", body: `This quest requires STR ${requiredStrengthFor(quest.diff)}.` }); return false; }
   quest.skillIds = quest.skillIds?.length ? quest.skillIds : quest.skillId ? [quest.skillId] : ["security"];
-  if (!spendMana(s, questManaCost(quest.diff, quest.skillIds.length), alerts)) return false;
   quest.startedAt = Date.now();
-  log(s, `Lab started: ${quest.name}`);
+  log(s, `Quest started: ${quest.name}`);
   return true;
 }
 
 export function startTodo(s: GameState, id: string, alerts: Alert[]) {
   const task = s.todos.find((item) => item.id === id);
   if (!task || task.done || task.startedAt) return false;
-  if (!canAccessDifficulty(s.stats.strength, task.diff)) { alerts.push({ kind: "info", title: "[SYSTEM] STR too low", body: `This lab requires STR ${requiredStrengthFor(task.diff)}.` }); return false; }
+  if (!canAccessDifficulty(s.stats.strength, task.diff)) { alerts.push({ kind: "info", title: "[SYSTEM] STR too low", body: `This quest requires STR ${requiredStrengthFor(task.diff)}.` }); return false; }
   task.skillIds = task.skillIds?.length ? task.skillIds : task.skillId ? [task.skillId] : ["security"];
   if (!spendMana(s, questManaCost(task.diff, task.skillIds.length), alerts)) return false;
   task.startedAt = Date.now();
-  log(s, `Lab started: ${task.name}`);
+  log(s, `Quest started: ${task.name}`);
   return true;
 }
 
@@ -239,7 +237,7 @@ function awardSpeedClear(s: GameState, lab: { name: string; diff: Diff; startedA
   if (elapsedSeconds <= targetSeconds) {
     const bonus = gainXp(s, Math.max(1, Math.round(DIFF_XP[lab.diff] * 0.5)), alerts);
     log(s, `Speed clear: ${lab.name} (+${bonus} XP)`, "level");
-    alerts.push({ kind: "info", title: "[SYSTEM] Speed Clear", body: `Lab cleared in ${Math.ceil(elapsedSeconds)}s, inside your ${targetSeconds}s critical window. +${bonus} bonus XP.` });
+  alerts.push({ kind: "info", title: "[SYSTEM] Speed Clear", body: `Quest cleared in ${Math.ceil(elapsedSeconds)}s, inside your ${targetSeconds}s critical window. +${bonus} bonus XP.` });
   }
 }
 
@@ -250,8 +248,8 @@ export function useLabHelp(s: GameState, id: string, alerts: Alert[]) {
   if (!lab?.startedAt) return false;
   const damage = 10 + DIFF_HP[lab.diff] * 8;
   if (task) task.helpCount = (task.helpCount ?? 0) + 1;
-  log(s, `Help used on ${lab.name}. -${damage} HP`, "warn");
-  alerts.push({ kind: "penalty", title: "[SYSTEM] Help Costs HP", body: `Using help on ${lab.name} costs ${damage} HP. STR reduces the damage taken.` });
+  log(s, `Help used on quest ${lab.name}. -${damage} HP`, "warn");
+  alerts.push({ kind: "penalty", title: "[SYSTEM] Help Costs HP", body: `Using help on quest ${lab.name} costs ${damage} HP. STR reduces the damage taken.` });
   takeDamage(s, damage, alerts);
   return true;
 }
@@ -281,7 +279,7 @@ export function completeDailyQuest(s: GameState, id: string, alerts: Alert[]) {
   const earnedXp = gainXp(s, DIFF_XP[quest.diff], alerts);
   awardSkillXp(s, quest.skillIds ?? quest.skillId, earnedXp);
   log(s, `Daily quest complete: ${quest.name} (+${earnedXp} XP)`, "info");
-  alerts.push({ kind: "info", title: "[SYSTEM] Daily Lab Complete!", body: `${quest.name} cleared. +${earnedXp} XP.` });
+  alerts.push({ kind: "info", title: "[SYSTEM] Daily Quest Complete!", body: `${quest.name} cleared. +${earnedXp} XP.` });
   awardRandomReward(s, alerts, quest.name, quest.diff);
   awardSpeedClear(s, quest, alerts);
   delete quest.startedAt;
@@ -297,22 +295,22 @@ export function completeTodo(s: GameState, id: string, alerts: Alert[]) {
   const awardsXp = true;
   awardSkillXp(s, task.skillIds ?? task.skillId, earnedXp);
   const xpMessage = `+${earnedXp} XP`;
-  log(s, `Lab cleared: ${task.name} (${xpMessage})`, "info");
+  log(s, `Quest cleared: ${task.name} (${xpMessage})`, "info");
   if (task.reward?.type === "potion") {
     if (task.baseDifficulty === "Hard" || task.baseDifficulty === "Very Hard") {
       s.potions += 1;
       log(s, `Task reward received: Healing Potion (${task.name})`, "level");
-      alerts.push({ kind: "info", title: "[SYSTEM] Lab Complete!", body: `${task.name} cleared. ${awardsXp ? `+${earnedXp} XP` : "No XP"}, +1 Health Potion.` });
+      alerts.push({ kind: "info", title: "[SYSTEM] Quest Complete!", body: `${task.name} cleared. ${awardsXp ? `+${earnedXp} XP` : "No XP"}, +1 Health Potion.` });
     } else {
       log(s, `Healing Potion reward not earned: ${task.name} is not Hard or Very Hard`, "info");
-      alerts.push({ kind: "info", title: "[SYSTEM] Lab Complete!", body: `${task.name} cleared. ${awardsXp ? `+${earnedXp} XP` : "No XP"}.` });
+      alerts.push({ kind: "info", title: "[SYSTEM] Quest Complete!", body: `${task.name} cleared. ${awardsXp ? `+${earnedXp} XP` : "No XP"}.` });
     }
   } else if (task.reward?.type === "gift") {
     s.inventoryGifts.unshift({ id: uid(), name: task.reward.name, ...(task.reward.description ? { description: task.reward.description } : {}), rank: task.diff, sourceTask: task.name, earnedAt: s.lastDay });
     log(s, `Task reward received: ${task.reward.name} (${task.diff}-Rank Gift)`, "level");
-    alerts.push({ kind: "info", title: "[SYSTEM] Lab Complete!", body: `${task.name} cleared. ${awardsXp ? `+${earnedXp} XP` : "No XP"}, and ${task.reward.name} was added to inventory.` });
+    alerts.push({ kind: "info", title: "[SYSTEM] Quest Complete!", body: `${task.name} cleared. ${awardsXp ? `+${earnedXp} XP` : "No XP"}, and ${task.reward.name} was added to inventory.` });
   } else {
-    alerts.push({ kind: "info", title: "[SYSTEM] Lab Complete!", body: `${task.name} cleared. ${awardsXp ? `+${earnedXp} XP` : "No XP"}.` });
+    alerts.push({ kind: "info", title: "[SYSTEM] Quest Complete!", body: `${task.name} cleared. ${awardsXp ? `+${earnedXp} XP` : "No XP"}.` });
   }
   awardRandomReward(s, alerts, task.name, task.diff);
   awardSpeedClear(s, task, alerts);
@@ -323,7 +321,7 @@ export function completeDailyGateQuest(s: GameState, alerts: Alert[]) {
   if (s.dailyGateQuestDoneDate === s.lastDay) return;
   s.dailyGateQuestDoneDate = s.lastDay;
   updateDailyQuestStreak(s);
-  log(s, "Daily objective complete: Clear a project lab", "level");
+  log(s, "Daily objective complete: Clear a gate", "level");
   awardDailyPotionIfComplete(s, alerts);
 }
 
@@ -348,20 +346,20 @@ export function useQuestSkipPotion(s: GameState, alerts: Alert[]) {
   const daily = s.dailyQuests.find((quest) => quest.doneDate !== s.lastDay);
   const weekly = s.weeklyQuests.find((quest) => isWeeklyQuestScheduled(quest, s.lastDay) && !quest.doneDates.includes(s.lastDay));
   const task = s.todos.find((item) => !item.done);
-  const target = daily ? `daily lab ${daily.name}` : weekly ? `weekly lab ${weekly.name}` : task ? `lab ${task.name}` : null;
+  const target = daily ? `daily quest ${daily.name}` : weekly ? `recurring quest ${weekly.name}` : task ? `quest ${task.name}` : null;
   if (!target) return false;
   s.skipPotions -= 1;
   if (daily) { daily.doneDate = s.lastDay; delete daily.startedAt; }
   else if (weekly) { weekly.doneDates = [...weekly.doneDates, s.lastDay].slice(-90); delete weekly.startedAt; }
   else if (task) task.done = true;
   log(s, `Quest Skip Potion used: ${target}`, "level");
-  alerts.push({ kind: "info", title: "[SYSTEM] Lab Skipped", body: `Quest Skip Potion used on ${target}. No XP earned.` });
+  alerts.push({ kind: "info", title: "[SYSTEM] Quest Skipped", body: `Quest Skip Potion used on ${target}. No XP earned.` });
   return true;
 }
 
 export function spendMana(s: GameState, amount: number, alerts: Alert[] = []) {
   if (s.mana < amount) {
-    alerts.push({ kind: "info", title: "[SYSTEM] Mana too low", body: `This lab costs ${amount} MP. Recover mana before starting.` });
+    alerts.push({ kind: "info", title: "[SYSTEM] Mana too low", body: `This quest costs ${amount} MP. Recover mana before starting.` });
     return false;
   }
   s.mana -= amount;
@@ -478,8 +476,8 @@ export function rollover(s: GameState, alerts: Alert[]) {
   s.dailyQuests.forEach((quest) => {
     if (quest.doneDate === s.lastDay) return;
     const damage = 20 + DIFF_HP[quest.diff] * 10;
-    log(s, `Daily lab missed: ${quest.name}. -${damage} HP`, "warn");
-    alerts.push({ kind: "penalty", title: "[SYSTEM] Daily Lab Failed", body: `${quest.name} was not cleared today. -${damage} HP. STR reduces damage taken.` });
+    log(s, `Daily quest missed: ${quest.name}. -${damage} HP`, "warn");
+    alerts.push({ kind: "penalty", title: "[SYSTEM] Daily Quest Failed", body: `${quest.name} was not cleared today. -${damage} HP. STR reduces damage taken.` });
     takeDamage(s, damage, alerts);
     delete quest.startedAt;
   });
@@ -487,22 +485,22 @@ export function rollover(s: GameState, alerts: Alert[]) {
     const diff = difficultyForRankIndex(rankIndex(s.level));
     const damage = 25 + DIFF_HP[diff] * 10;
     log(s, `Daily project objective failed. -${damage} HP`, "warn");
-    alerts.push({ kind: "penalty", title: "[SYSTEM] Daily Project Objective Failed", body: `A project lab was not cleared today. -${damage} HP. STR reduces damage taken.` });
+    alerts.push({ kind: "penalty", title: "[SYSTEM] Daily Project Objective Failed", body: `A gate was not cleared today. -${damage} HP. STR reduces damage taken.` });
     takeDamage(s, damage, alerts);
   }
   s.weeklyQuests.forEach((quest) => {
     if (!quest.startedAt || quest.doneDates.includes(s.lastDay)) return;
     const damage = 20 + DIFF_HP[quest.diff] * 10;
-    log(s, `Started lab abandoned: ${quest.name}. -${damage} HP`, "warn");
-    alerts.push({ kind: "penalty", title: "[SYSTEM] Lab Abandoned", body: `${quest.name} was started and left unfinished. -${damage} HP. STR reduces damage taken.` });
+    log(s, `Started quest abandoned: ${quest.name}. -${damage} HP`, "warn");
+    alerts.push({ kind: "penalty", title: "[SYSTEM] Quest Abandoned", body: `${quest.name} was started and left unfinished. -${damage} HP. STR reduces damage taken.` });
     delete quest.startedAt;
     takeDamage(s, damage, alerts);
   });
   s.todos.forEach((task) => {
     if (task.done || !task.startedAt) return;
     const damage = 20 + DIFF_HP[task.diff] * 10;
-    log(s, `Started lab abandoned: ${task.name}. -${damage} HP`, "warn");
-    alerts.push({ kind: "penalty", title: "[SYSTEM] Lab Abandoned", body: `${task.name} was started and left unfinished. -${damage} HP. STR reduces damage taken.` });
+    log(s, `Started quest abandoned: ${task.name}. -${damage} HP`, "warn");
+    alerts.push({ kind: "penalty", title: "[SYSTEM] Quest Abandoned", body: `${task.name} was started and left unfinished. -${damage} HP. STR reduces damage taken.` });
     takeDamage(s, damage, alerts);
     delete task.startedAt;
   });

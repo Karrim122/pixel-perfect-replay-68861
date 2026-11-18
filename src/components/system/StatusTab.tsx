@@ -1,18 +1,10 @@
 import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useSystem } from "@/lib/store";
-import { ATTRS, CYBER_SKILLS, RANKS, rankIndex, xpToNext, usePotion, useManaPotion, useQuestSkipPotion, POTION_HP, POTION_MANA, isLowHp, allocateAttributePoint, uid } from "@/lib/system";
+import { ATTRS, CYBER_SKILLS, RANKS, rankIndex, xpToNext, skillXpToNext, usePotion, useManaPotion, useQuestSkipPotion, POTION_HP, POTION_MANA, isLowHp, allocateAttributePoint, uid } from "@/lib/system";
 import { FlaskConical, Gift, Package, X, Network, Computer, Shield, Terminal, Droplets, SkipForward } from "lucide-react";
 import { AttributeIcon, Bar, DiffBadge, Panel, SysButton } from "./ui";
 import { cn } from "@/lib/utils";
-
-const ATTRIBUTE_TITLES: Record<(typeof ATTRS)[number]["key"], readonly string[]> = {
-  strength: ["The Iron Vanguard", "The Steel Vanguard", "The Battleforged", "The Warborn", "The Colossus", "The Titan", "The Cataclysm", "The Worldbreaker"],
-  agility: ["The Quick Learner", "The Swift Operator", "The Fast Tracker", "The Ghost Runner", "The Phantom", "The Flashpoint", "The Untouchable", "The Speed Demon"],
-  intelligence: ["The Tactician", "The Strategist", "The Mastermind", "The Grand Tactician", "The Arch Strategist", "The Oracle", "The Omniscient", "The World Architect"],
-  perception: ["The Keen Observer", "The True Sight", "The Seer", "The Farseeing", "The All-Seeing", "The Awakened Eye", "The Omnivisionary", "The Worldseer"],
-  vitality: ["The Everlasting", "The Tireless", "The Unfading", "The Deathless", "The Eternal", "The Undying", "The Immortal", "The Eternal Monarch"],
-};
 
 export function StatusTab() {
   const { state, act } = useSystem();
@@ -25,7 +17,6 @@ export function StatusTab() {
   const rank = RANKS[ri] ?? RANKS[0];
   if (!rank) return null;
   const next = RANKS[ri + 1];
-  const highestAttribute = ATTRS.reduce((highest, attr) => state.stats[attr.key] > state.stats[highest.key] ? attr : highest, ATTRS[0]!);
   const skillIcons = [Network, Computer, Shield, Terminal];
   const showItemEffect = (type: "potion" | "gift", label: string) => {
     if (itemEffectTimeout.current !== null) window.clearTimeout(itemEffectTimeout.current);
@@ -73,7 +64,6 @@ export function StatusTab() {
         <div className="mb-4 border-b border-border pb-3">
           <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Player</p>
           <p className="text-2xl font-bold uppercase tracking-wider text-foreground">{state.playerName || "Player"}</p>
-          <p className="mt-0.5 font-mono text-xs uppercase tracking-[0.2em] text-primary">{ATTRIBUTE_TITLES[highestAttribute.key][ri]}</p>
           <p className="mt-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Player Since · {new Date(`${state.playerSince}T00:00:00`).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })}</p>
         </div>
         <div className="flex items-end justify-between">
@@ -90,17 +80,17 @@ export function StatusTab() {
         <div className="mt-5 space-y-3">
           <div>
             <div className="mb-1 flex justify-between font-mono text-xs"><span className="text-hp">HP</span><span>{state.hp} / {state.maxHp}</span></div>
-            <Bar value={state.hp} max={state.maxHp} hp heal={hpHealing} />
+            <Bar value={state.hp} max={state.maxHp} kind="hp" heal={hpHealing} />
             <p className="mt-1 font-mono text-[10px] text-muted-foreground">Rest restores up to 20 HP each day.</p>
           </div>
           <div>
             <div className="mb-1 flex justify-between font-mono text-xs"><span className="text-sky-300">MP</span><span>{state.mana} / {state.maxMana}</span></div>
-            <Bar value={state.mana} max={state.maxMana} />
+            <Bar value={state.mana} max={state.maxMana} kind="mana" />
             <p className="mt-1 font-mono text-[10px] text-muted-foreground">Daily recovery: +20 MP. INT increases mana capacity.</p>
           </div>
           <div>
             <div className="mb-1 flex justify-between font-mono text-xs"><span className="text-primary">XP</span><span>{state.xp} / {xpToNext(state.level)}</span></div>
-            <Bar value={state.xp} max={xpToNext(state.level)} />
+            <Bar value={state.xp} max={xpToNext(state.level)} kind="xp" />
           </div>
         </div>
         <div className="mt-4 flex justify-between border-t border-border pt-3 font-mono text-xs">
@@ -129,19 +119,27 @@ export function StatusTab() {
       </Panel>
 
       <Panel title="Cyber Skills">
-        <div className="grid grid-cols-2 gap-2">{CYBER_SKILLS.map((skill, index) => { const Icon = skillIcons[index]!; const rank = state.skills.find((item) => item.id === skill.id); return <div key={skill.id} className="flex items-center gap-2 border border-border/70 bg-background/30 p-3"><Icon className="h-5 w-5 text-primary" /><div><p className="font-bold">{skill.name}</p><p className="font-mono text-[10px] text-muted-foreground">Lv {rank?.level ?? 1}</p></div></div>; })}</div>
-      </Panel>
-
-      <Panel title="System Log">
-        {state.log.length === 0 ? <p className="font-mono text-xs text-muted-foreground">No entries. Begin your training, Player.</p> : (
-          <ul className="max-h-60 space-y-1 overflow-y-auto font-mono text-xs">
-            {state.log.slice(0, 25).map((l) => (
-              <li key={l.id} className={cn(l.kind === "warn" ? "text-destructive" : l.kind === "level" ? "text-primary" : "text-muted-foreground")}>
-                <span className="opacity-50">{new Date(l.ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} </span>{l.text}
-              </li>
-            ))}
-          </ul>
-        )}
+        <div className="grid grid-cols-2 gap-2">{CYBER_SKILLS.map((skill, index) => {
+          const Icon = skillIcons[index]!;
+          const skillState = state.skills.find((item) => item.id === skill.id);
+          const level = skillState?.level ?? 1;
+          const skillXp = skillState?.xp ?? 0;
+          const nextSkillXp = skillXpToNext(level);
+          return <div key={skill.id} className="rounded-md border border-primary/40 bg-gradient-to-br from-primary/15 via-background/80 to-sky-400/10 p-3 shadow-[0_0_16px_-7px_var(--primary)]">
+            <div className="flex items-center gap-2">
+              <Icon className="h-5 w-5 shrink-0 text-primary drop-shadow-[0_0_7px_var(--primary)]" />
+              <p className="min-w-0 flex-1 truncate font-bold text-foreground sys-glow-text">{skill.name}</p>
+            </div>
+            <div className="mt-3 flex items-end justify-between gap-1">
+              <span className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground">Skill level</span>
+              <span className="rounded border border-primary/50 bg-primary/15 px-2 py-0.5 font-mono text-sm font-black text-primary sys-glow-text">LV {String(level).padStart(2, "0")}</span>
+            </div>
+            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-secondary/80">
+              <div className="h-full rounded-full bg-gradient-to-r from-primary to-sky-300 shadow-[0_0_8px_var(--primary)]" style={{ width: `${Math.min(100, (skillXp / nextSkillXp) * 100)}%` }} />
+            </div>
+            <p className="mt-1 text-right font-mono text-[9px] text-sky-200">{skillXp} / {nextSkillXp} XP</p>
+          </div>;
+        })}</div>
       </Panel>
 
       {inventoryOpen && createPortal(

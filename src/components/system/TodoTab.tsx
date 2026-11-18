@@ -75,14 +75,14 @@ export function TodoTab() {
     <div className="space-y-4">
       <div className="flex gap-2">
         <div className="grid flex-1 grid-cols-2 gap-2">
-          <SysButton variant={filter === "today" ? "primary" : "ghost"} onClick={() => setFilter("today")}>Today's Labs</SysButton>
-          <SysButton variant={filter === "all" ? "primary" : "ghost"} onClick={() => setFilter("all")}>All Labs</SysButton>
+          <SysButton variant={filter === "today" ? "primary" : "ghost"} onClick={() => setFilter("today")}>Today's Quests</SysButton>
+          <SysButton variant={filter === "all" ? "primary" : "ghost"} onClick={() => setFilter("all")}>All Quests</SysButton>
         </div>
-        <AddIconButton label="Add task" onClick={() => { setEditingId(null); setName(""); setDescription(""); setDue(""); setTime(""); setBaseDifficulty("Easy"); setAttrs(["intelligence"]); setSkillIds(["security"]); setFocusMinutes(""); setRewardType("none"); setRewardName(""); setRewardDescription(""); setOpen(true); }} />
+        <AddIconButton label="Add quest" onClick={() => { setEditingId(null); setName(""); setDescription(""); setDue(""); setTime(""); setBaseDifficulty("Easy"); setAttrs(["intelligence"]); setSkillIds(["security"]); setFocusMinutes(""); setRewardType("none"); setRewardName(""); setRewardDescription(""); setOpen(true); }} />
       </div>
       <Panel>
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="font-mono text-xs uppercase tracking-[0.3em] text-primary sys-glow-text">Labs · {list.filter((t) => !t.done).length} active</h2>
+          <h2 className="font-mono text-xs uppercase tracking-[0.3em] text-primary sys-glow-text">To-Do Quests · {list.filter((t) => !t.done).length} active</h2>
 
         </div>
         {list.length === 0 && <p className="font-mono text-xs text-muted-foreground">No quests registered.</p>}
@@ -90,7 +90,7 @@ export function TodoTab() {
           {list.map((t, index) => {
             return (
               <li key={t.id} className="flex items-center gap-3 border-b border-border/40 pb-2">
-                <button onClick={() => complete(t.id)} aria-label={t.done ? `Completed ${t.name}` : t.startedAt ? `Clear lab ${t.name}` : `Start lab ${t.name}`}
+                <button onClick={() => complete(t.id)} aria-label={t.done ? `Completed ${t.name}` : t.startedAt ? `Clear quest ${t.name}` : `Start quest ${t.name}`}
                   className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-md border", t.done ? "border-success bg-success/20 text-success" : "border-primary/60")}>
                   {t.done ? <Check className="h-5 w-5" /> : t.startedAt ? <Check className="h-5 w-5" /> : <span className="text-[9px] font-bold">{questManaCost(t.diff, t.skillIds?.length || (t.skillId ? 1 : 0))}MP</span>}
                 </button>
@@ -116,9 +116,9 @@ export function TodoTab() {
 
       {open && createPortal(
         <div className="fixed inset-0 z-[100] flex items-end bg-background/80 backdrop-blur-md" onClick={closeEditor}>
-          <form role="dialog" aria-modal="true" aria-label={editingId ? "Edit task" : "Create task"} onClick={(e) => e.stopPropagation()} onSubmit={save} className="sys-panel mx-auto max-h-[90dvh] w-full max-w-md space-y-3 overflow-y-auto p-5 animate-in slide-in-from-bottom">
-            <h3 className="font-mono text-xs uppercase tracking-[0.3em] text-primary">{editingId ? "Edit Lab" : "Register Lab"}</h3>
-            <input autoFocus required className={inputCls} placeholder="Lab name" value={name} onChange={(e) => setName(e.target.value)} />
+          <form role="dialog" aria-modal="true" aria-label={editingId ? "Edit quest" : "Create quest"} onClick={(e) => e.stopPropagation()} onSubmit={save} className="sys-panel mx-auto max-h-[90dvh] w-full max-w-md space-y-3 overflow-y-auto p-5 animate-in slide-in-from-bottom">
+            <h3 className="font-mono text-xs uppercase tracking-[0.3em] text-primary">{editingId ? "Edit Quest" : "Register Quest"}</h3>
+            <input autoFocus required className={inputCls} placeholder="Quest name" value={name} onChange={(e) => setName(e.target.value)} />
             <textarea className={`${inputCls} min-h-20 py-2`} placeholder="Description (optional)" value={description} onChange={(e) => setDescription(e.target.value)} />
             <div className="grid grid-cols-2 gap-2">
               <div className="flex gap-1"><input type="date" aria-label="Due date (optional)" className={inputCls} value={due} onChange={(e) => setDue(e.target.value)} /><button type="button" onClick={() => setDue(today())} className="shrink-0 border border-primary/60 px-2 font-mono text-[9px] uppercase text-primary">Today</button></div>
@@ -129,7 +129,7 @@ export function TodoTab() {
               if (value !== "Hard" && value !== "Very Hard") setRewardType((current) => current === "potion" ? "none" : current);
             }} playerLevel={state.level} />
             <SkillPicker skills={state.skills} value={skillIds} onChange={setSkillIds} />
-            <label className="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Original lab time · minutes
+            <label className="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Quest timer · minutes
               <input type="number" min={10} step={1} inputMode="numeric" placeholder="Optional · minimum 10 minutes" className={`${inputCls} mt-1`} value={focusMinutes} onChange={(event) => setFocusMinutes(event.target.value)} />
             </label>
             <div className="space-y-2 border-t border-border/60 pt-3">
