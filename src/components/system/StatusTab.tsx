@@ -128,7 +128,7 @@ export function StatusTab() {
           return <div key={skill.id} className="rounded-md border border-primary/40 bg-gradient-to-br from-primary/15 via-background/80 to-sky-400/10 p-3 shadow-[0_0_16px_-7px_var(--primary)]">
             <div className="flex items-center gap-2">
               <Icon className="h-5 w-5 shrink-0 text-primary drop-shadow-[0_0_7px_var(--primary)]" />
-              <p className="min-w-0 flex-1 truncate font-bold text-foreground sys-glow-text">{skill.name}</p>
+              <p className="min-w-0 flex-1 truncate font-bold text-foreground">{skill.name}</p>
             </div>
             <div className="mt-3 flex items-end justify-between gap-1">
               <span className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground">Skill level</span>
