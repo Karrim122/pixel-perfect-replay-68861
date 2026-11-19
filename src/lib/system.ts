@@ -16,6 +16,7 @@ export const CYBER_SKILLS: { id: CyberSkill; name: string }[] = [
 export type Diff = "E" | "D" | "C" | "B" | "A" | "S" | "N" | "M";
 export const DIFFS: Diff[] = ["E", "D", "C", "B", "A", "S", "N", "M"];
 export const DIFF_XP: Record<Diff, number> = { E: 4, D: 6, C: 9, B: 12, A: 16, S: 20, N: 25, M: 30 };
+const RECURRING_QUEST_XP_MULTIPLIER = 0.5;
 export const DIFF_HP: Record<Diff, number> = { E: 1, D: 1, C: 2, B: 2, A: 3, S: 4, N: 5, M: 6 };
 export type BaseDifficulty = "Very Easy" | "Easy" | "Medium" | "Hard" | "Very Hard";
 export const BASE_DIFFICULTIES: BaseDifficulty[] = ["Very Easy", "Easy", "Medium", "Hard", "Very Hard"];
@@ -38,7 +39,7 @@ export function baseDifficultyForDiff(diff: Diff, playerLevel: number): BaseDiff
 export const POTION_HP = 20;
 export const POTION_MANA = 25;
 export const statMaxHp = (vitality: number) => 100 + vitality * 10;
-export const statMaxMana = (intelligence: number) => 50 + intelligence * 10;
+export const statMaxMana = (intelligence: number) => 55 + intelligence * 5;
 export const questManaCost = (diff: Diff, skillCount = 1) => (5 + DIFF_HP[diff] * 5) * Math.max(1, skillCount);
 export const requiredStrengthFor = (diff: Diff) => Math.max(1, (DIFFS.indexOf(diff) * 2) + 1);
 export const canAccessDifficulty = (strength: number, diff: Diff) => strength >= requiredStrengthFor(diff);
@@ -184,12 +185,12 @@ export function completeWeeklyQuest(s: GameState, id: string, alerts: Alert[], d
     return true;
   }
   quest.rewardedDates = [...rewardedDates, date].slice(-90);
-  const earnedXp = gainXp(s, DIFF_XP[quest.diff], alerts);
+  const earnedXp = gainXp(s, Math.max(1, Math.round(DIFF_XP[quest.diff] * RECURRING_QUEST_XP_MULTIPLIER)), alerts);
   awardSkillXp(s, quest.skillIds ?? quest.skillId, earnedXp);
   log(s, `Weekly quest complete: ${quest.name} (+${earnedXp} XP)`, "info");
   alerts.push({ kind: "info", title: "[SYSTEM] Recurring Quest Complete!", body: `${quest.name} cleared. +${earnedXp} XP.` });
   awardRandomReward(s, alerts, quest.name, quest.diff);
-  awardSpeedClear(s, quest, alerts);
+  awardSpeedClear(s, quest, alerts, RECURRING_QUEST_XP_MULTIPLIER);
   delete quest.startedAt;
   awardWeeklyCompletionGift(s, quest, date, alerts);
   if (date === s.lastDay) awardDailyPotionIfComplete(s, alerts);
@@ -228,13 +229,13 @@ export function startTodo(s: GameState, id: string, alerts: Alert[]) {
   return true;
 }
 
-function awardSpeedClear(s: GameState, lab: { name: string; diff: Diff; startedAt?: number; focusMinutes?: number }, alerts: Alert[]) {
+function awardSpeedClear(s: GameState, lab: { name: string; diff: Diff; startedAt?: number; focusMinutes?: number }, alerts: Alert[], xpMultiplier = 1) {
   if (!lab.startedAt) return;
   const baseSeconds = Math.max(60, (lab.focusMinutes ?? 25) * 60);
   const targetSeconds = speedWindowSeconds(baseSeconds, s.stats.agility);
   const elapsedSeconds = (Date.now() - lab.startedAt) / 1000;
   if (elapsedSeconds <= targetSeconds) {
-    const bonus = gainXp(s, Math.max(1, Math.round(DIFF_XP[lab.diff] * 0.5)), alerts);
+    const bonus = gainXp(s, Math.max(1, Math.round(DIFF_XP[lab.diff] * 0.5 * xpMultiplier)), alerts);
     log(s, `Speed clear: ${lab.name} (+${bonus} XP)`, "level");
   alerts.push({ kind: "info", title: "[SYSTEM] Speed Clear", body: `Quest cleared in ${Math.ceil(elapsedSeconds)}s, inside your ${targetSeconds}s critical window. +${bonus} bonus XP.` });
   }
@@ -265,12 +266,12 @@ export function completeDailyQuest(s: GameState, id: string, alerts: Alert[]) {
   const quest = s.dailyQuests.find((x) => x.id === id);
   if (!quest || quest.doneDate === s.lastDay) return;
   quest.doneDate = s.lastDay;
-  const earnedXp = gainXp(s, DIFF_XP[quest.diff], alerts);
+  const earnedXp = gainXp(s, Math.max(1, Math.round(DIFF_XP[quest.diff] * RECURRING_QUEST_XP_MULTIPLIER)), alerts);
   awardSkillXp(s, quest.skillIds ?? quest.skillId, earnedXp);
   log(s, `Daily quest complete: ${quest.name} (+${earnedXp} XP)`, "info");
   alerts.push({ kind: "info", title: "[SYSTEM] Daily Quest Complete!", body: `${quest.name} cleared. +${earnedXp} XP.` });
   awardRandomReward(s, alerts, quest.name, quest.diff);
-  awardSpeedClear(s, quest, alerts);
+  awardSpeedClear(s, quest, alerts, RECURRING_QUEST_XP_MULTIPLIER);
   delete quest.startedAt;
   updateDailyQuestStreak(s);
   awardDailyRecoveryIfComplete(s, alerts);
