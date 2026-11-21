@@ -93,7 +93,7 @@ function Shell() {
   return (
     <div className="mx-auto flex min-h-screen max-w-md flex-col">
       <header className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-border bg-background/85 px-3 py-2 backdrop-blur">
-        <h1 className="min-w-0 flex-1 truncate text-base font-bold uppercase tracking-[0.1em] text-primary sys-glow-text">Leveling System</h1>
+        <h1 className="min-w-0 flex-1 truncate text-base font-bold uppercase tracking-[0.1em] text-primary sys-glow-text">Cybersecurity System</h1>
         <div className="flex shrink-0 items-center gap-1.5">
           <div className="max-w-28 truncate text-right font-mono text-[10px] leading-tight">
             <p className="truncate text-primary">LV {state.level} · {rank.name}</p>
