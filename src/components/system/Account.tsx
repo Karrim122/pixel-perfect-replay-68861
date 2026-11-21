@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useSystem } from "@/lib/store";
 import { playSound } from "@/lib/sound";
 import { chooseDailyBackupFile, downloadBackup, hasDailyBackupFile, hasDailyBackupSupport } from "@/lib/backup";
+import { Volume2, VolumeX } from "lucide-react";
 import { SysButton, inputCls } from "./ui";
 
 const LINES = [
@@ -43,7 +44,7 @@ export function AwakeningModal() {
   );
 }
 
-export function SettingsModal({ onClose }: { onClose: () => void }) {
+export function SettingsModal({ onClose, sounds, onToggleSounds }: { onClose: () => void; sounds: boolean; onToggleSounds: () => void }) {
   const { state, act, reset } = useSystem();
   const [name, setName] = useState(state.playerName);
   const [confirm, setConfirm] = useState(false);
@@ -78,6 +79,13 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
           <input id="pname" maxLength={24} value={name} onChange={(e) => setName(e.target.value)} className={inputCls} />
           <SysButton type="submit" className="w-full" disabled={!name.trim()}>Save</SysButton>
         </form>
+        <div className="mt-6 border-t border-border pt-4">
+          <p className="font-mono text-[10px] uppercase tracking-widest text-primary">Sound</p>
+          <SysButton type="button" variant="ghost" aria-pressed={sounds} onClick={onToggleSounds} className="mt-2 flex w-full items-center justify-between normal-case tracking-normal">
+            <span className="flex items-center gap-2">{sounds ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}Sound effects</span>
+            <span>{sounds ? "On" : "Off"}</span>
+          </SysButton>
+        </div>
         <div className="mt-6 border-t border-border pt-4">
           <p className="font-mono text-[10px] uppercase tracking-widest text-primary">Data Backup</p>
           <p className="mt-2 text-xs text-muted-foreground">Choose a JSON file once and the app will keep it updated as your data changes. Your regular browser save remains active too.</p>

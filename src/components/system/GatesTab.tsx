@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { Check, FolderKanban } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
-import { baseDifficultyForDiff, completeProject, projectXpReward, resolveDifficulty, uid, type BaseDifficulty, type CyberSkill } from "@/lib/system";
+import { baseDifficultyForDiff, completeProject, intelligenceXpBonus, projectXpReward, resolveDifficulty, uid, type BaseDifficulty, type CyberSkill } from "@/lib/system";
 import { AddIconButton, BaseDifficultyPicker, DiffBadge, ItemOptionsMenu, Panel, SkillPicker, SysButton, inputCls } from "./ui";
 import { playSound } from "@/lib/sound";
 import { cn } from "@/lib/utils";
@@ -16,7 +16,7 @@ export function GatesTab() {
   const [baseDifficulty, setBaseDifficulty] = useState<BaseDifficulty>("Medium");
   const [skillIds, setSkillIds] = useState<CyberSkill[]>(["security"]);
   const rewardDiff = resolveDifficulty(baseDifficulty, state.level);
-  const rewardXp = Math.max(1, Math.round(projectXpReward(rewardDiff) * (1 + state.stats.intelligence * 0.01)));
+  const rewardXp = Math.max(1, Math.round(projectXpReward(rewardDiff) * (1 + intelligenceXpBonus(state.stats.intelligence) / 100)));
   const openProjects = state.projects.filter((project) => !project.done);
   const orderedProjects = [...state.projects].sort((a, b) => Number(a.done) - Number(b.done));
 
@@ -75,7 +75,7 @@ export function GatesTab() {
           <ul className="space-y-3">
             {orderedProjects.map((project) => {
               const skillNames = project.skillIds.map((id) => state.skills.find((skill) => skill.id === id)?.name).filter(Boolean);
-              const projectReward = Math.max(1, Math.round(projectXpReward(project.diff) * (1 + state.stats.intelligence * 0.01)));
+              const projectReward = Math.max(1, Math.round(projectXpReward(project.diff) * (1 + intelligenceXpBonus(state.stats.intelligence) / 100)));
               return (
                 <li key={project.id} className={cn("border border-border/70 bg-background/30 p-3", project.done && "opacity-65")}>
                   <div className="flex items-start gap-3">

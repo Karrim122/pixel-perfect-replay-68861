@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CalendarDays, FolderKanban, Hexagon, ListChecks, Settings, User, Volume2, VolumeX } from "lucide-react";
+import { CalendarDays, FolderKanban, Hexagon, ListChecks, Settings, User } from "lucide-react";
 import { SystemProvider, buzz, useSystem } from "@/lib/store";
 import { isWeeklyQuestScheduled, rankOf } from "@/lib/system";
 import { StatusTab } from "./StatusTab";
@@ -92,24 +92,15 @@ function Shell() {
 
   return (
     <div className="mx-auto flex min-h-screen max-w-md flex-col">
-      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-background/85 px-4 py-3 backdrop-blur">
-        <div>
-          <p className="font-mono text-[9px] uppercase tracking-[0.4em] text-muted-foreground">Cybersecurity</p>
-          <h1 className="text-xl font-bold uppercase tracking-[0.2em] text-primary sys-glow-text">Leveling System</h1>
-        </div>
-        <div className="flex items-center gap-3">
-          <SysButton variant="ghost" className="flex w-11 items-center justify-center px-0" aria-label={sounds ? "Mute sounds" : "Enable sounds"} title={sounds ? "Mute sounds" : "Enable sounds"} aria-pressed={sounds} onClick={() => { setSoundEnabled(!sounds); setSounds(!sounds); if (!sounds) playSound(); }}>
-            {sounds ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-          </SysButton>
-          <SysButton variant="ghost" className="flex w-11 items-center justify-center px-0" aria-label="Account settings" title="Account settings" onClick={() => setSettings(true)}>
+      <header className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-border bg-background/85 px-3 py-2 backdrop-blur">
+        <h1 className="min-w-0 flex-1 truncate text-base font-bold uppercase tracking-[0.1em] text-primary sys-glow-text">Leveling System</h1>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <div className="max-w-28 truncate text-right font-mono text-[10px] leading-tight">
+            <p className="truncate text-primary">LV {state.level} · {rank.name}</p>
+          </div>
+          <SysButton variant="ghost" className="flex h-9 min-h-9 w-9 items-center justify-center border-0 px-0" aria-label="Account settings" title="Account settings" onClick={() => setSettings(true)}>
             <Settings className="h-4 w-4" />
           </SysButton>
-          <div className="text-right font-mono text-xs">
-          <p className="max-w-28 truncate text-foreground">{state.playerName || "Player"}</p>
-          <p className="text-primary">LV {state.level} · {rank.name}</p>
-          <p className="text-hp">HP {state.hp}/{state.maxHp}</p>
-          <p className="text-sky-300">MP {state.mana}/{state.maxMana}</p>
-          </div>
         </div>
       </header>
       <main className={cn("flex-1 px-4 pb-28 pt-4 transition-opacity", !ready && "opacity-0")}>
@@ -140,7 +131,7 @@ function Shell() {
           })}
       </nav>
       <AlertModal />
-          {settings && <SettingsModal onClose={() => setSettings(false)} />}
+          {settings && <SettingsModal onClose={() => setSettings(false)} sounds={sounds} onToggleSounds={() => { const next = !sounds; setSoundEnabled(next); setSounds(next); if (next) playSound(); }} />}
       {ready && !state.playerName && <AwakeningModal />}
     </div>
   );

@@ -97,6 +97,10 @@ export function StatusTab() {
         </div>
         <div className="mt-5 space-y-3">
           <div>
+            <div className="mb-1 flex justify-between font-mono text-xs"><span className="text-primary">XP</span><span>{state.xp} / {xpToNext(state.level)}</span></div>
+            <Bar value={state.xp} max={xpToNext(state.level)} kind="xp" />
+          </div>
+          <div>
             <div className="mb-1 flex justify-between font-mono text-xs"><span className="text-hp">HP</span><span>{state.hp} / {state.maxHp}</span></div>
             <Bar value={state.hp} max={state.maxHp} kind="hp" heal={hpHealing} />
             <p className="mt-1 font-mono text-[10px] text-muted-foreground">Rest restores up to 20 HP each day.</p>
@@ -104,11 +108,7 @@ export function StatusTab() {
           <div>
             <div className="mb-1 flex justify-between font-mono text-xs"><span className="text-sky-300">MP</span><span>{state.mana} / {state.maxMana}</span></div>
             <Bar value={state.mana} max={state.maxMana} kind="mana" />
-            <p className="mt-1 font-mono text-[10px] text-muted-foreground">Daily recovery: +20 MP. INT increases mana capacity.</p>
-          </div>
-          <div>
-            <div className="mb-1 flex justify-between font-mono text-xs"><span className="text-primary">XP</span><span>{state.xp} / {xpToNext(state.level)}</span></div>
-            <Bar value={state.xp} max={xpToNext(state.level)} kind="xp" />
+            <p className="mt-1 font-mono text-[10px] text-muted-foreground">Daily recovery: +20 MP. Each INT adds +5 max MP and +0.5% XP, up to +30% XP.</p>
           </div>
         </div>
       </Panel>

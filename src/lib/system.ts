@@ -1,10 +1,10 @@
 export type Attr = "strength" | "agility" | "intelligence" | "perception" | "vitality";
 export const ATTRS: { key: Attr; label: string; desc: string }[] = [
-  { key: "strength", label: "STR", desc: "Reduces damage and unlocks higher-rank quests." },
-  { key: "intelligence", label: "INT", desc: "Increases mana capacity and XP earned." },
-  { key: "vitality", label: "VIT", desc: "Increases maximum HP." },
-  { key: "agility", label: "AGI", desc: "Improves speed challenge windows." },
-  { key: "perception", label: "PER", desc: "Improves the chance of a random quest reward." },
+  { key: "strength", label: "STR", desc: "Unlocks higher-rank quests and reduces incoming damage by up to 50%." },
+  { key: "intelligence", label: "INT", desc: "+5 max MP per point and +0.5% XP per point, up to +30%." },
+  { key: "vitality", label: "VIT", desc: "+10 max HP per point up to 50 VIT, then +3 per point." },
+  { key: "agility", label: "AGI", desc: "Extends speed challenge windows, up to 50% of the focus time." },
+  { key: "perception", label: "PER", desc: "Raises random reward chance up to 35%; high PER can find a second reward." },
 ];
 export type CyberSkill = "networks" | "operating-systems" | "security" | "hacking";
 export const CYBER_SKILLS: { id: CyberSkill; name: string }[] = [
@@ -38,14 +38,14 @@ export function baseDifficultyForDiff(diff: Diff, playerLevel: number): BaseDiff
 }
 export const POTION_HP = 20;
 export const POTION_MANA = 25;
-export const statMaxHp = (vitality: number) => 100 + vitality * 10;
+export const statMaxHp = (vitality: number) => 100 + Math.min(vitality, 50) * 10 + Math.max(0, vitality - 50) * 3;
 export const statMaxMana = (intelligence: number) => 55 + intelligence * 5;
+export const intelligenceXpBonus = (intelligence: number) => Math.min(30, intelligence * 0.5);
 export const questManaCost = (diff: Diff, skillCount = 1) => (5 + DIFF_HP[diff] * 5) * Math.max(1, skillCount);
-export const requiredStrengthFor = (diff: Diff) => Math.max(1, (DIFFS.indexOf(diff) * 2) + 1);
-export const canAccessDifficulty = (strength: number, diff: Diff) => strength >= requiredStrengthFor(diff);
 export const speedWindowSeconds = (baseSeconds: number, agility: number) => Math.max(5, Math.round(baseSeconds * Math.min(0.5, 0.05 + agility * 0.005)));
-export const randomRewardChance = (perception: number) => Math.min(0.75, 0.05 + perception * 0.01);
-export const secondRandomRewardChance = (perception: number) => Math.min(0.75, Math.max(0, (perception - 70) * 0.01));
+export const strengthDamageMultiplier = (strength: number) => Math.max(0.5, 1 - strength * 0.01);
+export const randomRewardChance = (perception: number) => Math.min(0.35, 0.05 + perception * 0.005);
+export const secondRandomRewardChance = (perception: number) => Math.min(0.1, Math.max(0, (perception - 50) * 0.002));
 export const isLowHp = (s: Pick<GameState, "hp" | "maxHp">) => s.hp > 0 && s.hp / s.maxHp <= 0.25;
 
 export const RANKS: readonly { name: string; min: number; tier: "hunter" | "s" | "monarch" }[] = [
@@ -64,6 +64,12 @@ export function rankIndex(level: number) {
   RANKS.forEach((r, idx) => { if (level >= r.min) i = idx; });
   return i;
 }
+// Each rank adds a larger STR requirement so high-rank quests need real investment.
+export const requiredStrengthFor = (diff: Diff) => {
+  const rank = Math.max(0, DIFFS.indexOf(diff));
+  return 1 + 6 * rank + 3 * rank * rank;
+};
+export const canAccessDifficulty = (strength: number, diff: Diff) => strength >= requiredStrengthFor(diff);
 export const rankOf = (level: number) => RANKS[rankIndex(level)]!;
 /** Ease the E-rank start, then ramp back to the previous quadratic curve by level 60. */
 export const xpToNext = (level: number) => {
@@ -426,7 +432,7 @@ export function awardSkillXp(s: GameState, skillIds: CyberSkill | CyberSkill[] |
 
 /** Pure-ish mutation helpers operating on a cloned state; push alerts to list. */
 export function gainXp(s: GameState, amount: number, alerts: Alert[]) {
-  const earned = Math.max(1, Math.round(amount * (1 + s.stats.intelligence * 0.01)));
+  const earned = Math.max(1, Math.round(amount * (1 + intelligenceXpBonus(s.stats.intelligence) / 100)));
   s.xp += earned;
   while (s.xp >= xpToNext(s.level)) {
     s.xp -= xpToNext(s.level);
@@ -465,7 +471,7 @@ export function completeProject(s: GameState, id: string, alerts: Alert[]) {
 }
 
 export function takeDamage(s: GameState, amount: number, alerts: Alert[]) {
-  const damage = Math.max(1, Math.round(amount * Math.max(0.25, 1 - s.stats.strength * 0.01)));
+  const damage = Math.max(1, Math.round(amount * strengthDamageMultiplier(s.stats.strength)));
   const previousHp = s.hp;
   s.hp = Math.max(0, s.hp - damage);
   if (previousHp > 0 && s.hp === 0) {
