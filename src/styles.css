@@ -149,12 +149,14 @@
   background: var(--card);
   background: color-mix(in oklab, var(--card) 80%, transparent);
   backdrop-filter: blur(8px);
-  border: 1px solid color-mix(in oklab, var(--primary) 28%, transparent);
-  box-shadow: 0 8px 28px -14px color-mix(in oklab, var(--glow) 42%, transparent), inset 0 0 22px -18px color-mix(in oklab, var(--primary) 32%, transparent);
+  border: 1px solid var(--primary);
+  border: 1px solid color-mix(in oklab, var(--primary) 45%, transparent);
+  box-shadow: 0 0 14px -4px var(--primary), inset 0 0 18px -10px var(--primary);
+  box-shadow: 0 0 14px -4px color-mix(in oklab, var(--primary) 50%, transparent), inset 0 0 18px -10px var(--primary);
   clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
 }
 @utility sys-glow-text {
-  text-shadow: 0 0 14px color-mix(in oklab, var(--glow) 28%, transparent), 0 0 30px color-mix(in oklab, var(--glow) 16%, transparent);
+  text-shadow: 0 0 8px var(--primary), 0 0 20px var(--glow);
 }
 @utility sys-danger {
   border-color: var(--destructive) !important;
