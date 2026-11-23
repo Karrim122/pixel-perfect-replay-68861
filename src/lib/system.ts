@@ -3,7 +3,7 @@ export const ATTRS: { key: Attr; label: string; desc: string }[] = [
   { key: "strength", label: "STR", desc: "Unlocks higher-rank quests and reduces incoming damage by up to 50%." },
   { key: "intelligence", label: "INT", desc: "+5 max MP per point and +0.5% XP per point, up to +30%." },
   { key: "vitality", label: "VIT", desc: "+10 max HP per point up to 50 VIT, then +3 per point." },
-  { key: "agility", label: "AGI", desc: "Extends speed challenge windows, up to 50% of focus time, and grants up to a 20% chance to dodge damage." },
+  { key: "agility", label: "AGI", desc: "Grants up to a 20% chance to dodge incoming damage." },
   { key: "perception", label: "PER", desc: "Raises random reward chance up to 35%; high PER can find a second reward." },
 ];
 export type CyberSkill = "networks" | "operating-systems" | "security" | "hacking";
@@ -42,7 +42,6 @@ export const statMaxHp = (vitality: number) => 100 + Math.min(vitality, 50) * 10
 export const statMaxMana = (intelligence: number) => 55 + intelligence * 5;
 export const intelligenceXpBonus = (intelligence: number) => Math.min(30, intelligence * 0.5);
 export const questManaCost = (diff: Diff, skillCount = 1) => (5 + DIFF_HP[diff] * 5) * Math.max(1, skillCount);
-export const speedWindowSeconds = (baseSeconds: number, agility: number) => Math.max(5, Math.round(baseSeconds * Math.min(0.5, 0.05 + agility * 0.005)));
 export const agilityDodgeChance = (agility: number) => Math.min(0.2, Math.max(0, agility) * 0.01);
 export const strengthDamageMultiplier = (strength: number) => Math.max(0.5, 1 - strength * 0.01);
 export const randomRewardChance = (perception: number) => Math.min(0.35, 0.05 + perception * 0.005);
@@ -197,7 +196,6 @@ export function completeWeeklyQuest(s: GameState, id: string, alerts: Alert[], d
   log(s, `Weekly quest complete: ${quest.name} (+${earnedXp} XP)`, "info");
   alerts.push({ kind: "info", title: "[SYSTEM] Recurring Quest Complete!", body: `${quest.name} cleared. +${earnedXp} XP.` });
   awardRandomReward(s, alerts, quest.name, quest.diff);
-  awardSpeedClear(s, quest, alerts, RECURRING_QUEST_XP_MULTIPLIER);
   delete quest.startedAt;
   awardWeeklyCompletionGift(s, quest, date, alerts);
   if (date === s.lastDay) awardDailyPotionIfComplete(s, alerts);
@@ -236,18 +234,6 @@ export function startTodo(s: GameState, id: string, alerts: Alert[]) {
   return true;
 }
 
-function awardSpeedClear(s: GameState, lab: { name: string; diff: Diff; startedAt?: number; focusMinutes?: number }, alerts: Alert[], xpMultiplier = 1) {
-  if (!lab.startedAt) return;
-  const baseSeconds = Math.max(60, (lab.focusMinutes ?? 25) * 60);
-  const targetSeconds = speedWindowSeconds(baseSeconds, s.stats.agility);
-  const elapsedSeconds = (Date.now() - lab.startedAt) / 1000;
-  if (elapsedSeconds <= targetSeconds) {
-    const bonus = gainXp(s, Math.max(1, Math.round(DIFF_XP[lab.diff] * 0.5 * xpMultiplier)), alerts);
-    log(s, `Speed clear: ${lab.name} (+${bonus} XP)`, "level");
-  alerts.push({ kind: "info", title: "[SYSTEM] Speed Clear", body: `Quest cleared in ${Math.ceil(elapsedSeconds)}s, inside your ${targetSeconds}s critical window. +${bonus} bonus XP.` });
-  }
-}
-
 export function useLabHelp(s: GameState, id: string, alerts: Alert[]) {
   const task = s.todos.find((item) => item.id === id);
   const quest = s.dailyQuests.find((item) => item.id === id) ?? s.weeklyQuests.find((item) => item.id === id);
@@ -278,7 +264,6 @@ export function completeDailyQuest(s: GameState, id: string, alerts: Alert[]) {
   log(s, `Daily quest complete: ${quest.name} (+${earnedXp} XP)`, "info");
   alerts.push({ kind: "info", title: "[SYSTEM] Daily Quest Complete!", body: `${quest.name} cleared. +${earnedXp} XP.` });
   awardRandomReward(s, alerts, quest.name, quest.diff);
-  awardSpeedClear(s, quest, alerts, RECURRING_QUEST_XP_MULTIPLIER);
   delete quest.startedAt;
   updateDailyQuestStreak(s);
   awardDailyRecoveryIfComplete(s, alerts);
@@ -311,7 +296,6 @@ export function completeTodo(s: GameState, id: string, alerts: Alert[]) {
     alerts.push({ kind: "info", title: "[SYSTEM] Quest Complete!", body: `${task.name} cleared. ${awardsXp ? `+${earnedXp} XP` : "No XP"}.` });
   }
   awardRandomReward(s, alerts, task.name, task.diff);
-  awardSpeedClear(s, task, alerts);
   delete task.startedAt;
 }
 

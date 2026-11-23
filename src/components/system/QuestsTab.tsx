@@ -2,9 +2,9 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { Check } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
-import { baseDifficultyForDiff, completeDailyQuest, completeWeeklyQuest, dailyQuestStreakFor, isWeeklyQuestScheduled, moveItem, questManaCost, resolveDifficulty, speedWindowSeconds, startDailyQuest, startWeeklyQuest, uid, useLabHelp, type Attr, type BaseDifficulty, type CyberSkill } from "@/lib/system";
+import { baseDifficultyForDiff, completeDailyQuest, completeWeeklyQuest, dailyQuestStreakFor, isWeeklyQuestScheduled, moveItem, questManaCost, resolveDifficulty, startDailyQuest, startWeeklyQuest, uid, useLabHelp, type Attr, type BaseDifficulty, type CyberSkill } from "@/lib/system";
 import { playSound } from "@/lib/sound";
-import { AddIconButton, BaseDifficultyPicker, CriticalTimer, DiffBadge, ItemOptionsMenu, Panel, SkillPicker, StreakBadge, SysButton, inputCls } from "./ui";
+import { AddIconButton, BaseDifficultyPicker, DiffBadge, ItemOptionsMenu, Panel, SkillPicker, StreakBadge, SysButton, inputCls } from "./ui";
 import { cn } from "@/lib/utils";
 import { QuestInfoDialog } from "./QuestInfoDialog";
 
@@ -105,7 +105,6 @@ export function QuestsTab() {
                 <div className="min-w-0 flex-1 pr-3">
                   <p className={cn("truncate text-base", done && "text-muted-foreground line-through")}>{quest.name}</p>
                   {quest.description && <p className="text-xs text-muted-foreground">{quest.description}</p>}
-                  {quest.startedAt && !done && <CriticalTimer startedAt={quest.startedAt} seconds={speedWindowSeconds((quest.focusMinutes ?? 25) * 60, state.stats.agility)} />}
                   {quest.startedAt && !done && <button type="button" className="mt-1 font-mono text-[9px] uppercase text-destructive" onClick={() => act((s, alerts) => useLabHelp(s, quest.id, alerts))}>Get help · HP cost</button>}
                 </div>
                 <ItemOptionsMenu itemName={quest.name} info={`${quest.description || "No description."}\nRank: ${quest.diff}${quest.reminder ? `\nReminder: ${quest.reminder}` : ""}`} onEdit={() => edit(quest.id)} canMoveUp={index > 0} canMoveDown={index < state.dailyQuests.length - 1}
@@ -134,7 +133,6 @@ export function QuestsTab() {
                   <div className="min-w-0 flex-1 pr-3">
                     <p className={cn("text-lg leading-tight", done && "text-muted-foreground line-through")}>{quest.name}</p>
                     {quest.description && <p className="text-xs text-muted-foreground">{quest.description}</p>}
-                    {quest.startedAt && !done && <CriticalTimer startedAt={quest.startedAt} seconds={speedWindowSeconds((quest.focusMinutes ?? 25) * 60, state.stats.agility)} />}
                     {quest.startedAt && !done && <button type="button" className="mt-1 font-mono text-[9px] uppercase text-destructive" onClick={() => act((s, alerts) => useLabHelp(s, quest.id, alerts))}>Get help · HP cost</button>}
                   </div>
                   <DiffBadge d={quest.diff} baseDifficulty={quest.baseDifficulty ?? baseDifficultyForDiff(quest.diff, state.level)} />
@@ -168,7 +166,7 @@ export function QuestsTab() {
         </div>,
         document.body,
       )}
-      <QuestInfoDialog quest={dialogQuest?.startedAt ? dialogQuest : null} kind={activeQuest?.kind === "weekly" ? "Weekly Quest" : "Daily Quest"} agility={state.stats.agility} onClose={() => setActiveQuest(null)} onComplete={completeDialogQuest} onHelp={() => {
+      <QuestInfoDialog quest={dialogQuest?.startedAt ? dialogQuest : null} kind={activeQuest?.kind === "weekly" ? "Weekly Quest" : "Daily Quest"} onClose={() => setActiveQuest(null)} onComplete={completeDialogQuest} onHelp={() => {
         if (!activeQuest) return;
         act((s, alerts) => useLabHelp(s, activeQuest.id, alerts));
       }} />

@@ -3,8 +3,8 @@ import { createPortal } from "react-dom";
 import { Check } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
 import { playSound } from "@/lib/sound";
-import { baseDifficultyForDiff, completeTodo, DIFFS, moveItem, questManaCost, RANKS, resolveDifficulty, speedWindowSeconds, startTodo, useLabHelp, today, uid, type Attr, type BaseDifficulty, type CyberSkill, type TodoReward } from "@/lib/system";
-import { AddIconButton, BaseDifficultyPicker, CriticalTimer, DiffBadge, ItemOptionsMenu, Panel, SkillPicker, SysButton, inputCls } from "./ui";
+import { baseDifficultyForDiff, completeTodo, DIFFS, moveItem, questManaCost, RANKS, resolveDifficulty, startTodo, useLabHelp, today, uid, type Attr, type BaseDifficulty, type CyberSkill, type TodoReward } from "@/lib/system";
+import { AddIconButton, BaseDifficultyPicker, DiffBadge, ItemOptionsMenu, Panel, SkillPicker, SysButton, inputCls } from "./ui";
 import { cn } from "@/lib/utils";
 import { QuestInfoDialog } from "./QuestInfoDialog";
 
@@ -105,7 +105,6 @@ export function TodoTab() {
                   </p>
                   {t.description && <p className="text-xs text-muted-foreground">{t.description}</p>}
                   {t.focusMinutes && <p className="font-mono text-[9px] leading-tight text-muted-foreground">Focus: {t.focusMinutes} min</p>}
-                  {t.startedAt && !t.done && <CriticalTimer startedAt={t.startedAt} seconds={speedWindowSeconds((t.focusMinutes ?? 25) * 60, state.stats.agility)} />}
                   {t.startedAt && !t.done && <button type="button" className="mt-1 font-mono text-[9px] uppercase text-destructive" onClick={() => act((s, alerts) => useLabHelp(s, t.id, alerts))}>Get help · HP cost</button>}
                 </div>
                 <DiffBadge d={t.diff} baseDifficulty={t.baseDifficulty ?? baseDifficultyForDiff(t.diff, state.level)} />
@@ -155,7 +154,7 @@ export function TodoTab() {
         </div>,
         document.body,
       )}
-      <QuestInfoDialog quest={activeQuest?.startedAt && !activeQuest.done ? activeQuest : null} kind="To-Do Quest" agility={state.stats.agility} onClose={() => setActiveQuestId(null)} onComplete={() => {
+      <QuestInfoDialog quest={activeQuest?.startedAt && !activeQuest.done ? activeQuest : null} kind="To-Do Quest" onClose={() => setActiveQuestId(null)} onComplete={() => {
         if (activeQuestId) complete(activeQuestId);
         setActiveQuestId(null);
       }} onHelp={() => {

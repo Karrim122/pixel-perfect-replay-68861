@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { ArrowLeft, FlaskConical, Gift, Package, SkipForward, X, Droplets } from "lucide-react";
 import { useSystem } from "@/lib/store";
-import { cancelQuestDamage, isWeeklyQuestScheduled, speedWindowSeconds, uid, useManaPotion, usePotion, useQuestSkipPotion, type BaseDifficulty, type Diff, type QuestDamageKind } from "@/lib/system";
-import { CriticalTimer, DiffBadge, SysButton } from "./ui";
+import { cancelQuestDamage, isWeeklyQuestScheduled, uid, useManaPotion, usePotion, useQuestSkipPotion, type BaseDifficulty, type Diff, type QuestDamageKind } from "@/lib/system";
+import { DiffBadge, SysButton } from "./ui";
 import { cn } from "@/lib/utils";
 
 export interface QuestInfo {
@@ -29,14 +29,12 @@ function FocusCountdown({ startedAt, minutes }: { startedAt: number; minutes: nu
 export function QuestInfoDialog({
   quest,
   kind,
-  agility,
   onClose,
   onComplete,
   onHelp,
 }: {
   quest: QuestInfo | null;
   kind: string;
-  agility: number;
   onClose: () => void;
   onComplete: () => void;
   onHelp: () => void;
@@ -115,7 +113,6 @@ export function QuestInfoDialog({
             </div>
             <span className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground">Keeps running<br />in background</span>
           </div> : <p className="mb-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">No focus time assigned</p>}
-          <CriticalTimer startedAt={quest.startedAt} seconds={speedWindowSeconds((quest.focusMinutes ?? 25) * 60, agility)} />
         </div>
         <div className="flex gap-2">
           <SysButton type="button" variant="danger" className="flex-1" onClick={onHelp}>Get Help (HP cost)</SysButton>

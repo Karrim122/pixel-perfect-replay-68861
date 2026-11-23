@@ -37,16 +37,6 @@ export function Bar({ value, max, kind = "mana", heal }: { value: number; max: n
   );
 }
 
-export function CriticalTimer({ startedAt, seconds }: { startedAt: number; seconds: number }) {
-  const [now, setNow] = useState(Date.now());
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, []);
-  const remaining = Math.max(0, Math.ceil((startedAt + seconds * 1000 - now) / 1000));
-  return <p role="timer" className={cn("mt-1 font-mono text-[9px] uppercase", remaining > 0 ? "text-primary" : "text-muted-foreground")}>{remaining > 0 ? `Critical speed window · ${remaining}s` : "Speed window closed"}</p>;
-}
-
 const ATTRIBUTE_ICONS = {
   strength: Dumbbell,
   agility: Zap,

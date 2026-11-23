@@ -2,9 +2,9 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { Check } from "lucide-react";
 import { buzz, useSystem } from "@/lib/store";
-import { baseDifficultyForDiff, completeWeeklyQuest, isWeeklyQuestScheduled, moveItem, questManaCost, resolveDifficulty, speedWindowSeconds, startWeeklyQuest, uid, uncompleteWeeklyQuest, useLabHelp, type Attr, type BaseDifficulty, type CyberSkill } from "@/lib/system";
+import { baseDifficultyForDiff, completeWeeklyQuest, isWeeklyQuestScheduled, moveItem, questManaCost, resolveDifficulty, startWeeklyQuest, uid, uncompleteWeeklyQuest, useLabHelp, type Attr, type BaseDifficulty, type CyberSkill } from "@/lib/system";
 import { playSound } from "@/lib/sound";
-import { AddIconButton, BaseDifficultyPicker, CriticalTimer, DiffBadge, ItemOptionsMenu, Panel, SkillPicker, SysButton, inputCls } from "./ui";
+import { AddIconButton, BaseDifficultyPicker, DiffBadge, ItemOptionsMenu, Panel, SkillPicker, SysButton, inputCls } from "./ui";
 import { cn } from "@/lib/utils";
 import { QuestInfoDialog } from "./QuestInfoDialog";
 
@@ -100,7 +100,6 @@ export function WeeklyQuestsTab() {
                       <div className="min-w-0 flex-1 pr-3">
                         <p className={cn("truncate text-base", done && "text-muted-foreground line-through")}>{quest.name}</p>
                         {quest.description && <p className="text-xs text-muted-foreground">{quest.description}</p>}
-                        {quest.startedAt && !done && <CriticalTimer startedAt={quest.startedAt} seconds={speedWindowSeconds((quest.focusMinutes ?? 25) * 60, state.stats.agility)} />}
                         {quest.startedAt && !done && <button type="button" className="mt-1 font-mono text-[9px] uppercase text-destructive" onClick={() => act((s, alerts) => useLabHelp(s, quest.id, alerts))}>Get help · HP cost</button>}
                       </div>
                       <DiffBadge d={quest.diff} baseDifficulty={quest.baseDifficulty ?? baseDifficultyForDiff(quest.diff, state.level)} />
@@ -144,7 +143,7 @@ export function WeeklyQuestsTab() {
         </div>,
         document.body,
       )}
-      <QuestInfoDialog quest={activeQuestInfo?.startedAt ? activeQuestInfo : null} kind="Weekly Quest" agility={state.stats.agility} onClose={() => setActiveQuest(null)} onComplete={() => {
+      <QuestInfoDialog quest={activeQuestInfo?.startedAt ? activeQuestInfo : null} kind="Weekly Quest" onClose={() => setActiveQuest(null)} onComplete={() => {
         if (activeQuest) { buzz(); playSound("done"); act((s, alerts) => completeWeeklyQuest(s, activeQuest.id, alerts, activeQuest.date)); }
         setActiveQuest(null);
       }} onHelp={() => {
