@@ -3,7 +3,7 @@ export const ATTRS: { key: Attr; label: string; desc: string }[] = [
   { key: "strength", label: "STR", desc: "Unlocks higher-rank quests and reduces incoming damage by up to 50%." },
   { key: "intelligence", label: "INT", desc: "+5 max MP per point and +0.5% XP per point, up to +30%." },
   { key: "vitality", label: "VIT", desc: "+10 max HP per point up to 50 VIT, then +3 per point." },
-  { key: "agility", label: "AGI", desc: "Extends speed challenge windows, up to 50% of the focus time." },
+  { key: "agility", label: "AGI", desc: "Extends speed challenge windows, up to 50% of focus time, and grants up to a 20% chance to dodge damage." },
   { key: "perception", label: "PER", desc: "Raises random reward chance up to 35%; high PER can find a second reward." },
 ];
 export type CyberSkill = "networks" | "operating-systems" | "security" | "hacking";
@@ -43,6 +43,7 @@ export const statMaxMana = (intelligence: number) => 55 + intelligence * 5;
 export const intelligenceXpBonus = (intelligence: number) => Math.min(30, intelligence * 0.5);
 export const questManaCost = (diff: Diff, skillCount = 1) => (5 + DIFF_HP[diff] * 5) * Math.max(1, skillCount);
 export const speedWindowSeconds = (baseSeconds: number, agility: number) => Math.max(5, Math.round(baseSeconds * Math.min(0.5, 0.05 + agility * 0.005)));
+export const agilityDodgeChance = (agility: number) => Math.min(0.2, Math.max(0, agility) * 0.01);
 export const strengthDamageMultiplier = (strength: number) => Math.max(0.5, 1 - strength * 0.01);
 export const randomRewardChance = (perception: number) => Math.min(0.35, 0.05 + perception * 0.005);
 export const secondRandomRewardChance = (perception: number) => Math.min(0.1, Math.max(0, (perception - 50) * 0.002));
@@ -56,7 +57,7 @@ export const RANKS: readonly { name: string; min: number; tier: "hunter" | "s" |
   { name: "A-Rank", min: 49, tier: "hunter" },
   { name: "S-Rank", min: 60, tier: "s" },
   { name: "National Level Hunter", min: 86, tier: "s" },
-  { name: "Shadow Monarch", min: 116, tier: "monarch" },
+  { name: "Cyber Monarch", min: 116, tier: "monarch" },
 ];
 
 export function rankIndex(level: number) {
@@ -436,21 +437,14 @@ export function gainXp(s: GameState, amount: number, alerts: Alert[]) {
   s.xp += earned;
   while (s.xp >= xpToNext(s.level)) {
     s.xp -= xpToNext(s.level);
-    const prevRank = rankIndex(s.level);
     s.level += 1;
     s.points += 3;
     s.maxHp = statMaxHp(s.stats.vitality);
     s.maxMana = statMaxMana(s.stats.intelligence);
     s.hp = s.maxHp;
     s.mana = s.maxMana;
-    const r = rankIndex(s.level);
     log(s, `Level up → ${s.level}`, "level");
-    if (r !== prevRank) {
-      const rank = RANKS[r]!;
-      if (rank.name === "S-Rank") alerts.push({ kind: "awaken", title: "[SYSTEM] Level 60 Reached", body: "S-Rank Threshold Breached. The measurement device cannot register your power. Authority granted." });
-      else if (rank.name === "Shadow Monarch") alerts.push({ kind: "monarch", title: "[SYSTEM] ARISE", body: "You have become the Shadow Monarch. All shadows kneel." });
-      else alerts.push({ kind: "level", title: `[SYSTEM] Rank Up: ${rank.name}`, body: `You have reached Level ${s.level}.` });
-    } else alerts.push({ kind: "level", title: "[SYSTEM] Level Up!", body: `You are now Level ${s.level}. +3 attribute points. HP and mana restored.` });
+    alerts.push({ kind: "level", title: "Leveled up!", body: "" });
   }
   return earned;
 }
@@ -471,6 +465,10 @@ export function completeProject(s: GameState, id: string, alerts: Alert[]) {
 }
 
 export function takeDamage(s: GameState, amount: number, alerts: Alert[]) {
+  if (Math.random() < agilityDodgeChance(s.stats.agility)) {
+    log(s, "Agility dodged incoming damage.", "info");
+    return;
+  }
   const damage = Math.max(1, Math.round(amount * strengthDamageMultiplier(s.stats.strength)));
   const previousHp = s.hp;
   s.hp = Math.max(0, s.hp - damage);

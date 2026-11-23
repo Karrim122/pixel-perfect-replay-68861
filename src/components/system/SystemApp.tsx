@@ -62,14 +62,21 @@ function AlertModal() {
   if (!a) return null;
   const danger = a.kind === "exhausted" || a.kind === "penalty" || a.kind === "lowHp";
   const epic = a.kind === "awaken" || a.kind === "monarch";
+  const levelUp = a.kind === "level";
   const motivatingText = a.title === "[SYSTEM] You Showed Up!" ? a.body.split(" Rewards:")[0] : undefined;
   return (
     <div className={cn("fixed inset-0 z-50 flex items-center justify-center p-6 backdrop-blur-md", danger ? "bg-destructive/25" : "bg-background/80")}>
       <div role="alertdialog" aria-modal="true" aria-label={a.title} className={cn("sys-panel w-full max-w-sm p-6 text-center animate-sys-shatter", danger && "sys-danger animate-sys-shake")}>
-        <p className={cn("font-mono text-[10px] uppercase tracking-[0.4em]", danger ? "text-destructive" : "text-primary")}>[ Notification ]</p>
-        <h2 className={cn("mt-3 text-2xl font-bold uppercase", danger ? "text-destructive" : "text-primary sys-glow-text", epic && "text-3xl animate-sys-pulse")}>{a.title}</h2>
-        <AlertDetails body={a.body} motivatingText={motivatingText} />
-        <SysButton variant={danger ? "danger" : "primary"} className="mt-6 w-full" onClick={dismiss}>Acknowledge</SysButton>
+        {levelUp ? (
+          <button type="button" onClick={dismiss} className="text-4xl font-bold text-primary sys-glow-text">Leveled up!</button>
+        ) : (
+          <>
+            <p className={cn("font-mono text-[10px] uppercase tracking-[0.4em]", danger ? "text-destructive" : "text-primary")}>[ Notification ]</p>
+            <h2 className={cn("mt-3 text-2xl font-bold uppercase", danger ? "text-destructive" : "text-primary sys-glow-text", epic && "text-3xl animate-sys-pulse")}>{a.title}</h2>
+            <AlertDetails body={a.body} motivatingText={motivatingText} />
+            <SysButton variant={danger ? "danger" : "primary"} className="mt-6 w-full" onClick={dismiss}>Acknowledge</SysButton>
+          </>
+        )}
       </div>
     </div>
   );

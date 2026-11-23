@@ -5,7 +5,7 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Solo Leveling: System — Level Up Your Life" },
-      { name: "description", content: "A gamified daily quest, weekly quest and focus system inspired by Solo Leveling. Rank up from E to Shadow Monarch." },
+      { name: "description", content: "A gamified daily quest, weekly quest and focus system inspired by Solo Leveling. Rank up from E to Cyber Monarch." },
       { property: "og:title", content: "Solo Leveling: System" },
       { property: "og:description", content: "Daily quests, weekly quests, gates and ranks. Arise, Player." },
       { property: "og:type", content: "website" },
